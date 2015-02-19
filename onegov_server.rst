@@ -5,6 +5,10 @@ Onegov Server API
     :members:
     :undoc-members:
 
+.. automodule:: onegov.server.cli
+    :members:
+    :undoc-members:
+
 .. automodule:: onegov.server.core
     :members:
     :undoc-members:
