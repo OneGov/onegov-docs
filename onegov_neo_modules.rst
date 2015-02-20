@@ -25,6 +25,9 @@ OneGov Core
 Contains functionality shared between all the other OneGov modules, with the
 exception of OneGov Server, which may not depend on the core.
 
+.. toctree::
+    onegov_core
+
 OneGov Town
 -----------
 
