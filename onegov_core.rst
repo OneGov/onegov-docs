@@ -15,6 +15,13 @@ onegov.core.request
     :members:
     :undoc-members:
 
+onegov.core.orm
+---------------
+
+.. automodule:: onegov.core.orm
+    :members:
+    :undoc-members:
+
 onegov.core.utils
 -----------------
 
