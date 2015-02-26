@@ -19,7 +19,7 @@ OneGov Neo
 OneGov Neo is a new development whose goal is to provide municipalities
 with a lean web presence. It focuses on providing ways to manage and process
 transactions (citizen requests). It also offers a way for towns to present
-themselves, thought this is not it's main focus.
+themselves, thought this is not its main focus.
 
 OneGov Neo is built with `Morepath, the web microframework with superpowers 
 <http://morepath.readthedocs.org/en/latest/>`_.
