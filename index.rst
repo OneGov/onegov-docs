@@ -10,6 +10,30 @@ administrators, developers and other techinal personell.
 If you want to know more about what OneGov does, please refer to
 `http://onegov.ch/ <http://onegov.ch/>`_
 
+Projects
+--------
+
+OneGov Neo
+~~~~~~~~~~
+
+OneGov Neo is a new development whose goal is to provide municipalities
+with a lean web presence. It focuses on providing ways to manage and process
+transactions (citizen requests). It also offers a way for towns to present
+themselves, thought this is not it's main focus.
+
+OneGov Neo is built with `Morepath, the web microframework with superpowers 
+<http://morepath.readthedocs.org/en/latest/>`_.
+
+OneGov Neo has strong opinions about the technology it employs. This has the
+following consequenes:
+
+ * It only runs on POSIX platforms.
+ * It uses PostgreSQL 9.1+ and won't support other databases.
+ * It aims to provide concurrency through multiple processes and is not
+   necessarily threadsafe.
+
+**This project is currently under heavy development and very unfinished.**
+
 .. toctree::
    :maxdepth: 2
 
