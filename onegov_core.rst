@@ -22,6 +22,13 @@ onegov.core.orm
     :members:
     :undoc-members:
 
+onegov.core.cache
+-----------------
+
+.. automodule:: onegov.core.cache
+    :members:
+    :undoc-members:
+
 onegov.core.security
 --------------------
 
