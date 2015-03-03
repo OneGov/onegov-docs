@@ -21,7 +21,7 @@ with a lean web presence. It focuses on providing ways to manage and process
 transactions (citizen requests). It also offers a way for towns to present
 themselves, thought this is not its main focus.
 
-OneGov Neo is built with `Morepath, the web microframework with superpowers 
+OneGov Neo is built with `Morepath, the web microframework with superpowers
 <http://morepath.readthedocs.org/en/latest/>`_.
 
 OneGov Neo has strong opinions about the technology it employs. This has the
@@ -31,6 +31,9 @@ following consequenes:
  * It uses PostgreSQL 9.1+ and won't support other databases.
  * It aims to provide concurrency through multiple processes and is not
    necessarily threadsafe.
+
+OneGov Neo supports Python 2.7, Python 3.3 and Python 3.4. PyPy support might
+be added in the future, if no third-party module prevents us from doing that.
 
 **This project is currently under heavy development and very unfinished.**
 
