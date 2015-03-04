@@ -1,38 +1,38 @@
 Onegov Server API
 =================
 
-onegov.server.application
--------------------------
+Application
+-----------
 
 .. automodule:: onegov.server.application
     :members:
 
-onegov.server.core
+Core Functionailty
 ------------------
 
 .. automodule:: onegov.server.core
     :members:
 
-onegov.server.cli
------------------
+Commandline Interface
+---------------------
 
 .. automodule:: onegov.server.cli
     :members:
 
-onegov.server.config
---------------------
+Configuration
+-------------
 
 .. automodule:: onegov.server.config
     :members:
 
-onegov.server.collection
-------------------------
+List of Applications
+--------------------
 
 .. automodule:: onegov.server.collection
     :members:
 
-onegov.server.errors
---------------------
+Errors
+------
 
 .. automodule:: onegov.server.errors
     :members:

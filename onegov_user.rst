@@ -1,21 +1,20 @@
 Onegov User API
 ===============
 
-onegov.user.model
------------------
+Model
+-----
 
 .. automodule:: onegov.user.model
     :members:
 
-onegov.user.collection
-----------------------
+Collection
+----------
 
 .. automodule:: onegov.user.collection
     :members:
 
-
-onegov.user.errors
-------------------
+Errors
+------
 
 .. automodule:: onegov.user.errors
     :members:

@@ -1,32 +1,32 @@
 Onegov Core API
 ===============
 
-onegov.core.framework
----------------------
+Framework
+---------
 
 .. automodule:: onegov.core.framework
     :members:
 
-onegov.core.request
--------------------
+Request
+-------
 
 .. automodule:: onegov.core.request
     :members:
 
-onegov.core.orm
----------------
+ORM
+---
 
 .. automodule:: onegov.core.orm
     :members:
 
-onegov.core.cache
------------------
+Cache
+-----
 
 .. automodule:: onegov.core.cache
     :members:
 
-onegov.core.security
---------------------
+Security
+--------
 
 .. automodule:: onegov.core.security.permissions
     :members:
@@ -37,8 +37,8 @@ onegov.core.security
 .. automodule:: onegov.core.security.rules
     :members:
 
-onegov.core.utils
------------------
+Utils
+-----
 
 .. automodule:: onegov.core.utils
     :members:
