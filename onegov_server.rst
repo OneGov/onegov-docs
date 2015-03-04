@@ -7,7 +7,7 @@ Application
 .. automodule:: onegov.server.application
     :members:
 
-Core Functionailty
+Core Functionality
 ------------------
 
 .. automodule:: onegov.server.core
