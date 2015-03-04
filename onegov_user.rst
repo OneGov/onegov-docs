@@ -12,3 +12,10 @@ onegov.user.collection
 
 .. automodule:: onegov.user.collection
     :members:
+
+
+onegov.user.errors
+------------------
+
+.. automodule:: onegov.user.errors
+    :members:
