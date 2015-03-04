@@ -5,6 +5,57 @@ OneGov Neo Modules
     Currently, all sub-modules have to be added manually. It seems like the
     following could fix that: https://github.com/sphinx-doc/sphinx/issues/709
 
+Hierarchy
+---------
+
+There are three kinds of OneGov Neo Modules:
+
+Base modules
+    Provide the framework under which OneGov Neo is run.
+
+Supporting modules
+    Provide models/methods/utilities, but *no* HTTP interface (neither HTML
+    nor REST).
+
+Applications
+    Utilize the base and the supporting modules to actually provide a web 
+    application. Those may or may not be limited to HTML/REST.
+
+This is how this hierarchy looks like:
+
+.. code-block:: text
+
+                       ┌───────────────┐
+                       │               │
+                       │ onegov.server │  ◇─┐
+                       │               │    │
+                       └───────────────┘    │
+                               ▲            │ base modules
+                               │            │
+                       ┌───────────────┐    │
+                       │               │    │
+                       │  onegov.core  │  ◇─┘
+                       │               │
+                       └───────────────┘
+                               ▲
+                               │
+                       ┌───────────────┐
+                       │               │  ◇─┐
+                       │  onegov.town  │    │ an application
+                       │               │  ◇─┘
+                       └───────────────┘
+            ┌──────────────────┼──────────────────┐
+            ▼                  ▼                  ▼
+    ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+    │               │  │               │  │               │
+    │ onegov.pages  │  │  onegov.user  │  │ onegov.forms  │
+    │               │  │               │  │               │
+    └───────────────┘  └───────────────┘  └───────────────┘
+            ◇                                     ◇
+            └─────────────────────────────────────┘
+                      supporting modules
+          (may depend on onegov.core or each other)
+
 OneGov Server
 -------------
 
