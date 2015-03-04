@@ -94,6 +94,9 @@ OneGov User
 
 Providers user management without any UI.
 
+.. toctree::
+    onegov_user
+
 OneGov Forms
 ------------
 
