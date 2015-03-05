@@ -7,6 +7,13 @@ Framework
 .. automodule:: onegov.core.framework
     :members:
 
+
+Static Files
+------------
+
+.. automodule:: onegov.core.static
+    :members:
+
 Request
 -------
 
