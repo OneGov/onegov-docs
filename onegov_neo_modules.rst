@@ -97,15 +97,15 @@ Providers user management without any UI.
 .. toctree::
     onegov_user
 
-OneGov Forms
-------------
+OneGov Form
+-----------
 
 Integrates the form library WTForms with OneGov and provides useful
 functionality related to that. May generate html, but won't offer any
 UI as such.
 
-OneGov Pages
-------------
+OneGov Page
+-----------
 
 Provides functionality to manage custom pages used by OneGov Town. Does not
 provide a UI, but may render HTML.
