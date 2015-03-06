@@ -111,4 +111,4 @@ Provides functionality to manage custom pages used by OneGov Town. Does not
 provide a UI.
 
 .. toctree::
-    onegov_core
+    onegov_page
