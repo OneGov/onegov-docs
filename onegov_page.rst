@@ -4,11 +4,11 @@ Onegov Page API
 Model
 -----
 
-.. automodule:: onegov.page.model
+.. autoclass:: onegov.page.model.Page
     :members:
 
 Collection
 ----------
 
-.. automodule:: onegov.page.collection
+.. autoclass:: onegov.page.collection.PageCollection
     :members:
