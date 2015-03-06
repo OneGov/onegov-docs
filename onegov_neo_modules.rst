@@ -108,6 +108,7 @@ OneGov Page
 -----------
 
 Provides functionality to manage custom pages used by OneGov Town. Does not
-provide a UI, but may render HTML.
+provide a UI.
 
-Uses Markdown internally.
+.. toctree::
+    onegov_core
