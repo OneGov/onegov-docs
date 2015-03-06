@@ -48,13 +48,13 @@ This is how this hierarchy looks like:
             ▼                  ▼                  ▼
     ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
     │               │  │               │  │               │
-    │ onegov.pages  │  │  onegov.user  │  │ onegov.forms  │
+    │  onegov.page  │  │  onegov.user  │  │  onegov.form  │
     │               │  │               │  │               │
     └───────────────┘  └───────────────┘  └───────────────┘
             ◇                                     ◇
             └─────────────────────────────────────┘
                       supporting modules
-          (may depend on onegov.core or each other)
+           (may depend on onegov.core or each other)
 
 OneGov Server
 -------------
