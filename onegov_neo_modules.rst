@@ -89,6 +89,9 @@ OneGov Town tries to implement features itself when necessary. It's main
 concern is rendering JSON/HTML. Therefore it should be considered the UI
 layer.
 
+.. toctree::
+    onegov_town
+
 OneGov User
 -----------
 
