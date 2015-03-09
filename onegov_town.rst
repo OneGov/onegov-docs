@@ -7,6 +7,12 @@ Application
 .. automodule:: onegov.town.app
     :members:
 
+Commandline Interface
+---------------------
+
+.. automodule:: onegov.town.cli
+    :members:
+
 Models
 ------
 
