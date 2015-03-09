@@ -37,6 +37,17 @@ be added in the future, if no third-party module prevents us from doing that.
 
 **This project is currently under heavy development and very unfinished.**
 
+Developing OneGov Neo
+^^^^^^^^^^^^^^^^^^^^^
+
+Have a look at the development repository for instructions on how to get
+OneGov Neo running:
+
+`<https://github.com/OneGov/dev>`_
+
+OneGov Neo Modules
+^^^^^^^^^^^^^^^^^^
+
 .. toctree::
    :maxdepth: 2
 
