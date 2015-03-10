@@ -13,6 +13,12 @@ Collection
 .. automodule:: onegov.user.collection
     :members:
 
+Commandline Interface
+---------------------
+
+.. automodule:: onegov.user.cli
+    :members:
+
 Errors
 ------
 
