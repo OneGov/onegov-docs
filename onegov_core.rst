@@ -35,13 +35,13 @@ Cache
 Internationalization (i18n)
 ---------------------------
 
-..automodule:: onegov.core.i18n
+.. automodule:: onegov.core.i18n
     :members:
 
 Templating (Chameleon)
 ----------------------
 
-..automodule:: onegov.core.templates
+.. automodule:: onegov.core.templates
     :members:
 
 Security
