@@ -31,6 +31,7 @@ following consequenes:
  * It uses PostgreSQL 9.1+ and won't support other databases.
  * It aims to provide concurrency through multiple processes and is not
    necessarily threadsafe.
+ * It uses Chameleon templates by default.
 
 OneGov Neo supports Python 2.7, Python 3.3 and Python 3.4. PyPy support might
 be added in the future, if no third-party module prevents us from doing that.
