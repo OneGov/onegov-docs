@@ -115,3 +115,12 @@ provide a UI.
 
 .. toctree::
     onegov_page
+
+
+OneGov Foundation
+-----------------
+
+Provides the Zurb Foundation theme for OneGov in an extendable fashion.
+
+.. toctree::
+    onegov_foundation
