@@ -20,6 +20,12 @@ Filestorage
 .. automodule:: onegov.core.filestorage
     :members:
 
+Theme
+-----
+
+.. automodule:: onegov.core.theme
+    :members:
+
 Request
 -------
 
