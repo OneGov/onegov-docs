@@ -14,6 +14,12 @@ Static Files
 .. automodule:: onegov.core.static
     :members:
 
+Filestorage
+-----------
+
+.. automodule:: onegov.core.filestorage
+    :members:
+
 Request
 -------
 
@@ -42,6 +48,12 @@ Templating (Chameleon)
 ----------------------
 
 .. automodule:: onegov.core.templates
+    :members:
+
+Crypto
+------
+
+.. automodule:: onegov.core.crypto
     :members:
 
 Security
