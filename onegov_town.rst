@@ -13,10 +13,10 @@ Commandline Interface
 .. automodule:: onegov.town.cli
     :members:
 
-Initial Content
----------------
+Layout
+------
 
-.. automdoule:: onegov.town.initial_content
+.. automodule:: onegov.town.layout
     :members:
 
 Models
@@ -35,4 +35,16 @@ Views
 -----
 
 .. automodule:: onegov.town.view
+    :members:
+
+Elements
+--------
+
+.. automodule:: onegov.town.elements
+    :members:
+
+Initial Content
+---------------
+
+.. automdoule:: onegov.town.initial_content
     :members:
