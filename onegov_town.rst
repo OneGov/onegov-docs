@@ -13,6 +13,12 @@ Commandline Interface
 .. automodule:: onegov.town.cli
     :members:
 
+Initial Content
+---------------
+
+.. automdoule:: onegov.town.initial_content
+    :members:
+
 Models
 ------
 
