@@ -4,5 +4,5 @@ Onegov Page API
 Core
 ----
 
-.. autoclass:: onegov.form.core
+.. automodule:: onegov.form.core
     :members:

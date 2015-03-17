@@ -34,7 +34,16 @@ Paths
 Views
 -----
 
-.. automodule:: onegov.town.view
+Homepage (/)
+~~~~~~~~~~~~
+
+.. automodule:: onegov.town.views.homepage
+    :members:
+
+Login & Logout (/login, /logout)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: onegov.town.views.login
     :members:
 
 Elements
@@ -46,5 +55,5 @@ Elements
 Initial Content
 ---------------
 
-.. automdoule:: onegov.town.initial_content
+.. automodule:: onegov.town.initial_content
     :members:
