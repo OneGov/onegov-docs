@@ -44,6 +44,12 @@ Cache
 .. automodule:: onegov.core.cache
     :members:
 
+Browser Session
+---------------
+
+.. automodule:: onegov.core.browser_session
+    :members:
+
 Internationalization (i18n)
 ---------------------------
 
