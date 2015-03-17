@@ -107,6 +107,9 @@ Integrates the form library WTForms with OneGov and provides useful
 functionality related to that. May generate html, but won't offer any
 UI as such.
 
+.. toctree::
+    onegov_form
+
 OneGov Page
 -----------
 
