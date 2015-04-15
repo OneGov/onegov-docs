@@ -46,6 +46,12 @@ Login & Logout (/login, /logout)
 .. automodule:: onegov.town.views.login
     :members:
 
+Settings (/settings)
+~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: onegov.town.views.settings
+    :members:
+
 Elements
 --------
 
