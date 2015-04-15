@@ -8,6 +8,12 @@ Framework
     :members:
 
 
+Directive
+---------
+
+.. automodule:: onegov.core.directive
+    :members:
+
 Static Files
 ------------
 
