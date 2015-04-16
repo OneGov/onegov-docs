@@ -52,6 +52,18 @@ Settings (/settings)
 .. automodule:: onegov.town.views.settings
     :members:
 
+Images (/images)
+~~~~~~~~~~~~~~~~
+
+.. automodule:: onegov.town.views.images
+    :members:
+
+Exception Views
+~~~~~~~~~~~~~~~
+
+.. automodule:: onegov.town.views.exceptionviews
+    :members:
+
 Elements
 --------
 
