@@ -127,3 +127,12 @@ Provides the Zurb Foundation theme for OneGov in an extendable fashion.
 
 .. toctree::
     onegov_foundation
+
+
+OneGov Testing
+--------------
+
+Provides commonly used testing code for all OneGov modules.
+
+.. toctree::
+    onegov_testing
