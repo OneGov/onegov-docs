@@ -46,13 +46,25 @@ Login & Logout (/login, /logout)
 .. automodule:: onegov.town.views.login
     :members:
 
-Settings (/settings)
+Page (/themen)
 ~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: onegov.town.view.page
+    :members:
+
+Page Editor (/editor)
+~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: onegov.town.view.editor
+    :members:
+
+Settings (/einstellungen)
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: onegov.town.views.settings
     :members:
 
-Images (/images)
+Images (/bilder)
 ~~~~~~~~~~~~~~~~
 
 .. automodule:: onegov.town.views.images
@@ -68,6 +80,12 @@ Elements
 --------
 
 .. automodule:: onegov.town.elements
+    :members:
+
+Markdown
+--------
+
+.. automodule:: onegov.town.markdown
     :members:
 
 Initial Content

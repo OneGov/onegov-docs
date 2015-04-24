@@ -38,6 +38,18 @@ be added in the future, if no third-party module prevents us from doing that.
 
 **This project is currently under heavy development and very unfinished.**
 
+Language
+~~~~~~~~
+
+Though Onegov Neo supports multiple languages, it only includes German
+currently, as this is the language it's going to be deployed in.
+
+Also, all urls are in German for the same reason. We deploy this for German
+municipalities and probably won't include another language for many years.
+
+Still, development and docs are in English, because that's what we're most
+comfortable in when it comes to development and documentation.
+
 Developing OneGov Neo
 ^^^^^^^^^^^^^^^^^^^^^
 
