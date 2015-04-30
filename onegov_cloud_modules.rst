@@ -1,5 +1,5 @@
-OneGov Neo Modules
-==================
+OneGov Cloud Modules
+====================
 
 ..
     Currently, all sub-modules have to be added manually. It seems like the

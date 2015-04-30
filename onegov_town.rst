@@ -49,13 +49,13 @@ Login & Logout (/login, /logout)
 Page (/themen)
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: onegov.town.view.page
+.. automodule:: onegov.town.views.page
     :members:
 
 Page Editor (/editor)
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: onegov.town.view.editor
+.. automodule:: onegov.town.views.editor
     :members:
 
 Settings (/einstellungen)
