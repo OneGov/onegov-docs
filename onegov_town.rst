@@ -22,7 +22,13 @@ Layout
 Models
 ------
 
-.. autoclass:: onegov.town.model.Town
+.. automodule:: onegov.town.models.town
+    :members:
+
+.. automodule:: onegov.town.models.image
+    :members:
+
+.. automodule:: onegov.town.models.editor
     :members:
 
 Paths
@@ -82,14 +88,14 @@ Elements
 .. automodule:: onegov.town.elements
     :members:
 
-Markdown
---------
-
-.. automodule:: onegov.town.markdown
-    :members:
-
 Initial Content
 ---------------
 
 .. automodule:: onegov.town.initial_content
+    :members:
+
+Utils
+-----
+
+.. automodule:: onegov.town.utils
     :members:
