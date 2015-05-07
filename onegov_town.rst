@@ -31,6 +31,9 @@ Models
 .. automodule:: onegov.town.models.editor
     :members:
 
+.. automodule:: onegov.town.models.page
+    :members:
+
 Paths
 -----
 
