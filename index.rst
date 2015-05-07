@@ -95,7 +95,7 @@ Activate it::
     source bin/activate
 
 Install Onegov Cloud::
-    
+
     pip install onegov.town
 
 Get the configuration file::
@@ -117,7 +117,7 @@ Add your own town::
 
 Add your own admin::
 
-    bin/onegov-user --dsn postgres://dev:dev@localhost:5432/onegov --schema towns-govikon add admin admin@example.org
+    bin/onegov-user --dsn postgres://user:password@localhost:5432/database --schema towns-govikon add admin admin@example.org
 
 Run your onegov town instance::
 
