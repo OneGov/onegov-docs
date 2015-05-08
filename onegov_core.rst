@@ -44,6 +44,15 @@ ORM
 .. automodule:: onegov.core.orm
     :members:
 
+.. automodule:: onegov.core.orm.debug
+    :members:
+
+.. automodule:: onegov.core.orm.mixins
+    :members:
+
+.. automodule:: onegov.core.orm.types
+    :members:
+
 Cache
 -----
 
