@@ -15,7 +15,27 @@ Models
 Collection
 ----------
 
-..automodule:: onegov.form.collection
+.. automodule:: onegov.form.collection
+
+Display
+-------
+
+.. automodule:: onegov.form.display
+
+Fields
+------
+
+.. automodule:: onegov.form.fields
+
+Widgets
+-------
+
+.. automodule:: onegov.form.widgets
+
+Validators
+----------
+
+.. automodule:: onegov.form.validators
 
 Parser
 ------
@@ -24,4 +44,10 @@ Parser
     :members:
 
 .. automodule:: onegov.form.parser.grammar
+    :members:
+
+Errors
+------
+
+.. automodule:: onegov.form.parser.errors
     :members:
