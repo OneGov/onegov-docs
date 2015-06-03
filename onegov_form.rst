@@ -1,4 +1,4 @@
-Onegov Page API
+Onegov Form API
 ===============
 
 Core
@@ -10,7 +10,7 @@ Core
 Models
 ------
 
-.. automdoule:: onegov.form.models
+.. automodule:: onegov.form.models
 
 Collection
 ----------
@@ -49,5 +49,5 @@ Parser
 Errors
 ------
 
-.. automodule:: onegov.form.parser.errors
+.. automodule:: onegov.form.errors
     :members:
