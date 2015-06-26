@@ -33,7 +33,7 @@ following consequenes:
    necessarily threadsafe.
  * It uses Chameleon templates by default.
 
-Onegov Cloud supports Python 2.7, Python 3.3 and Python 3.4. PyPy support might
+Onegov Cloud supports Python 2.7 and Python 3.4. PyPy support might
 be added in the future, if no third-party module prevents us from doing that.
 
 **This project is currently under heavy development and very unfinished.**
