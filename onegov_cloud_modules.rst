@@ -18,7 +18,7 @@ Supporting modules
     nor REST).
 
 Applications
-    Utilize the base and the supporting modules to actually provide a web 
+    Utilize the base and the supporting modules to actually provide a web
     application. Those may or may not be limited to HTML/REST.
 
 This is how this hierarchy looks like:
@@ -136,3 +136,22 @@ Provides commonly used testing code for all OneGov modules.
 
 .. toctree::
     onegov_testing
+
+
+OneGov Election Day
+-------------------
+
+Shows Swiss election/voting results in an archive and as they come in during
+voting day.
+
+.. toctree::
+    onegov_election_day
+
+
+OneGov Ballot
+-------------
+
+Contains a model representing elections/votes in Switzerland.
+
+.. toctree::
+    onegov_ballot

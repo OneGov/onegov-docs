@@ -7,7 +7,6 @@ Framework
 .. automodule:: onegov.core.framework
     :members:
 
-
 Directive
 ---------
 
@@ -77,6 +76,12 @@ Templating (Chameleon)
 .. automodule:: onegov.core.templates
     :members:
 
+Layout
+------
+
+.. automodule:: onegov.core.layout
+    :members:
+
 Crypto
 ------
 
@@ -93,6 +98,18 @@ Security
     :members:
 
 .. automodule:: onegov.core.security.rules
+    :members:
+
+Cli
+---
+
+.. automodule:: onegov.core.cli
+    :members:
+
+Upgrade
+-------
+
+.. automodule:: onegov.core.upgrade
     :members:
 
 Utils
