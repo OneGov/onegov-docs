@@ -8,10 +8,10 @@ OneGov Cloud Modules
 Hierarchy
 ---------
 
-There are three kinds of OneGov Neo Modules:
+There are three kinds of OneGov Cloud Modules:
 
 Base modules
-    Provide the framework under which OneGov Neo is run.
+    Provide the framework under which OneGov Cloud is run.
 
 Supporting modules
     Provide models/methods/utilities, but *no* HTTP interface (neither HTML
