@@ -46,6 +46,9 @@ ORM
 .. automodule:: onegov.core.orm.debug
     :members:
 
+.. automodule:: onegov.core.orm.abstract
+    :members:
+
 .. automodule:: onegov.core.orm.mixins
     :members:
 
