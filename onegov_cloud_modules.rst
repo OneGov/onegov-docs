@@ -119,6 +119,14 @@ provide a UI.
 .. toctree::
     onegov_page
 
+OneGov Org
+----------
+
+Provides functionality to manage organisations, people and memberships. Does
+not provide a UI.
+
+.. toctree::
+    onegov_org
 
 OneGov Foundation
 -----------------
@@ -128,7 +136,6 @@ Provides the Zurb Foundation theme for OneGov in an extendable fashion.
 .. toctree::
     onegov_foundation
 
-
 OneGov Testing
 --------------
 
@@ -136,7 +143,6 @@ Provides commonly used testing code for all OneGov modules.
 
 .. toctree::
     onegov_testing
-
 
 OneGov Election Day
 -------------------
@@ -146,7 +152,6 @@ voting day.
 
 .. toctree::
     onegov_election_day
-
 
 OneGov Ballot
 -------------
