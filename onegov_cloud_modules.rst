@@ -119,14 +119,13 @@ provide a UI.
 .. toctree::
     onegov_page
 
-OneGov Org
-----------
+OneGov People
+-------------
 
-Provides functionality to manage organisations, people and memberships. Does
-not provide a UI.
+Provides functionality to manage people. Does not provide a UI.
 
 .. toctree::
-    onegov_org
+    onegov_people
 
 OneGov Foundation
 -----------------
