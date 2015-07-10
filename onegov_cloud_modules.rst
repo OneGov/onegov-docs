@@ -135,6 +135,14 @@ Provides the Zurb Foundation theme for OneGov in an extendable fashion.
 .. toctree::
     onegov_foundation
 
+OneGov Ticket
+-------------
+
+A simple ticketing system for OneGov.
+
+.. toctree::
+    onegov_ticket
+
 OneGov Testing
 --------------
 
