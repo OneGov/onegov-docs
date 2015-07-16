@@ -22,13 +22,28 @@ Layout
 Models
 ------
 
+.. automodule:: onegov.town.models.extensions
+    :members:
+
 .. automodule:: onegov.town.models.town
+    :members:
+
+.. automodule:: onegov.town.models.file
     :members:
 
 .. automodule:: onegov.town.models.image
     :members:
 
+.. automodule:: onegov.town.models.form
+    :members:
+
+.. automodule:: onegov.town.models.traitinfo
+    :members:
+
 .. automodule:: onegov.town.models.editor
+    :members:
+
+.. automodule:: onegov.town.models.ticket
     :members:
 
 .. automodule:: onegov.town.models.page
@@ -55,6 +70,24 @@ Login & Logout (/login, /logout)
 .. automodule:: onegov.town.views.login
     :members:
 
+Forms (/formulare, /formular)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: onegov.town.views.form_collection
+    :members:
+
+.. automodule:: onegov.town.views.form_definition
+    :members:
+
+.. automodule:: onegov.town.views.form_submission
+    :members:
+
+Tickets (/tickets)
+~~~~~~~~~~~~~~~~~~
+
+.. automodule:: onegov.town.views.ticket
+    :members:
+
 Page (/themen)
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -67,10 +100,22 @@ Page Editor (/editor)
 .. automodule:: onegov.town.views.editor
     :members:
 
+People (/personen)
+~~~~~~~~~~~~~~~~~~
+
+.. automodule:: onegov.town.views.people
+    :members:
+
 Settings (/einstellungen)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: onegov.town.views.settings
+    :members:
+
+Files (/dateien)
+~~~~~~~~~~~~~~~~
+
+.. automodule:: onegov.town.views.files
     :members:
 
 Images (/bilder)
@@ -101,4 +146,22 @@ Utils
 -----
 
 .. automodule:: onegov.town.utils
+    :members:
+
+Mail
+----
+
+.. automodule:: onegov.town.mail
+    :members:
+
+Translations
+------------
+
+.. automodule:: onegov.town.translations
+    :members:
+
+Upgrade
+-------
+
+.. automodule:: onegov.town.upgrade
     :members:

@@ -103,6 +103,12 @@ Security
 .. automodule:: onegov.core.security.rules
     :members:
 
+Collection
+----------
+
+.. automodule:: onegov.core.collection
+    :members:
+
 Cli
 ---
 
@@ -119,4 +125,22 @@ Utils
 -----
 
 .. automodule:: onegov.core.utils
+    :members:
+
+Custom JSON
+-----------
+
+.. automodule:: onegov.core.custom_json
+    :members:
+
+JSX
+---
+
+.. automodule:: onegov.core.jsx
+    :members:
+
+Mail
+----
+
+.. automodule:: onegov.core.mail
     :members:
