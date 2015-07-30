@@ -143,6 +143,17 @@ A simple ticketing system for OneGov.
 .. toctree::
     onegov_ticket
 
+OneGov Libres
+-------------
+
+Libres integration for OneGov Cloud. 
+
+Libres is a python library to reserve stuff:
+`Libres on Github <https://github.com/seantis/libres/>`_
+
+.. toctree::
+    onegov_libres
+
 OneGov Testing
 --------------
 
