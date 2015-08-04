@@ -46,8 +46,13 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx',
     'alabaster'
 ]
+
+intersphinx_mapping = {
+    'libres': ('http://libres.readthedocs.org/en/latest/', None)
+}
 
 autodoc_member_order = 'bysource'
 

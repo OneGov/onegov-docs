@@ -49,6 +49,9 @@ Models
 .. automodule:: onegov.town.models.page
     :members:
 
+.. automodule:: onegov.town.models.resource
+    :members:
+
 Paths
 -----
 
