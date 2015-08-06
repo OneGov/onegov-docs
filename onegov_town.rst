@@ -58,6 +58,33 @@ Paths
 .. automodule:: onegov.town.path
     :members:
 
+Form Models
+-----------
+
+.. automodule:: onegov.town.forms.allocation
+    :members:
+
+.. automodule:: onegov.town.forms.form_definition
+    :members:
+
+.. automodule:: onegov.town.forms.login
+    :members:
+
+.. automodule:: onegov.town.forms.page
+    :members:
+
+.. automodule:: onegov.town.forms.person
+    :members:
+
+.. automodule:: onegov.town.forms.reset_password
+    :members:
+
+.. automodule:: onegov.town.forms.resource
+    :members:
+
+.. automodule:: onegov.town.forms.settings
+    :members:
+
 Views
 -----
 
