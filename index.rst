@@ -7,8 +7,8 @@ open-source web-applications to present and manage themeslves through the web.
 You've reached the technical documentation of this initiative intended for
 administrators, developers and other technical personnel.
 
-If you want to know more about what Onegov does, please refer to
-`http://Onegov.ch/ <http://Onegov.ch/>`_
+If you want to know more about what Onegov Cloud does, please refer to
+`https://onegovcloud.ch/ <https://onegovcloud.ch/>`_
 
 Projects
 --------
