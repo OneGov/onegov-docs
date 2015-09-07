@@ -154,6 +154,14 @@ Libres is a python library to reserve stuff:
 .. toctree::
     onegov_libres
 
+OneGov Event
+------------
+
+A simple event (concert, meetup, party) system for OneGov Cloud.
+
+.. toctree::
+    onegov_event
+
 OneGov Testing
 --------------
 
