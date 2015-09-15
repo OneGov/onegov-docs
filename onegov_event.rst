@@ -1,14 +1,21 @@
 Onegov Event API
 ================
 
+Commandline Interface
+---------------------
+
+.. automodule:: onegov.event.cli
+    :members:
+
+
 Models
 ------
 
-.. automodule:: onegov.event.model
+.. automodule:: onegov.event.models
     :members:
 
-Collection
-----------
+Collections
+-----------
 
-.. automodule:: onegov.event.collection
+.. automodule:: onegov.event.collections
     :members:
