@@ -162,6 +162,14 @@ A simple event (concert, meetup, party) system for OneGov Cloud.
 .. toctree::
     onegov_event
 
+OneGov Search
+-------------
+
+Elasticsearch integration for OneGov Cloud.
+
+.. toctree::
+    onegov_search
+
 OneGov Testing
 --------------
 
