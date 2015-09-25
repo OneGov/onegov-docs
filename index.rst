@@ -76,13 +76,20 @@ following installed:
  * Memcached
  * Python 2.7 or Python 3.4
 
+To provide fulltext search, OneGov Cloud relies on elasticsearch. It is however
+optional and if it's not installed, the search simply won't work.
+
 You can install all dependencies like this on OSX (Homebrew)::
 
     brew install postgresql9 memcached libmemcached
+    brew install elasticsearch
 
 And like this on Ubuntu::
 
     sudo apt-get install postgresql-9.3 memcached libmemcached-dev
+
+For Elasticsearch follow the official instructions on Ubuntu:
+https://www.elastic.co/guide/en/elasticsearch/guide/current/_installing_elasticsearch.html
 
 Having done that, create a virtualenv::
 
