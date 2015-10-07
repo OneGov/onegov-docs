@@ -170,6 +170,14 @@ Elasticsearch integration for OneGov Cloud.
 .. toctree::
     onegov_search
 
+OneGov Shared
+-------------
+
+Assets and other things shared between multiple onegov applications.
+
+.. toctree::
+    onegov_shared
+
 OneGov Testing
 --------------
 
