@@ -33,8 +33,7 @@ following consequenes:
    necessarily threadsafe.
  * It uses Chameleon templates by default.
 
-Onegov Cloud supports Python 2.7 and Python 3.4. PyPy support might
-be added in the future, if no third-party module prevents us from doing that.
+Onegov Cloud supports Python 3.4+. Python 2.x is not supported.
 
 **This project is currently under heavy development and very unfinished.**
 
@@ -74,7 +73,7 @@ following installed:
 
  * Postgres 9.1+
  * Memcached
- * Python 2.7 or Python 3.4
+ * Python Python 3.4+ (Python 2.x is not supported)
 
 To provide fulltext search, OneGov Cloud relies on elasticsearch. It is however
 optional and if it's not installed, the search simply won't work.
