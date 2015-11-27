@@ -1,27 +1,27 @@
-Onegov Tech Docs
+OneGov Tech Docs
 ================
 
-Onegov is a Swiss initiative to provide municipalities with affordable and
+OneGov is a Swiss initiative to provide municipalities with affordable and
 open-source web-applications to present and manage themeslves through the web.
 
 You've reached the technical documentation of this initiative intended for
 administrators, developers and other technical personnel.
 
-If you want to know more about what Onegov Cloud does, please refer to
+If you want to know more about what OneGov Cloud does, please refer to
 `https://onegovcloud.ch/ <https://onegovcloud.ch/>`_
 
-Onegov Cloud
+OneGov Cloud
 ------------
 
-Onegov Cloud is a new development whose goal is to provide municipalities
+OneGov Cloud is a new development whose goal is to provide municipalities
 with a lean web presence. It focuses on providing ways to manage and process
 transactions (citizen requests). It also offers a way for towns to present
 themselves, thought this is not its main focus.
 
-Onegov Cloud is built with `Morepath, the web microframework with superpowers
+OneGov Cloud is built with `Morepath, the web microframework with superpowers
 <http://morepath.readthedocs.org/en/latest/>`_.
 
-Onegov Cloud has strong opinions about the technology it employs. This has the
+OneGov Cloud has strong opinions about the technology it employs. This has the
 following consequenes:
 
  * It only runs on POSIX platforms.
@@ -33,7 +33,7 @@ following consequenes:
 Language
 ^^^^^^^^
 
-Though Onegov Cloud supports multiple languages, it only includes German
+Though OneGov Cloud supports multiple languages, it only includes German
 currently, as this is the language it's going to be deployed in.
 
 Also, all urls are in German for the same reason. We deploy this for German
@@ -45,18 +45,18 @@ comfortable in when it comes to development and documentation.
 Demo
 ^^^^
 
-The latest release of Onegov Town, the flagship application of Onegov Cloud,
+The latest release of OneGov Town, the flagship application of OneGov Cloud,
 is available at `<https://govikon.onegovcloud.ch>`_.
 
-Developing Onegov Cloud
+Developing OneGov Cloud
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Have a look at the development repository for instructions on how to get
-Onegov Cloud running:
+OneGov Cloud running:
 
 `<https://github.com/onegov/dev>`_
 
-Onegov Cloud Modules
+OneGov Cloud Modules
 ^^^^^^^^^^^^^^^^^^^^
 
 .. toctree::

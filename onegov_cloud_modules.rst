@@ -59,13 +59,13 @@ This is how this hierarchy looks like:
 OneGov Server
 -------------
 
-`https://github.com/OneGov/onegov.server.git <https://github.com/OneGov/onegov.server.git>`_
-
 Serves the OneGov web-applications. Meant to be the runner and configurator
 of all applications. Not meant to run publicly. Like all python
 web-applications this one should be proxied behind Nginx or Apache2.
 
 OneGov server does not depend on any other OneGov module.
+
+* `OneGov Server on Github <https://github.com/OneGov/onegov.server.git>`_
 
 .. toctree::
     onegov_server
@@ -75,6 +75,8 @@ OneGov Core
 
 Contains functionality shared between all the other OneGov modules, with the
 exception of OneGov Server, which may not depend on the core.
+
+* `OneGov Core on Github <https://github.com/OneGov/onegov.core.git>`_
 
 .. toctree::
     onegov_core
@@ -89,6 +91,8 @@ OneGov Town tries to implement features itself when necessary. It's main
 concern is rendering JSON/HTML. Therefore it should be considered the UI
 layer.
 
+* `OneGov Town on Github <https://github.com/OneGov/onegov.town.git>`_
+
 .. toctree::
     onegov_town
 
@@ -96,6 +100,8 @@ OneGov User
 -----------
 
 Providers user management without any UI.
+
+* `OneGov User on Github <https://github.com/OneGov/onegov.user.git>`_
 
 .. toctree::
     onegov_user
@@ -107,6 +113,8 @@ Integrates the form library WTForms with OneGov and provides useful
 functionality related to that. May generate html, but won't offer any
 UI as such.
 
+* `OneGov Form on Github <https://github.com/OneGov/onegov.form.git>`_
+
 .. toctree::
     onegov_form
 
@@ -116,6 +124,8 @@ OneGov Page
 Provides functionality to manage custom pages used by OneGov Town. Does not
 provide a UI.
 
+* `OneGov Page on Github <https://github.com/OneGov/onegov.page.git>`_
+
 .. toctree::
     onegov_page
 
@@ -123,6 +133,8 @@ OneGov People
 -------------
 
 Provides functionality to manage people. Does not provide a UI.
+
+* `OneGov People on Github <https://github.com/OneGov/onegov.people.git>`_
 
 .. toctree::
     onegov_people
@@ -132,6 +144,8 @@ OneGov Foundation
 
 Provides the Zurb Foundation theme for OneGov in an extendable fashion.
 
+* `OneGov Foundation on Github <https://github.com/OneGov/onegov.foundation.git>`_
+
 .. toctree::
     onegov_foundation
 
@@ -140,16 +154,18 @@ OneGov Ticket
 
 A simple ticketing system for OneGov.
 
+* `OneGov Ticket on Github <https://github.com/OneGov/onegov.ticket.git>`_
+
 .. toctree::
     onegov_ticket
 
 OneGov Libres
 -------------
 
-Libres integration for OneGov Cloud. 
+Libres integration for OneGov Cloud. Libres is a python library to reserve stuff.
 
-Libres is a python library to reserve stuff:
-`Libres on Github <https://github.com/seantis/libres/>`_
+* `Libres Documentation <http://libres.readthedocs.org/en/latest/>`_
+* `OneGov Libres on Github <https://github.com/OneGov/onegov.libres.git>`_
 
 .. toctree::
     onegov_libres
@@ -159,6 +175,8 @@ OneGov Event
 
 A simple event (concert, meetup, party) system for OneGov Cloud.
 
+* `OneGov Event on Github <https://github.com/OneGov/onegov.event.git>`_
+
 .. toctree::
     onegov_event
 
@@ -166,6 +184,8 @@ OneGov Search
 -------------
 
 Elasticsearch integration for OneGov Cloud.
+
+* `OneGov Search on Github <https://github.com/OneGov/onegov.search.git>`_
 
 .. toctree::
     onegov_search
@@ -175,6 +195,8 @@ OneGov Shared
 
 Assets and other things shared between multiple onegov applications.
 
+* `OneGov Assets on Github <https://github.com/OneGov/onegov.assets.git>`_
+
 .. toctree::
     onegov_shared
 
@@ -182,6 +204,8 @@ OneGov Testing
 --------------
 
 Provides commonly used testing code for all OneGov modules.
+
+* `OneGov Testing on Github <https://github.com/OneGov/onegov.testing.git>`_
 
 .. toctree::
     onegov_testing
@@ -192,6 +216,8 @@ OneGov Election Day
 Shows Swiss election/voting results in an archive and as they come in during
 voting day.
 
+* `OneGov Election Day on Github <https://github.com/OneGov/onegov.election_day.git>`_
+
 .. toctree::
     onegov_election_day
 
@@ -199,6 +225,8 @@ OneGov Ballot
 -------------
 
 Contains a model representing elections/votes in Switzerland.
+
+* `OneGov Ballot on Github <https://github.com/OneGov/onegov.ballot.git>`_
 
 .. toctree::
     onegov_ballot
