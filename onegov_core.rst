@@ -144,3 +144,13 @@ Mail
 
 .. automodule:: onegov.core.mail
     :members:
+
+.. automodule:: onegov.core.datamanager
+    :members:
+
+CSV
+---
+
+.. automodule:: onegov.core.csv
+    :members:
+
