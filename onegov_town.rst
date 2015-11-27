@@ -67,9 +67,6 @@ Form Models
 .. automodule:: onegov.town.forms.form_definition
     :members:
 
-.. automodule:: onegov.town.forms.login
-    :members:
-
 .. automodule:: onegov.town.forms.page
     :members:
 
@@ -97,7 +94,7 @@ Homepage (/)
 Login & Logout (/login, /logout)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: onegov.town.views.login
+.. automodule:: onegov.town.views.auth
     :members:
 
 Forms (/formulare, /formular)

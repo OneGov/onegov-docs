@@ -13,10 +13,13 @@ Layout
 .. automodule:: onegov.election_day.layout
     :members:
 
-Model
------
+Models
+------
 
-.. automodule:: onegov.election_day.model
+.. automodule:: onegov.election_day.models.manage
+    :members:
+
+.. automodule:: onegov.election_day.models.principal
     :members:
 
 Paths
