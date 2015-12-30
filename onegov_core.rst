@@ -79,6 +79,18 @@ Templating (Chameleon)
 .. automodule:: onegov.core.templates
     :members:
 
+Distributed Locks
+-----------------
+
+.. automodule:: onegov.core.locking
+    :members:
+
+Cronjobs
+--------
+
+.. automodule:: onegov.core.cronjobs
+    :members:
+
 Layout
 ------
 
