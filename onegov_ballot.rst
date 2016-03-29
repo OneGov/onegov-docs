@@ -1,10 +1,16 @@
 Onegov Ballot API
 =================
 
-Models
-------
+Election Models
+---------------
 
-.. automodule:: onegov.ballot.models
+.. automodule:: onegov.ballot.models.election
+    :members:
+
+Vote Models
+-----------
+
+.. automodule:: onegov.ballot.models.vote
     :members:
 
 Collection
