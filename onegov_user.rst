@@ -19,6 +19,12 @@ Commandline Interface
 .. automodule:: onegov.user.cli
     :members:
 
+Forms
+-----
+
+.. automodule:: onegov.user.forms
+    :members:
+
 Errors
 ------
 

@@ -145,10 +145,10 @@ Custom JSON
 .. automodule:: onegov.core.custom_json
     :members:
 
-JSX
----
+Webasset Filters
+----------------
 
-.. automodule:: onegov.core.jsx
+.. automodule:: onegov.core.filters
     :members:
 
 Mail

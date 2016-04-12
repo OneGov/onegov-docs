@@ -88,6 +88,9 @@ Form Models
 .. automodule:: onegov.town.forms.form_definition
     :members:
 
+.. automodule:: onegov.town.forms.newsletter
+    :members:
+
 .. automodule:: onegov.town.forms.page
     :members:
 
@@ -104,6 +107,9 @@ Form Models
     :members:
 
 .. automodule:: onegov.town.forms.settings
+    :members:
+
+.. automodule:: onegov.town.forms.userprofile
     :members:
 
 Views
@@ -148,6 +154,9 @@ Views
 .. automodule:: onegov.town.views.images
     :members:
 
+.. automodule:: onegov.town.views.newsletter
+    :members:
+
 .. automodule:: onegov.town.views.occurrence
     :members:
 
@@ -184,6 +193,9 @@ Views
 .. automodule:: onegov.town.views.ticket
     :members:
 
+.. automodule:: onegov.town.views.userprofile
+    :members:
+
 Elements
 --------
 
@@ -196,8 +208,17 @@ Initial Content
 .. automodule:: onegov.town.initial_content
     :members:
 
+Cronjobs
+--------
+
+.. automodule:: onegov.town.cronjobs
+    :members:
+
 Utils
 -----
+
+.. automodule:: onegov.town.converters
+    :members:
 
 .. automodule:: onegov.town.utils
     :members:

@@ -190,6 +190,28 @@ Elasticsearch integration for OneGov Cloud.
 .. toctree::
     onegov_search
 
+OneGov Newsletter
+-----------------
+
+Contains models to handle the sending of newsletters and the managing of
+subscribers/recipients.
+
+* `OneGov Newsletter on Github <https://github.com/OneGov/onegov.newsletter.git>`_
+
+.. toctree::
+    onegov_newsletter
+
+OneGov Gis
+----------
+
+Contains models, methods and javascript to use, work with and display maps and
+coordinates.
+
+* `OneGov Gis on Github <https://github.com/OneGov/onegov.gis.git>`_
+
+.. toctree::
+    onegov_gis
+
 OneGov Shared
 -------------
 
