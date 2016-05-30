@@ -67,5 +67,5 @@ Forms
 Utils
 -----
 
-.. automodule:: onegov.election_day.forms
+.. automodule:: onegov.election_day.utils
     :members:
