@@ -121,10 +121,13 @@ Collection
 .. automodule:: onegov.core.collection
     :members:
 
-Cli
----
+Cli Commands
+------------
 
-.. automodule:: onegov.core.cli
+.. automodule:: onegov.core.cli.core
+    :members:
+
+.. automodule:: onegov.core.cli.commands
     :members:
 
 Upgrade
