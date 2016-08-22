@@ -17,6 +17,10 @@ Supporting modules
     Provide models/methods/utilities, but *no* HTTP interface (neither HTML
     nor REST).
 
+Base applications
+    Provide shared bases for multiple applications. Namely it allows for
+    shared UI elements.
+
 Applications
     Utilize the base and the supporting modules to actually provide a web
     application. Those may or may not be limited to HTML/REST.
@@ -36,6 +40,13 @@ This is how this hierarchy looks like:
                        │               │    │
                        │  onegov.core  │  ◇─┘
                        │               │
+                       └───────────────┘
+                               ▲
+                               │
+                       ┌───────────────┐
+                       │               │  ◇─┐
+                       │  onegov.org   │    │ a base application
+                       │               │  ◇─┘
                        └───────────────┘
                                ▲
                                │
@@ -81,6 +92,18 @@ exception of OneGov Server, which may not depend on the core.
 .. toctree::
     onegov_core
 
+OneGov Org
+----------
+
+Provides a base for applications written for organsiations close to the
+government. For example, municipalities, youth organisations, elderly care,
+and so on.
+
+* `OneGov Org on Github <https://github.com/OneGov/onegov.org.git>`_
+
+.. toctree::
+    onegov_org
+
 OneGov Town
 -----------
 
@@ -117,6 +140,17 @@ UI as such.
 
 .. toctree::
     onegov_form
+
+OneGov File
+-----------
+
+Provides a way to store and serve files tied to the database and bound to
+the transaction.
+
+* `OneGov File on Github <https://github.com/OneGov/onegov.file.git>`_
+
+.. toctree::
+    onegov_file
 
 OneGov Page
 -----------
