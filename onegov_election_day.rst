@@ -16,16 +16,49 @@ Layout
 Models
 ------
 
-.. automodule:: onegov.election_day.models.manage
+.. automodule:: onegov.election_day.models.archived_result
+    :members:
+
+.. automodule:: onegov.election_day.models.notification
     :members:
 
 .. automodule:: onegov.election_day.models.principal
+    :members:
+
+Collections
+-----------
+
+.. automodule:: onegov.election_day.collections.archived_result_collection
+    :members:
+
+.. automodule:: onegov.election_day.collections.notification_collection
     :members:
 
 Paths
 -----
 
 .. automodule:: onegov.election_day.path
+    :members:
+
+Formats
+-------
+
+.. automodule:: onegov.election_day.formats.election.onegov_ballot
+    :members:
+
+.. automodule:: onegov.election_day.formats.election.sesam
+    :members:
+
+.. automodule:: onegov.election_day.formats.election.wabsti.majorz
+    :members:
+
+.. automodule:: onegov.election_day.formats.election.wabsti.proporz
+    :members:
+
+.. automodule:: onegov.election_day.formats.vote.onegov_ballot
+    :members:
+
+.. automodule:: onegov.election_day.formats.vote.wabsti
     :members:
 
 Views
@@ -40,13 +73,13 @@ Views
 .. automodule:: onegov.election_day.views.election
     :members:
 
-.. automodule:: onegov.election_day.views.homepage
-    :members:
-
 .. automodule:: onegov.election_day.views.locale
     :members:
 
-.. automodule:: onegov.election_day.views.manage
+.. automodule:: onegov.election_day.views.manage_elections
+    :members:
+
+.. automodule:: onegov.election_day.views.manage_votes
     :members:
 
 .. automodule:: onegov.election_day.views.upload_election
@@ -61,7 +94,13 @@ Views
 Forms
 -----
 
-.. automodule:: onegov.election_day.forms
+.. automodule:: onegov.election_day.forms.election
+    :members:
+
+.. automodule:: onegov.election_day.forms.upload
+    :members:
+
+.. automodule:: onegov.election_day.forms.vote
     :members:
 
 Utils

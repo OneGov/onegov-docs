@@ -286,3 +286,24 @@ Contains a model representing elections/votes in Switzerland.
 
 .. toctree::
     onegov_ballot
+
+OneGov Feriennet
+----------------
+
+Developed for Pro Juventute, this specialised organisation website helps to
+organise summer activites for Switzerland's youth.
+
+* `OneGov Feriennet on Github <https://github.com/OneGov/onegov.feriennet.git>`_
+
+.. toctree::
+    onegov_feriennet
+
+OneGov Activity
+---------------
+
+Contains the model representing youth activites for Pro Juventute.
+
+* `OneGov Activity on Github <https://github.com/OneGov/onegov.activity.git>`_
+
+.. toctree::
+    onegov_activity
