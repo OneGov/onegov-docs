@@ -1,8 +1,13 @@
-OneGov Tech Docs
-================
+OneGov Cloud
+============
 
-OneGov is a Swiss initiative to provide municipalities with affordable and
-open-source web-applications to present and manage themeslves through the web.
+Technical Documentation
+-----------------------
+
+OneGov Cloud is a Swiss initiative to provide municipalities with open-source
+web-applications to present and manage themselves through the web.
+
+.. image:: _static/govikon.png
 
 You've reached the technical documentation of this initiative intended for
 administrators, developers and other technical personnel.
@@ -10,56 +15,56 @@ administrators, developers and other technical personnel.
 If you want to know more about what OneGov Cloud does, please refer to
 `https://onegovcloud.ch/ <https://onegovcloud.ch/>`_
 
-OneGov Cloud
+Introduction
 ------------
 
-OneGov Cloud is a new development whose goal is to provide municipalities
-with a lean web presence. It focuses on providing ways to manage and process
-transactions (citizen requests). It also offers a way for towns to present
-themselves, thought this is not its main focus.
-
-OneGov Cloud is built with `Morepath, the web microframework with superpowers
-<http://morepath.readthedocs.io/en/latest/>`_.
+OneGov Cloud is a RAD framework built with `Morepath, the web micro-framework
+with superpowers <http://morepath.readthedocs.io/en/latest/>`_. It enables us
+to write web applications for government agencies in a secure, efficient and
+modern manner.
 
 OneGov Cloud has strong opinions about the technology it employs. This has the
-following consequenes:
+following consequences:
 
  * It only runs on POSIX platforms.
  * It uses PostgreSQL 9.3+ and won't support other databases.
  * It requires Python 3.4+. Python 2.x is *not* supported.
  * It aims to provide concurrency through multiple processes and is not
-   necessarily threadsafe.
+   necessarily thread-safe.
 
-Language
-^^^^^^^^
-
-Though OneGov Cloud supports multiple languages, it only includes German
-currently, as this is the language it's going to be deployed in.
-
-Also, all urls are in German for the same reason. We deploy this for German
-municipalities and probably won't include another language for many years.
-
-Still, development and docs are in English, because that's what we're most
-comfortable in when it comes to development and documentation.
-
-Demo
-^^^^
-
-The latest release of OneGov Town, the flagship application of OneGov Cloud,
-is available at `<https://govikon.onegovcloud.ch>`_.
-
-Developing OneGov Cloud
-^^^^^^^^^^^^^^^^^^^^^^^
-
-Have a look at the development repository for instructions on how to get
-OneGov Cloud running:
-
-`<https://github.com/onegov/dev>`_
-
-OneGov Cloud Modules
+Internationalization
 ^^^^^^^^^^^^^^^^^^^^
 
-.. toctree::
-   :maxdepth: 2
+OneGov Cloud supports multiple languages and locales. That means that number-
+date- and other formatting can be done in the appropriate locale. All static
+text can be easily translated.
 
-   onegov_cloud_modules
+Dynamic text (content) can be translated, though OneGov Cloud doesn't offer any
+tools for it at this moment. This is generally a UI problem, not a framework
+problem.
+
+URL paths cannot currently be translated.
+
+Development and documentation is written exclusively in English. It's what we
+are most comfortable with when it comes to software development.
+
+Try it!
+^^^^^^^
+
+The latest release of OneGov Town, the flagship application of OneGov Cloud,
+is running on `<https://govikon.onegovcloud.ch>`_.
+
+It's also possible to create your own OneGov Town instance through the use
+of our onboarding tool at `<https://start.onegovcloud.ch>`_.
+
+Development
+^^^^^^^^^^^
+
+Have a look at the development repository for instructions on how to get
+OneGov Cloud running on `<https://github.com/onegov/dev>`_.
+
+Further Reading
+^^^^^^^^^^^^^^^
+
+Find out more about the inner workings of OneGov Cloud by having a look at
+the OneGov Cloud modules documentation at :doc:`onegov_cloud_modules`.
