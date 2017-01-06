@@ -19,7 +19,7 @@ transactions (citizen requests). It also offers a way for towns to present
 themselves, thought this is not its main focus.
 
 OneGov Cloud is built with `Morepath, the web microframework with superpowers
-<http://morepath.readthedocs.org/en/latest/>`_.
+<http://morepath.readthedocs.io/en/latest/>`_.
 
 OneGov Cloud has strong opinions about the technology it employs. This has the
 following consequenes:
