@@ -16,7 +16,7 @@ Commandline Interface
 Directives
 ----------
 
-.. automodule:: onegov.org.directive
+.. automodule:: onegov.org.directives
     :members:
 
 Homepage Widgets

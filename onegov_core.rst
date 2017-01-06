@@ -10,7 +10,7 @@ Framework
 Directive
 ---------
 
-.. automodule:: onegov.core.directive
+.. automodule:: onegov.core.directives
     :members:
 
 Static Files
