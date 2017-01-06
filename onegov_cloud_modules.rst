@@ -11,7 +11,7 @@ Hierarchy
 There are three kinds of OneGov Cloud Modules:
 
 Base modules
-    Provide the framework under which OneGov Cloud is run.
+    Provide the framework inside which OneGov Cloud is run.
 
 Supporting modules
     Provide models/methods/utilities, but *no* HTTP interface (neither HTML
@@ -85,7 +85,8 @@ OneGov Core
 -----------
 
 Contains functionality shared between all the other OneGov modules, with the
-exception of OneGov Server, which may not depend on the core.
+exception of OneGov Server, which may not depend on the core. In many ways
+this *is* the OneGov Cloud framework.
 
 * `OneGov Core on Github <https://github.com/OneGov/onegov.core.git>`_
 
@@ -95,8 +96,8 @@ exception of OneGov Server, which may not depend on the core.
 OneGov Org
 ----------
 
-Provides a base for applications written for organsiations close to the
-government. For example, municipalities, youth organisations, elderly care,
+Provides a base for applications written for organizations close to the
+government. For example, municipalities, youth organizations, elderly care,
 and so on.
 
 * `OneGov Org on Github <https://github.com/OneGov/onegov.org.git>`_
@@ -108,7 +109,7 @@ OneGov Town
 -----------
 
 The most visible part of the OneGov municipality websites. Combines
-functionailty of other OneGov modules and renders them.
+functionality of other OneGov modules and renders them.
 
 OneGov Town tries to implement features itself when necessary. It's main
 concern is rendering JSON/HTML. Therefore it should be considered the UI
@@ -133,7 +134,7 @@ OneGov Form
 -----------
 
 Integrates the form library WTForms with OneGov and provides useful
-functionality related to that. May generate html, but won't offer any
+functionality related to that. May generate HTML, but won't offer any
 UI as such.
 
 * `OneGov Form on Github <https://github.com/OneGov/onegov.form.git>`_
@@ -235,10 +236,18 @@ subscribers/recipients.
 .. toctree::
     onegov_newsletter
 
+OneGov Recipient
+----------------
+
+A generic implementation of e-mail/sms/url recipients backed by the database.
+
+.. toctree::
+    onegov_recipient
+
 OneGov Gis
 ----------
 
-Contains models, methods and javascript to use, work with and display maps and
+Contains models, methods and Javascript to use, work with and display maps and
 coordinates.
 
 * `OneGov Gis on Github <https://github.com/OneGov/onegov.gis.git>`_
@@ -249,7 +258,7 @@ coordinates.
 OneGov Shared
 -------------
 
-Assets and other things shared between multiple onegov applications.
+Assets and other things shared between multiple OneGov applications.
 
 * `OneGov Assets on Github <https://github.com/OneGov/onegov.assets.git>`_
 

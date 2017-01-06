@@ -41,7 +41,7 @@ Forms
 Views
 ------
 
-.. automodule:: onegov.feriennet.views.activities
+.. automodule:: onegov.feriennet.views.activity
     :members:
 
 Layout

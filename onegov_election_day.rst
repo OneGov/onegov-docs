@@ -28,10 +28,13 @@ Models
 Collections
 -----------
 
-.. automodule:: onegov.election_day.collections.archived_result_collection
+.. automodule:: onegov.election_day.collections.archived_results
     :members:
 
-.. automodule:: onegov.election_day.collections.notification_collection
+.. automodule:: onegov.election_day.collections.notifications
+    :members:
+
+.. automodule:: onegov.election_day.collections.subscribers
     :members:
 
 Paths
@@ -70,26 +73,63 @@ Views
 .. automodule:: onegov.election_day.views.auth
     :members:
 
-.. automodule:: onegov.election_day.views.election
-    :members:
-
 .. automodule:: onegov.election_day.views.locale
     :members:
 
-.. automodule:: onegov.election_day.views.manage_elections
+.. automodule:: onegov.election_day.views.subscription
     :members:
 
-.. automodule:: onegov.election_day.views.manage_votes
+.. automodule:: onegov.election_day.views.election.candidates
     :members:
 
-.. automodule:: onegov.election_day.views.upload_election
+.. automodule:: onegov.election_day.views.election.connections
     :members:
 
-.. automodule:: onegov.election_day.views.upload_vote
+.. automodule:: onegov.election_day.views.election.data
     :members:
 
-.. automodule:: onegov.election_day.views.vote
+.. automodule:: onegov.election_day.views.election.districts
     :members:
+
+.. automodule:: onegov.election_day.views.election.lists
+    :members:
+
+.. automodule:: onegov.election_day.views.election.main
+    :members:
+
+.. automodule:: onegov.election_day.views.election.panachage
+    :members:
+
+.. automodule:: onegov.election_day.views.election.parties
+    :members:
+
+.. automodule:: onegov.election_day.views.election.statistics
+    :members:
+
+.. automodule:: onegov.election_day.views.manage.elections
+    :members:
+
+.. automodule:: onegov.election_day.views.manage.subscribers
+    :members:
+
+.. automodule:: onegov.election_day.views.manage.votes
+    :members:
+
+.. automodule:: onegov.election_day.views.upload.election
+    :members:
+
+.. automodule:: onegov.election_day.views.upload.vote
+    :members:
+
+.. automodule:: onegov.election_day.views.vote.ballot_map
+    :members:
+
+.. automodule:: onegov.election_day.views.vote.data
+    :members:
+
+.. automodule:: onegov.election_day.views.vote.main
+    :members:
+
 
 Forms
 -----
