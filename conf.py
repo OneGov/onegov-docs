@@ -17,13 +17,7 @@ import sys
 import os
 
 # mock modules with c extensions
-from unittest.mock import MagicMock
-
-
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-            return Mock()
+from mock import MagicMock as Mock
 
 
 MOCK_MODULES = ['pylibmc', 'magic']
