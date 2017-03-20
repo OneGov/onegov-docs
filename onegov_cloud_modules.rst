@@ -194,8 +194,8 @@ A simple ticketing system for OneGov.
 .. toctree::
     onegov_ticket
 
-OneGov Libres
--------------
+OneGov Reservation
+------------------
 
 Libres integration for OneGov Cloud. Libres is a python library to reserve stuff.
 
@@ -203,7 +203,7 @@ Libres integration for OneGov Cloud. Libres is a python library to reserve stuff
 * `OneGov Libres on Github <https://github.com/OneGov/onegov.libres.git>`_
 
 .. toctree::
-    onegov_libres
+    onegov_reservation
 
 OneGov Event
 ------------
