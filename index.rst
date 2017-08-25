@@ -65,8 +65,8 @@ OneGov Cloud running on `<https://github.com/onegov/dev>`_.
 
 Documentation Highlights
 ^^^^^^^^^^^^^^^^^^^^^^^^
-- :doc:`formcode`.
 
+- :doc:`formcode`.
 
 Further Reading
 ^^^^^^^^^^^^^^^
