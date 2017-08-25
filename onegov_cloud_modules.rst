@@ -270,7 +270,7 @@ OneGov Testing
 
 Provides commonly used testing code for all OneGov modules.
 
-* `OneGov Testing on Github <https://github.com/OneGov/onegov.testing.git>`_
+* `OneGov Testing on Github <https://github.com/OneGov/onegov_testing.git>`_
 
 .. toctree::
     onegov_testing

@@ -4,11 +4,11 @@ Onegov Testing API
 Fixtures
 --------
 
-.. automodule:: onegov.testing.fixtures
+.. automodule:: onegov_testing.fixtures
     :members:
 
 Utils
 -----
 
-.. automodule:: onegov.testing.utils
+.. automodule:: onegov_testing.utils
     :members:
