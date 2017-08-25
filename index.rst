@@ -63,6 +63,11 @@ Development
 Have a look at the development repository for instructions on how to get
 OneGov Cloud running on `<https://github.com/onegov/dev>`_.
 
+Documentation Highlights
+^^^^^^^^^^^^^^^^^^^^^^^^
+- :doc:`formcode`.
+
+
 Further Reading
 ^^^^^^^^^^^^^^^
 
