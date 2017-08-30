@@ -1,0 +1,182 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.file.filters &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.file.filters</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">depot.fields.interfaces</span> <span class="k">import</span> <span class="n">FileFilter</span>
+<span class="kn">from</span> <span class="nn">depot.io.utils</span> <span class="k">import</span> <span class="n">file_from_content</span>
+<span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">IMAGE_MIME_TYPES</span><span class="p">,</span> <span class="n">get_image_size</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="k">import</span> <span class="n">Image</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">BytesIO</span>
+
+
+<div class="viewcode-block" id="ConditionalFilter"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.filters.ConditionalFilter">[docs]</a><span class="k">class</span> <span class="nc">ConditionalFilter</span><span class="p">(</span><span class="n">FileFilter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A depot filter that&#39;s only run if a condition is met. The condition</span>
+<span class="sd">    is defined by overriding the :meth:``meets_condition`` returns True.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">filter</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter</span> <span class="o">=</span> <span class="nb">filter</span>
+
+    <span class="k">def</span> <span class="nf">meets_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uploaded_file</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="nf">on_save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uploaded_file</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">meets_condition</span><span class="p">(</span><span class="n">uploaded_file</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">on_save</span><span class="p">(</span><span class="n">uploaded_file</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="OnlyIfImage"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.filters.OnlyIfImage">[docs]</a><span class="k">class</span> <span class="nc">OnlyIfImage</span><span class="p">(</span><span class="n">ConditionalFilter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A conditional filter that runs the passed filter only if the</span>
+<span class="sd">    uploaded file is an image.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">meets_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uploaded_file</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">uploaded_file</span><span class="o">.</span><span class="n">content_type</span> <span class="ow">in</span> <span class="n">IMAGE_MIME_TYPES</span></div>
+
+
+<div class="viewcode-block" id="WithThumbnailFilter"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.filters.WithThumbnailFilter">[docs]</a><span class="k">class</span> <span class="nc">WithThumbnailFilter</span><span class="p">(</span><span class="n">FileFilter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Uploads a thumbnail together with the file.</span>
+
+<span class="sd">    Takes for granted that the file is an image.</span>
+
+<span class="sd">    The resulting uploaded file will provide an additional property</span>
+<span class="sd">    ``thumbnail_name``, which will contain the id and the path to the</span>
+<span class="sd">    thumbnail. The name is replaced with the name given to the filter.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        Requires Pillow library</span>
+
+<span class="sd">    Note: This has been copied from Depot and adjusted for our use. Changes</span>
+<span class="sd">    include a different storage format, no storage of the url and replacement</span>
+<span class="sd">    of thumbnails instead of recreation (if possible).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">quality</span> <span class="o">=</span> <span class="mi">90</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="nb">format</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="nb">format</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">on_save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uploaded_file</span><span class="p">):</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">file_from_content</span><span class="p">(</span><span class="n">uploaded_file</span><span class="o">.</span><span class="n">original_content</span><span class="p">)</span>
+
+        <span class="n">thumbnail</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="n">thumbnail</span><span class="o">.</span><span class="n">thumbnail</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">Image</span><span class="o">.</span><span class="n">LANCZOS</span><span class="p">)</span>
+        <span class="n">thumbnail</span> <span class="o">=</span> <span class="n">thumbnail</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s1">&#39;RGBA&#39;</span><span class="p">)</span>
+        <span class="n">thumbnail</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span>
+
+        <span class="n">output</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">()</span>
+        <span class="n">thumbnail</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">,</span> <span class="n">quality</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">quality</span><span class="p">)</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;thumbnail_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;thumbnail_</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">)</span>
+
+        <span class="n">path</span><span class="p">,</span> <span class="nb">id</span> <span class="o">=</span> <span class="n">uploaded_file</span><span class="o">.</span><span class="n">store_content</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+        <span class="n">uploaded_file</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="nb">id</span><span class="p">,</span>
+            <span class="s1">&#39;path&#39;</span><span class="p">:</span> <span class="n">path</span><span class="p">,</span>
+            <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">get_image_size</span><span class="p">(</span><span class="n">thumbnail</span><span class="p">)</span>
+        <span class="p">}</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

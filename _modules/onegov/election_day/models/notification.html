@@ -1,0 +1,222 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.election_day.models.notification &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.election_day.models.notification</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">json</span> <span class="k">import</span> <span class="n">dumps</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models</span> <span class="k">import</span> <span class="n">Election</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models</span> <span class="k">import</span> <span class="n">Vote</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UTCDateTime</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">PostThread</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.models.subscriber</span> <span class="k">import</span> <span class="n">Subscriber</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">get_summary</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">ForeignKey</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">backref</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
+
+
+<div class="viewcode-block" id="Notification"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.models.notification.Notification">[docs]</a><span class="k">class</span> <span class="nc">Notification</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Stores triggered notifications. &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;notifications&#39;</span>
+
+    <span class="c1">#: Identifies the notification</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
+
+    <span class="c1">#: The action made (e.g. the URL called)</span>
+    <span class="n">action</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: The last update of the corresponding election/vote</span>
+    <span class="n">last_change</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UTCDateTime</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: The corresponding election id</span>
+    <span class="n">election_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: The corresponding election</span>
+    <span class="n">election</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s1">&#39;Election&#39;</span><span class="p">,</span> <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;notifications&#39;</span><span class="p">))</span>
+
+    <span class="c1">#: The corresponding vote id</span>
+    <span class="n">vote_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">Vote</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: The corresponding vote</span>
+    <span class="n">vote</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s1">&#39;Vote&#39;</span><span class="p">,</span> <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;notifications&#39;</span><span class="p">))</span>
+
+<div class="viewcode-block" id="Notification.update_from_model"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.models.notification.Notification.update_from_model">[docs]</a>    <span class="k">def</span> <span class="nf">update_from_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Copy &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_change</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">last_result_change</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Election</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">election_id</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Vote</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vote_id</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">id</span></div>
+
+<div class="viewcode-block" id="Notification.trigger"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.models.notification.Notification.trigger">[docs]</a>    <span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Trigger the custom actions. &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">WebhookNotification</span><span class="p">(</span><span class="n">Notification</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Posts the summary of the given vote or election to the webhook</span>
+<span class="sd">        URL defined for this principal.</span>
+
+<span class="sd">        This only works for external URL. If posting to server itself is</span>
+<span class="sd">        needed, use a process instead of the thread:</span>
+
+<span class="sd">            process = Process(target=send_post_request, args=(urls, data))</span>
+<span class="sd">            process.start()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_from_model</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">=</span> <span class="s1">&#39;webhooks&#39;</span>
+
+        <span class="n">webhooks</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">webhooks</span>
+        <span class="k">if</span> <span class="n">webhooks</span><span class="p">:</span>
+            <span class="n">summary</span> <span class="o">=</span> <span class="n">get_summary</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">dumps</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">url</span><span class="p">,</span> <span class="n">headers</span> <span class="ow">in</span> <span class="n">webhooks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">headers</span> <span class="o">=</span> <span class="n">headers</span> <span class="ow">or</span> <span class="p">{}</span>
+                <span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;application/json; charset=utf-8&#39;</span>
+                <span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Content-Length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                <span class="n">PostThread</span><span class="p">(</span>
+                    <span class="n">url</span><span class="p">,</span>
+                    <span class="n">data</span><span class="p">,</span>
+                    <span class="nb">tuple</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">headers</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">SmsNotification</span><span class="p">(</span><span class="n">Notification</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Posts a link to the vote or election to all subscribers.</span>
+
+<span class="sd">        This is done by writing files to a directory similary to maildir,</span>
+<span class="sd">        sending the SMS is done using an external command, probably called</span>
+<span class="sd">        by a cronjob.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_from_model</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">=</span> <span class="s1">&#39;sms&#39;</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">completed</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span>
+                <span class="s2">&quot;Final results are available on $</span><span class="si">{url}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">sms_notification</span><span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span>
+                <span class="s2">&quot;New intermediate results are available on $</span><span class="si">{url}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">sms_notification</span><span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="n">session</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
+        <span class="n">subscribers</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Subscriber</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">subscriber</span> <span class="ow">in</span> <span class="n">subscribers</span><span class="p">:</span>
+            <span class="n">translator</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">translations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">locale</span><span class="p">)</span>
+            <span class="n">translated</span> <span class="o">=</span> <span class="n">translator</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="k">if</span> <span class="n">translator</span> <span class="k">else</span> <span class="n">content</span>
+            <span class="n">translated</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">translated</span><span class="p">)</span>
+
+            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_sms</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">phone_number</span><span class="p">,</span> <span class="n">translated</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

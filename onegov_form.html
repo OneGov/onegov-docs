@@ -1,0 +1,1562 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Onegov Form API &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="onegov-form-api">
+<h1>Onegov Form API<a class="headerlink" href="#onegov-form-api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-onegov.form.core">
+<span id="core"></span><h2>Core<a class="headerlink" href="#module-onegov.form.core" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.form.core.Form">
+<em class="property">class </em><code class="descclassname">onegov.form.core.</code><code class="descname">Form</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extends wtforms.Form with useful methods and integrations needed in
+OneGov applications.</p>
+<p><strong>Fieldsets</strong></p>
+<p>This form supports fieldsets (which WTForms doesn’t recognize). To put
+fields into a fieldset, add a fieldset attribute to the field during
+class definition:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">first_name</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span><span class="s1">&#39;First Name&#39;</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="s1">&#39;Name&#39;</span><span class="p">)</span>
+    <span class="n">last_name</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span><span class="s1">&#39;Last Name&#39;</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="s1">&#39;Name&#39;</span><span class="p">)</span>
+    <span class="n">comment</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span><span class="s1">&#39;Comment&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A form created like this will have two fieldsets, one visible fieldset
+with the legend set to ‘Name’ and one invisible fieldset containing
+‘comment’.</p>
+<p>Fieldsets with the same name are <em>not</em> automatically grouped together.
+Instead, fields are taken in the order they are defined and put into the
+same fieldset, if the previous fieldset has the same name.</p>
+<p>That is to say, in this example, we get three fieldsets:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="s1">&#39;2&#39;</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The first fieldset has the label ‘1’ and it contains ‘a’. The second
+fieldset has the label ‘2’ and it contains ‘b’. The third fieldset has
+the label ‘3’ and it contains ‘c’.</p>
+<p>This ensures that all fields are in either a visible or an invisible
+fieldset (see <code class="xref py py-meth docutils literal"><span class="pre">Fieldset.is_visible()</span></code>).</p>
+<p><strong>Dependencies</strong></p>
+<p>This form also supports dependencies. So field b may depend on field a, if
+field a has a certain value, field b is shown on the form (with some
+javascript) and its validators are actually executed. If field a does
+not have the required value, field b is hidden with javascript and its
+validators are not executed.</p>
+<p>The validators which are skipped are only the validators passed with the
+field, the validators on the field itself are still invoked (we can’t
+skip them). However, only if the optional field is not empty. That is we
+prevent invalid values no matter what, but we allow for empty values if
+the dependent field does not have the required value.</p>
+<p>This sounds a lot more complicated than it is:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+
+    <span class="n">option</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span><span class="s1">&#39;Option&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;yes&#39;</span><span class="p">,</span> <span class="s1">&#39;Yes&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;no&#39;</span><span class="p">,</span> <span class="s1">&#39;No&#39;</span><span class="p">),</span>
+    <span class="p">])</span>
+    <span class="n">only_if_no</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Only Shown When No&#39;</span><span class="p">,</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">InputRequired</span><span class="p">()],</span>
+        <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;no&#39;</span><span class="p">)</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Pricing</strong></p>
+<p>Pricing is a way to attach prices to certain form fields. A total price
+is calcualted depending on the selections the user makes:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+
+    <span class="n">ticket_insurance</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span><span class="s1">&#39;Option&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;yes&#39;</span><span class="p">,</span> <span class="s1">&#39;Yes&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;no&#39;</span><span class="p">,</span> <span class="s1">&#39;No&#39;</span><span class="p">)</span>
+    <span class="p">],</span> <span class="n">pricing</span><span class="o">=</span><span class="p">{</span>
+        <span class="s1">&#39;yes&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">10.0</span><span class="p">,</span> <span class="s1">&#39;CHF&#39;</span><span class="p">)</span>
+    <span class="p">})</span>
+
+    <span class="n">discount_code</span> <span class="o">=</span> <span class="n">TextField</span><span class="p">(</span><span class="s1">&#39;Discount Code&#39;</span><span class="p">,</span> <span class="n">pricing</span><span class="o">=</span><span class="p">{</span>
+        <span class="s1">&#39;CAMPAIGN2017&#39;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">5.0</span><span class="p">,</span> <span class="s1">&#39;CHF&#39;</span><span class="p">)</span>
+    <span class="p">})</span>
+</pre></div>
+</div>
+<p>Note that the pricing has no implicit meaning. This is simply a way to
+attach prices and to get the total through the <code class="docutils literal"><span class="pre">prices()</span></code> and <code class="docutils literal"><span class="pre">total()</span></code>
+calls. What you do with these prices is up to you.</p>
+<dl class="method">
+<dt id="onegov.form.core.Form.process_fieldset">
+<code class="descname">process_fieldset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.process_fieldset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.process_fieldset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Processes the fieldset parameter on the fields, which puts
+fields into fieldsets.</p>
+<p>In the process the fields are altered so that wtforms recognizes them
+again (that is, attributes only known to us are removed).</p>
+<p>See <a class="reference internal" href="#onegov.form.core.Form" title="onegov.form.core.Form"><code class="xref py py-class docutils literal"><span class="pre">Form</span></code></a> for more information.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.process_depends_on">
+<code class="descname">process_depends_on</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.process_depends_on"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.process_depends_on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Processes the depends_on parameter on the fields, which adds the
+ability to have fields depend on values of other fields.</p>
+<p>In the process the fields are altered so that wtforms recognizes them
+again (that is, attributes only known to us are removed).</p>
+<p>See <a class="reference internal" href="#onegov.form.core.Form" title="onegov.form.core.Form"><code class="xref py py-class docutils literal"><span class="pre">Form</span></code></a> for more information.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.process_pricing">
+<code class="descname">process_pricing</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.process_pricing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.process_pricing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Processes the pricing parameter on the fields, which adds the
+ability to have fields associated with a price.</p>
+<p>See <a class="reference internal" href="#onegov.form.core.Form" title="onegov.form.core.Form"><code class="xref py py-class docutils literal"><span class="pre">Form</span></code></a> for more information.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.is_visible_through_dependencies">
+<code class="descname">is_visible_through_dependencies</code><span class="sig-paren">(</span><em>field_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.is_visible_through_dependencies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.is_visible_through_dependencies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if the given field id has visible because all of
+it’s parents are visible. A field is invisible if its dependency is
+not met.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.prices">
+<code class="descname">prices</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.prices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.prices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the prices of all selected items depending on the
+formdata.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.total">
+<code class="descname">total</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.total"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.total" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the total amount of all prices.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.submitted">
+<code class="descname">submitted</code><span class="sig-paren">(</span><em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.submitted"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.submitted" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if the given request is a successful post request.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.ignore_csrf_error">
+<code class="descname">ignore_csrf_error</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.ignore_csrf_error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.ignore_csrf_error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes the csrf error from the form if found, after validation.</p>
+<p>Use this only if you know what you are doing (really, never).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.core.Form.has_required_email_field">
+<code class="descname">has_required_email_field</code><a class="headerlink" href="#onegov.form.core.Form.has_required_email_field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the form has a required e-mail field.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.match_fields">
+<code class="descname">match_fields</code><span class="sig-paren">(</span><em>include_classes=None</em>, <em>exclude_classes=None</em>, <em>required=None</em>, <em>limit=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.match_fields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.match_fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns field ids matching the given search criteria.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Include_classes:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">A list of field classes which should be included.</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Excluded_classes:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body">A list of field classes which should be excluded.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Required:</th><td class="field-body">True if required fields only, False if no required fields.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Limit:</th><td class="field-body">If &gt; 0, limits the number of returned elements.</td>
+</tr>
+</tbody>
+</table>
+<p>All parameters may be set to None disable matching it to anything.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.is_required">
+<code class="descname">is_required</code><span class="sig-paren">(</span><em>field_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.is_required"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.is_required" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if the given field_id is required.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.get_useful_data">
+<code class="descname">get_useful_data</code><span class="sig-paren">(</span><em>exclude={'csrf_token'}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.get_useful_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.get_useful_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the form data in a dictionary, by default excluding data
+that should not be stored in the db backend.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.populate_obj">
+<code class="descname">populate_obj</code><span class="sig-paren">(</span><em>obj</em>, <em>exclude=None</em>, <em>include=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.populate_obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.populate_obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>A reimplementation of wtforms populate_obj function with the addage
+of optional include/exclude filters.</p>
+<p>If neither exclude nor include is passed, the function works like it
+does in wtforms. Otherwise fields are considered which are included
+but not excluded.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls <a class="reference internal" href="#onegov.form.core.Form.process_obj" title="onegov.form.core.Form.process_obj"><code class="xref py py-meth docutils literal"><span class="pre">process_obj()</span></code></a> if <code class="docutils literal"><span class="pre">process()</span></code> was called with
+the <code class="docutils literal"><span class="pre">obj</span></code> keyword argument.</p>
+<p>This saves an extra check in many cases where we want to extend the
+process function, but only <em>if</em> an obj has been provided.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.process_obj">
+<code class="descname">process_obj</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.process_obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.process_obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called by <a class="reference internal" href="#onegov.form.core.Form.process" title="onegov.form.core.Form.process"><code class="xref py py-meth docutils literal"><span class="pre">process()</span></code></a> if an object was passed.</p>
+<p>Do <em>not</em> use this function directly. To process an object, you should
+call <code class="docutils literal"><span class="pre">form.process(obj=obj)</span></code> instead.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.delete_field">
+<code class="descname">delete_field</code><span class="sig-paren">(</span><em>fieldname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.delete_field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.delete_field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes the given field from the form and all the fieldsets.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.core.Form.validate">
+<code class="descname">validate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Form.validate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Form.validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds support for ‘ensurances’ to the form. An ensurance is a
+method which is called during validation when all the fields have
+been populated. Therefore it is a good place to validate against
+multiple fields.</p>
+<p>All methods which start with <code class="docutils literal"><span class="pre">ensure_</span></code> are ensurances. If and only if
+an ensurance returns False it is considered to have failed. In this
+case the validate method returns False as well. If None or ‘’ or
+any other falsy value is returned, no error is assumed! This avoids
+having to return an extra True at the end of each ensurance.</p>
+<p>When one ensurance fails, the others are still run. Also, there’s no
+error display mechanism. Showing an error is left to the ensurance
+itself. It can do so by adding messages to the various error lists
+of the form or by showing an alert through the request.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.core.Form.ensurances">
+<code class="descname">ensurances</code><a class="headerlink" href="#onegov.form.core.Form.ensurances" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the ensurances that need to be checked when validating.</p>
+<p>This property may be overridden if only a subset of all ensurances
+should actually be enforced.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.core.Fieldset">
+<em class="property">class </em><code class="descclassname">onegov.form.core.</code><code class="descname">Fieldset</code><span class="sig-paren">(</span><em>label</em>, <em>fields</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Fieldset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Fieldset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a fieldset with a list of fields.</p>
+<dl class="attribute">
+<dt id="onegov.form.core.Fieldset.non_empty_fields">
+<code class="descname">non_empty_fields</code><a class="headerlink" href="#onegov.form.core.Fieldset.non_empty_fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns only the fields which are not empty.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.core.with_options">
+<code class="descclassname">onegov.form.core.</code><code class="descname">with_options</code><span class="sig-paren">(</span><em>widget</em>, <em>**render_options</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#with_options"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.with_options" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a widget class or instance and returns a child-instance of the
+widget class, with the given options set on the render call.</p>
+<p>This makes it easy to use existing WTForms widgets with custom render
+options:</p>
+<p>field = StringField(widget=with_options(TextArea, class_=”markdown”))</p>
+<p>Note: With wtforms 2.1 this is no longer necssary. Instead use the
+render_kw parameter of the field class. This function will be deprecated
+in a future release.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.core.FieldDependency">
+<em class="property">class </em><code class="descclassname">onegov.form.core.</code><code class="descname">FieldDependency</code><span class="sig-paren">(</span><em>*kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#FieldDependency"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.FieldDependency" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a dependency to a field. The given field(s) must have the given
+choice for this dependency to be fulfilled.</p>
+<p>It’s possible to depend on NOT the given value by preceeding it with a ‘!’:</p>
+<blockquote>
+<div>FieldDependency(‘field_1’, ‘!choice_1’)</div></blockquote>
+<p>To depend on more than one field, add the field_id’s and choices to the
+constructor:</p>
+<blockquote>
+<div>FieldDependency(‘field_1’, ‘choice_1’)
+FieldDependency(‘field_1’, ‘choice_1’, ‘field_2’, ‘choice_2’)</div></blockquote>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.core.Pricing">
+<em class="property">class </em><code class="descclassname">onegov.form.core.</code><code class="descname">Pricing</code><span class="sig-paren">(</span><em>rules</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#Pricing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.Pricing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines pricing on a field, returning the correct price for the field
+depending on its rule.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.core.merge_forms">
+<code class="descclassname">onegov.form.core.</code><code class="descname">merge_forms</code><span class="sig-paren">(</span><em>*forms</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#merge_forms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.merge_forms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a list of forms and merges them.</p>
+<p>In doing so, a new class is created which inherits from all the forms in
+the default method resolution order. So the first class will override
+fields in the second class and so on.</p>
+<p>So this method is basically the same as:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>class Merged(<a href="#id1"><span class="problematic" id="id2">*</span></a>forms):</dt>
+<dd>pass</dd>
+</dl>
+</div></blockquote>
+<p>With <em>one crucial difference</em>, the order of the fields is as follows:</p>
+<p>First, the fields from the first form are rendered, then the fields
+from the second form and so on. This is not the case if you merge the
+forms by simple class inheritance, as each form has it’s own internal
+field order, which when merged leads to unexpected results.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.core.enforce_order">
+<code class="descclassname">onegov.form.core.</code><code class="descname">enforce_order</code><span class="sig-paren">(</span><em>form_class</em>, <em>fields_in_order</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#enforce_order"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.enforce_order" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a list of fields used in a form_class and enforces the
+order of those fields.</p>
+<p>If not all fields in the form are given, the resulting order is undefined.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.core.move_fields">
+<code class="descclassname">onegov.form.core.</code><code class="descname">move_fields</code><span class="sig-paren">(</span><em>form_class</em>, <em>fields</em>, <em>after</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/core.html#move_fields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.core.move_fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reorders the given fields (given by name) by inserting them directly
+after the given field.</p>
+<p>If <code class="docutils literal"><span class="pre">after</span></code> is None, the fields are moved to the end.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.form.models">
+<span id="models"></span><h2>Models<a class="headerlink" href="#module-onegov.form.models" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.form.models.SearchableDefinition">
+<em class="property">class </em><code class="descclassname">onegov.form.models.</code><code class="descname">SearchableDefinition</code><a class="reference internal" href="_modules/onegov/form/models.html#SearchableDefinition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.models.SearchableDefinition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines how the definitions are searchable. For now, submissions are
+not searched as they are usually accessed through the ticket, at least in
+onegov.town. If other modules need this, it can be added here and
+onegov.town can decied not to search for submissions.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.models.FormDefinition">
+<em class="property">class </em><code class="descclassname">onegov.form.models.</code><code class="descname">FormDefinition</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/models.html#FormDefinition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.models.FormDefinition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a form stored in the database.</p>
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.name">
+<code class="descname">name</code><a class="headerlink" href="#onegov.form.models.FormDefinition.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>the name of the form (key, part of the url)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.title">
+<code class="descname">title</code><a class="headerlink" href="#onegov.form.models.FormDefinition.title" title="Permalink to this definition">¶</a></dt>
+<dd><p>the title of the form</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.definition">
+<code class="descname">definition</code><a class="headerlink" href="#onegov.form.models.FormDefinition.definition" title="Permalink to this definition">¶</a></dt>
+<dd><p>the form as parsable string</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.checksum">
+<code class="descname">checksum</code><a class="headerlink" href="#onegov.form.models.FormDefinition.checksum" title="Permalink to this definition">¶</a></dt>
+<dd><p>the checksum of the definition, forms and submissions with matching
+checksums are guaranteed to have the exact same definition</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.type">
+<code class="descname">type</code><a class="headerlink" href="#onegov.form.models.FormDefinition.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>the type of the form, this can be used to create custom polymorphic
+subclasses. See <a class="reference external" href="http://docs.sqlalchemy.org/en/improve_toc/orm/extensions/declarative/inheritance.html">http://docs.sqlalchemy.org/en/improve_toc/orm/extensions/declarative/inheritance.html</a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.submissions">
+<code class="descname">submissions</code><a class="headerlink" href="#onegov.form.models.FormDefinition.submissions" title="Permalink to this definition">¶</a></dt>
+<dd><p>link between forms and submissions</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.lead">
+<code class="descname">lead</code><a class="headerlink" href="#onegov.form.models.FormDefinition.lead" title="Permalink to this definition">¶</a></dt>
+<dd><p>lead text describing the form</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.text">
+<code class="descname">text</code><a class="headerlink" href="#onegov.form.models.FormDefinition.text" title="Permalink to this definition">¶</a></dt>
+<dd><p>content associated with the form</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.payment_method">
+<code class="descname">payment_method</code><a class="headerlink" href="#onegov.form.models.FormDefinition.payment_method" title="Permalink to this definition">¶</a></dt>
+<dd><p>payment options (‘manual’ for out of band payments without cc, ‘free’
+for both manual and cc payments, ‘cc’ for forced cc payments)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.form_class">
+<code class="descname">form_class</code><a class="headerlink" href="#onegov.form.models.FormDefinition.form_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses the form definition and returns a form class.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.models.FormSubmission">
+<em class="property">class </em><code class="descclassname">onegov.form.models.</code><code class="descname">FormSubmission</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/models.html#FormSubmission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.models.FormSubmission" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a submitted form in the database.</p>
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.id">
+<code class="descname">id</code><a class="headerlink" href="#onegov.form.models.FormSubmission.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>id of the form submission</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.name">
+<code class="descname">name</code><a class="headerlink" href="#onegov.form.models.FormSubmission.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>name of the form this submission belongs to</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.title">
+<code class="descname">title</code><a class="headerlink" href="#onegov.form.models.FormSubmission.title" title="Permalink to this definition">¶</a></dt>
+<dd><p>the title of the submission, generated from the submitted fields
+NULL for submissions which are not complete</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.email">
+<code class="descname">email</code><a class="headerlink" href="#onegov.form.models.FormSubmission.email" title="Permalink to this definition">¶</a></dt>
+<dd><p>the e-mail address associated with the submitee, generated from the</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.definition">
+<code class="descname">definition</code><a class="headerlink" href="#onegov.form.models.FormSubmission.definition" title="Permalink to this definition">¶</a></dt>
+<dd><p>the source code of the form at the moment of submission. This is stored
+alongside the submission as the original form may change later. We
+want to keep the old form around just in case.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.received">
+<code class="descname">received</code><a class="headerlink" href="#onegov.form.models.FormSubmission.received" title="Permalink to this definition">¶</a></dt>
+<dd><p>the exact time this submissions was changed from ‘pending’ to ‘complete’</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.checksum">
+<code class="descname">checksum</code><a class="headerlink" href="#onegov.form.models.FormSubmission.checksum" title="Permalink to this definition">¶</a></dt>
+<dd><p>the checksum of the definition, forms and submissions with matching
+checksums are guaranteed to have the exact same definition</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.data">
+<code class="descname">data</code><a class="headerlink" href="#onegov.form.models.FormSubmission.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>the submission data</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.state">
+<code class="descname">state</code><a class="headerlink" href="#onegov.form.models.FormSubmission.state" title="Permalink to this definition">¶</a></dt>
+<dd><p>the state of the submission</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.files">
+<code class="descname">files</code><a class="headerlink" href="#onegov.form.models.FormSubmission.files" title="Permalink to this definition">¶</a></dt>
+<dd><p>the files belonging to this submission</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.form_class">
+<code class="descname">form_class</code><a class="headerlink" href="#onegov.form.models.FormSubmission.form_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses the form definition and returns a form class.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.form_obj">
+<code class="descname">form_obj</code><a class="headerlink" href="#onegov.form.models.FormSubmission.form_obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a form instance containing the submission data.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.models.FormSubmission.process_payment">
+<code class="descname">process_payment</code><span class="sig-paren">(</span><em>price</em>, <em>provider=None</em>, <em>token=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/models.html#FormSubmission.process_payment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.models.FormSubmission.process_payment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a request, optionally with the provider and the token
+by the provider that can be used to charge the credit card and creates
+a payment record if necessary.</p>
+<p>Returns True or a payment object if the payment was processed
+successfully. That is, if there is a payment or if there is no payment
+required the method returns truthy.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.models.FormSubmissionFile">
+<em class="property">class </em><code class="descclassname">onegov.form.models.</code><code class="descname">FormSubmissionFile</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/models.html#FormSubmissionFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.models.FormSubmissionFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Holds files uploaded in form submissions.</p>
+<p>This ensures that forms can be loaded without having to load the files
+into memory. But it’s still not super efficient. The thinking is that
+most forms won’t have file uploads and if they do it won’t be large.</p>
+<p>Don’t store big files here, or files which need to be served often.
+For that you <em>have</em> to use some kind of filesystem storage.</p>
+<p>The basic use case for this table is the odd table which contains some
+kind of file which is then viewed by backend personell only.</p>
+<p>In this case there won’t many file downloads and it’s important
+that the file stays with the form and is not accidentally lost.</p>
+<p>So it fits for that case.</p>
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmissionFile.id">
+<code class="descname">id</code><a class="headerlink" href="#onegov.form.models.FormSubmissionFile.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>id of the file</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmissionFile.submission_id">
+<code class="descname">submission_id</code><a class="headerlink" href="#onegov.form.models.FormSubmissionFile.submission_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>the id of the submission</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmissionFile.field_id">
+<code class="descname">field_id</code><a class="headerlink" href="#onegov.form.models.FormSubmissionFile.field_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>the id of the field in the submission</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmissionFile.filedata">
+<code class="descname">filedata</code><a class="headerlink" href="#onegov.form.models.FormSubmissionFile.filedata" title="Permalink to this definition">¶</a></dt>
+<dd><p>the actual file data</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmissionFile.submission_data">
+<code class="descname">submission_data</code><a class="headerlink" href="#onegov.form.models.FormSubmissionFile.submission_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the data stored on the submission, associated with this
+submisison file.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.form.collection">
+<span id="collection"></span><h2>Collection<a class="headerlink" href="#module-onegov.form.collection" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.form.collection.FormCollection">
+<em class="property">class </em><code class="descclassname">onegov.form.collection.</code><code class="descname">FormCollection</code><span class="sig-paren">(</span><em>session</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manages a collection of forms and form-submissions.</p>
+<dl class="method">
+<dt id="onegov.form.collection.FormCollection.get_definitions_with_submission_count">
+<code class="descname">get_definitions_with_submission_count</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormCollection.get_definitions_with_submission_count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormCollection.get_definitions_with_submission_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all form definitions and the number of submissions
+belonging to those definitions, in a single query.</p>
+<p>The number of submissions is stored on the form definition under the
+<code class="docutils literal"><span class="pre">submissions_count</span></code> attribute.</p>
+<p>Only submissions which are ‘complete’ are considered.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.collection.FormDefinitionCollection">
+<em class="property">class </em><code class="descclassname">onegov.form.collection.</code><code class="descname">FormDefinitionCollection</code><span class="sig-paren">(</span><em>session</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormDefinitionCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormDefinitionCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manages a collection of forms.</p>
+<dl class="method">
+<dt id="onegov.form.collection.FormDefinitionCollection.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>title</em>, <em>definition</em>, <em>type=None</em>, <em>meta=None</em>, <em>content=None</em>, <em>name=None</em>, <em>payment_method='manual'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormDefinitionCollection.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormDefinitionCollection.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the given form to the database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.collection.FormDefinitionCollection.delete">
+<code class="descname">delete</code><span class="sig-paren">(</span><em>name</em>, <em>with_submissions=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormDefinitionCollection.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormDefinitionCollection.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete the given form. Only possible if there are no submissions
+associated with it, or if <code class="docutils literal"><span class="pre">with_submissions</span></code> is True.</p>
+<p>Note that pending submissions are removed automatically, only complete
+submissions have a bearing on <code class="docutils literal"><span class="pre">with_submissions</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.collection.FormDefinitionCollection.by_name">
+<code class="descname">by_name</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormDefinitionCollection.by_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormDefinitionCollection.by_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the given form by name or None.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.collection.FormSubmissionCollection">
+<em class="property">class </em><code class="descclassname">onegov.form.collection.</code><code class="descname">FormSubmissionCollection</code><span class="sig-paren">(</span><em>session</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormSubmissionCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormSubmissionCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manages a collection of submissions.</p>
+<dl class="method">
+<dt id="onegov.form.collection.FormSubmissionCollection.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>name</em>, <em>form</em>, <em>state</em>, <em>id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormSubmissionCollection.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormSubmissionCollection.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a filled-out form instance and stores the submission
+in the database. The form instance is expected to have a <code class="docutils literal"><span class="pre">_source</span></code>
+parameter, which contains the source used to build the form (as only
+forms with this source may be stored).</p>
+<p>This method expects the name of the form definition stored in the
+database. Use <a class="reference internal" href="#onegov.form.collection.FormSubmissionCollection.add_external" title="onegov.form.collection.FormSubmissionCollection.add_external"><code class="xref py py-meth docutils literal"><span class="pre">add_external()</span></code></a> to add a submissions whose
+definition is not stored in the form_definitions table.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.collection.FormSubmissionCollection.add_external">
+<code class="descname">add_external</code><span class="sig-paren">(</span><em>form</em>, <em>state</em>, <em>id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormSubmissionCollection.add_external"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormSubmissionCollection.add_external" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a filled-out form instance and stores the submission
+in the database. The form instance is expected to have a <code class="docutils literal"><span class="pre">_source</span></code>
+parameter, which contains the source used to build the form (as only
+forms with this source may be stored).</p>
+<p>In contrast to <a class="reference internal" href="#onegov.form.collection.FormSubmissionCollection.add" title="onegov.form.collection.FormSubmissionCollection.add"><code class="xref py py-meth docutils literal"><span class="pre">add()</span></code></a>, this method is meant for submissions whose
+definition is not stored in the form_definitions table.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.collection.FormSubmissionCollection.complete_submission">
+<code class="descname">complete_submission</code><span class="sig-paren">(</span><em>submission</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormSubmissionCollection.complete_submission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormSubmissionCollection.complete_submission" title="Permalink to this definition">¶</a></dt>
+<dd><p>Changes the state to ‘complete’, if the data is valid.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.collection.FormSubmissionCollection.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>submission</em>, <em>form</em>, <em>exclude=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormSubmissionCollection.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormSubmissionCollection.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a submission and a form and updates the submission data
+as well as the files stored in a spearate table.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.collection.FormSubmissionCollection.remove_old_pending_submissions">
+<code class="descname">remove_old_pending_submissions</code><span class="sig-paren">(</span><em>older_than</em>, <em>include_external=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormSubmissionCollection.remove_old_pending_submissions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormSubmissionCollection.remove_old_pending_submissions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes all pending submissions older than the given date. The
+date is expected to be in UTC!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.collection.FormSubmissionCollection.by_name">
+<code class="descname">by_name</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormSubmissionCollection.by_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormSubmissionCollection.by_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all submissions for the given form-name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.collection.FormSubmissionCollection.by_id">
+<code class="descname">by_id</code><span class="sig-paren">(</span><em>id</em>, <em>state=None</em>, <em>current_only=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormSubmissionCollection.by_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormSubmissionCollection.by_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the submission by id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">State:</th><td class="field-body">Only if the submission matches the given state.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Current_only:</th><td class="field-body">Only if the submission is not older than one hour.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.collection.FormSubmissionCollection.file_by_id">
+<code class="descname">file_by_id</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormSubmissionCollection.file_by_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormSubmissionCollection.file_by_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the submission file with the given id or None.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.form.collection.FormSubmissionCollection.delete">
+<code class="descname">delete</code><span class="sig-paren">(</span><em>submission</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/collection.html#FormSubmissionCollection.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.collection.FormSubmissionCollection.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the given submission and all the files belonging to it.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.form.display">
+<span id="display"></span><h2>Display<a class="headerlink" href="#module-onegov.form.display" title="Permalink to this headline">¶</a></h2>
+<p>Contains renderers to display form fields.</p>
+</div>
+<div class="section" id="module-onegov.form.fields">
+<span id="fields"></span><h2>Fields<a class="headerlink" href="#module-onegov.form.fields" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.form.fields.UploadField">
+<em class="property">class </em><code class="descclassname">onegov.form.fields.</code><code class="descname">UploadField</code><span class="sig-paren">(</span><em>label=None</em>, <em>validators=None</em>, <em>filters=()</em>, <em>description=''</em>, <em>id=None</em>, <em>default=None</em>, <em>widget=None</em>, <em>render_kw=None</em>, <em>_form=None</em>, <em>_name=None</em>, <em>_prefix=''</em>, <em>_translations=None</em>, <em>_meta=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/fields.html#UploadField"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.fields.UploadField" title="Permalink to this definition">¶</a></dt>
+<dd><p>A custom file field that turns the uploaded file into a compressed
+base64 string together with the filename, size and mimetype.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.fields.HtmlField">
+<em class="property">class </em><code class="descclassname">onegov.form.fields.</code><code class="descname">HtmlField</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/fields.html#HtmlField"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.fields.HtmlField" title="Permalink to this definition">¶</a></dt>
+<dd><p>A textfield with html with integrated sanitation.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.form.widgets">
+<span id="widgets"></span><h2>Widgets<a class="headerlink" href="#module-onegov.form.widgets" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.form.widgets.OrderedListWidget">
+<em class="property">class </em><code class="descclassname">onegov.form.widgets.</code><code class="descname">OrderedListWidget</code><span class="sig-paren">(</span><em>html_tag='ul'</em>, <em>prefix_label=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/widgets.html#OrderedListWidget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.widgets.OrderedListWidget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extends the default list widget with automated ordering using the
+translated text of each element.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.widgets.MultiCheckboxWidget">
+<em class="property">class </em><code class="descclassname">onegov.form.widgets.</code><code class="descname">MultiCheckboxWidget</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/widgets.html#MultiCheckboxWidget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.widgets.MultiCheckboxWidget" title="Permalink to this definition">¶</a></dt>
+<dd><p>The default list widget with the label behind the checkbox.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.widgets.OrderedMultiCheckboxWidget">
+<em class="property">class </em><code class="descclassname">onegov.form.widgets.</code><code class="descname">OrderedMultiCheckboxWidget</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/widgets.html#OrderedMultiCheckboxWidget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.widgets.OrderedMultiCheckboxWidget" title="Permalink to this definition">¶</a></dt>
+<dd><p>The sorted list widget with the label behind the checkbox.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.widgets.CoordinateWidget">
+<em class="property">class </em><code class="descclassname">onegov.form.widgets.</code><code class="descname">CoordinateWidget</code><span class="sig-paren">(</span><em>input_type=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/widgets.html#CoordinateWidget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.widgets.CoordinateWidget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Widget containing the coordinates for the
+<code class="xref py py-class docutils literal"><span class="pre">onegov.form.fields.CoordinateField</span></code> class.</p>
+<p>Basically a text input with a class. Meant to be enhanced on the browser
+using javascript.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.widgets.UploadWidget">
+<em class="property">class </em><code class="descclassname">onegov.form.widgets.</code><code class="descname">UploadWidget</code><a class="reference internal" href="_modules/onegov/form/widgets.html#UploadWidget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.widgets.UploadWidget" title="Permalink to this definition">¶</a></dt>
+<dd><p>An upload widget for the <a class="reference internal" href="#onegov.form.fields.UploadField" title="onegov.form.fields.UploadField"><code class="xref py py-class docutils literal"><span class="pre">onegov.form.fields.UploadField</span></code></a> class,
+which supports keeping, removing and replacing already uploaded files.</p>
+<p>This is necessary as file inputs are read-only on the client and it’s
+therefore rather easy for users to lose their input otherwise (e.g. a
+form with a file is rejected because of some mistake - the file disappears
+once the response is rendered on the client).</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.form.validators">
+<span id="validators"></span><h2>Validators<a class="headerlink" href="#module-onegov.form.validators" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.form.validators.Stdnum">
+<em class="property">class </em><code class="descclassname">onegov.form.validators.</code><code class="descname">Stdnum</code><span class="sig-paren">(</span><em>format</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/validators.html#Stdnum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.validators.Stdnum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates a string using any python-stdnum format.</p>
+<p>See <a class="reference external" href="https://github.com/arthurdejong/python-stdnum">https://github.com/arthurdejong/python-stdnum</a>.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.validators.FileSizeLimit">
+<em class="property">class </em><code class="descclassname">onegov.form.validators.</code><code class="descname">FileSizeLimit</code><span class="sig-paren">(</span><em>max_bytes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/validators.html#FileSizeLimit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.validators.FileSizeLimit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes sure an uploaded file is not bigger than the given number of
+bytes.</p>
+<p>Expects an <a class="reference internal" href="#onegov.form.fields.UploadField" title="onegov.form.fields.UploadField"><code class="xref py py-class docutils literal"><span class="pre">onegov.form.fields.UploadField</span></code></a> instance.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.validators.WhitelistedMimeType">
+<em class="property">class </em><code class="descclassname">onegov.form.validators.</code><code class="descname">WhitelistedMimeType</code><span class="sig-paren">(</span><em>whitelist=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/validators.html#WhitelistedMimeType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.validators.WhitelistedMimeType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes sure an uploaded file is in a whitelist of allowed mimetypes.</p>
+<p>Expects an <a class="reference internal" href="#onegov.form.fields.UploadField" title="onegov.form.fields.UploadField"><code class="xref py py-class docutils literal"><span class="pre">onegov.form.fields.UploadField</span></code></a> instance.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.validators.ExpectedExtensions">
+<em class="property">class </em><code class="descclassname">onegov.form.validators.</code><code class="descname">ExpectedExtensions</code><span class="sig-paren">(</span><em>extensions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/validators.html#ExpectedExtensions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.validators.ExpectedExtensions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes sure an uploaded file has one of the expected extensions. Since
+extensions are not something we can count on we look up the mimetype of
+the extension and use that to check.</p>
+<p>Expects an <a class="reference internal" href="#onegov.form.fields.UploadField" title="onegov.form.fields.UploadField"><code class="xref py py-class docutils literal"><span class="pre">onegov.form.fields.UploadField</span></code></a> instance.</p>
+<p>Usage:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">ExpectedFileType</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">)</span>  <span class="c1"># no check, really</span>
+<span class="n">ExpectedFileType</span><span class="p">(</span><span class="s1">&#39;pdf&#39;</span><span class="p">)</span>  <span class="c1"># makes sure the given file is a pdf</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.validators.ValidFormDefinition">
+<em class="property">class </em><code class="descclassname">onegov.form.validators.</code><code class="descname">ValidFormDefinition</code><span class="sig-paren">(</span><em>require_email_field=True</em>, <em>reserved_fields=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/validators.html#ValidFormDefinition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.validators.ValidFormDefinition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes sure the given text is a valid onegov.form definition.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.form.parser.core">
+<span id="parser"></span><h2>Parser<a class="headerlink" href="#module-onegov.form.parser.core" title="Permalink to this headline">¶</a></h2>
+<p>onegov.form includes it’s own markdownish form syntax, inspired by
+<a class="reference external" href="https://github.com/maleldil/wmd">https://github.com/maleldil/wmd</a></p>
+<p>The goal of this syntax is to enable the creation of forms through the web,
+without having to use javascript, html or python code.</p>
+<p>Also, just like Markdown, we want this syntax to be readable by humans.</p>
+<div class="section" id="how-it-works">
+<h3>How it works<a class="headerlink" href="#how-it-works" title="Permalink to this headline">¶</a></h3>
+<p>Internally, the form syntax is converted into a YAML file, which is in turn
+parsed and turned into a WTForms class. We decided to go for the intermediate
+YAML file because it’s easy to define a Syntax which correctly supports
+indentation. Our pyparsing approach was flimsy at best.</p>
+</div>
+<div class="section" id="parser-errors">
+<h3>Parser Errors<a class="headerlink" href="#parser-errors" title="Permalink to this headline">¶</a></h3>
+<p>There’s currently no sophisticated error check. It’s possible that the parser
+misunderstand something you defined without warning. So be careful to check
+that what you wanted was actually what you got.</p>
+</div>
+<div class="section" id="syntax">
+<h3>Syntax<a class="headerlink" href="#syntax" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id3">
+<h4>Fields<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<p>Every field is identified by a label, an optional ‘required’ indicator and a
+field definition. The Label can be any kind of text, not including <code class="docutils literal"><span class="pre">*</span></code> and
+<code class="docutils literal"><span class="pre">=</span></code>.
+The <code class="docutils literal"><span class="pre">*</span></code> indicates that a field is required. The <code class="docutils literal"><span class="pre">=</span></code> separates the
+identifier from the definition.</p>
+<p>A required field starts like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">My</span> <span class="n">required</span> <span class="n">field</span> <span class="o">*</span> <span class="o">=</span>
+</pre></div>
+</div>
+<p>An optional field starts like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">My</span> <span class="n">optional</span> <span class="n">field</span> <span class="o">=</span>
+</pre></div>
+</div>
+<p>Following the identifier is the field definition. For example, this defines
+a textfield:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">My</span> <span class="n">textfield</span> <span class="o">=</span> <span class="n">___</span>
+</pre></div>
+</div>
+<p>All possible fields are documented further below.</p>
+</div>
+<div class="section" id="fieldsets">
+<h4>Fieldsets<a class="headerlink" href="#fieldsets" title="Permalink to this headline">¶</a></h4>
+<p>Fields are grouped into fieldsets. The fieldset of a field is the fieldset
+that was last defined:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Fieldset 1</span>
+<span class="n">I</span> <span class="n">belong</span> <span class="n">to</span> <span class="n">Fieldset</span> <span class="mi">1</span> <span class="o">=</span> <span class="n">___</span>
+
+<span class="c1"># Fieldset 2</span>
+<span class="n">I</span> <span class="n">belong</span> <span class="n">to</span> <span class="n">Fieldset</span> <span class="mi">2</span> <span class="o">=</span> <span class="n">___</span>
+</pre></div>
+</div>
+<p>If no fieldset is defined, the fields don’t belong to a fieldset. To stop
+putting fields in a fieldset, define an empty fieldeset:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Fieldset 1</span>
+<span class="n">I</span> <span class="n">belong</span> <span class="n">to</span> <span class="n">Fieldset</span> <span class="mi">1</span> <span class="o">=</span> <span class="n">___</span>
+
+<span class="c1"># ...</span>
+<span class="n">I</span> <span class="n">don</span><span class="s1">&#39;t belong to a Fieldset = ___</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="available-fields">
+<h4>Available Fields<a class="headerlink" href="#available-fields" title="Permalink to this headline">¶</a></h4>
+<div class="section" id="textfield">
+<h5>Textfield<a class="headerlink" href="#textfield" title="Permalink to this headline">¶</a></h5>
+<p>A textfield consists of exactly three underscores:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a textfield = ___</span>
+</pre></div>
+</div>
+<p>If the textfield is limited in length, the length can be given:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a limited textfield = ___[50]</span>
+</pre></div>
+</div>
+<p>The length of such textfields is validated.</p>
+<p>Additionally, textfields may use regexes to validate their contents:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a numbers-only textfield = ___/^[0-9]+$</span>
+</pre></div>
+</div>
+<p>You <em>can</em> combine the length with a regex, though you probably don’t want to:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a length-limited numbers-only textfield = ___[4]/^[0-9]+$</span>
+</pre></div>
+</div>
+<p>This could be simplified as follows:</p>
+<blockquote>
+<div>I’m a length-limited numbers-only textfield = ___/^[0-9]{0,4}$</div></blockquote>
+<p>Note that you don’t <em>need</em> to specify the beginning (^) and the end ($) of the
+string, but not doing so might result in unexpected results. For example,
+while ‘123abc’ is invalid for <code class="docutils literal"><span class="pre">___/^[0-9]+$</span></code>, it is perfectly valid for
+<code class="docutils literal"><span class="pre">___/[0-9]+</span></code>. The latter only demands that the text starts with a number,
+not that it only consists of numbers!</p>
+</div>
+<div class="section" id="textarea">
+<h5>Textarea<a class="headerlink" href="#textarea" title="Permalink to this headline">¶</a></h5>
+<p>A textarea has no limit and consists of exactly three dots:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a textarea = ...</span>
+</pre></div>
+</div>
+<p>Optionally, the number of rows can be passed to the field. This changes the
+way the textarea looks, not the way it acts:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a textarea with 10 rows = ...[10]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="password">
+<h5>Password<a class="headerlink" href="#password" title="Permalink to this headline">¶</a></h5>
+<p>A password field consists of exactly three stars:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a password = ***</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="e-mail">
+<h5>E-Mail<a class="headerlink" href="#e-mail" title="Permalink to this headline">¶</a></h5>
+<p>An e-mail field consists of exactly three <code class="docutils literal"><span class="pre">&#64;</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m an e-mail field = @@@</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="url">
+<h5>URL<a class="headerlink" href="#url" title="Permalink to this headline">¶</a></h5>
+<p>An url field consists of the http/https prefix:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m an url field = http://</span>
+<span class="n">I</span><span class="s1">&#39;m the exact same = https://</span>
+</pre></div>
+</div>
+<p>Whether or not you enter http or https has no bearing on the validation.</p>
+</div>
+<div class="section" id="date">
+<h5>Date<a class="headerlink" href="#date" title="Permalink to this headline">¶</a></h5>
+<p>A date (without time) is defined by this exact string: <code class="docutils literal"><span class="pre">YYYY.MM.DD</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a date field = YYYY.MM.DD</span>
+</pre></div>
+</div>
+<p>Note that this doesn’t mean that the date format can be influenced.</p>
+</div>
+<div class="section" id="datetime">
+<h5>Datetime<a class="headerlink" href="#datetime" title="Permalink to this headline">¶</a></h5>
+<p>A date (with time) is defined by this exact string: <code class="docutils literal"><span class="pre">YYYY.MM.DD</span> <span class="pre">HH:MM</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a datetime field = YYYY.MM.DD HH:MM</span>
+</pre></div>
+</div>
+<p>Again, this doesn’t mean that the datetime format can be influenced.</p>
+</div>
+<div class="section" id="time">
+<h5>Time<a class="headerlink" href="#time" title="Permalink to this headline">¶</a></h5>
+<p>A Time is defined by this exact string: <code class="docutils literal"><span class="pre">HH:MM</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a time field = HH:MM</span>
+</pre></div>
+</div>
+<p>One more time, this doesn’t mean that the datetime format can be influenced.</p>
+</div>
+<div class="section" id="numbers">
+<h5>Numbers<a class="headerlink" href="#numbers" title="Permalink to this headline">¶</a></h5>
+<p>There are two types of number fields. An integer and a float field:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m an integer field = 0..99</span>
+<span class="n">I</span><span class="s1">&#39;m an integer field of a different range = -100..100</span>
+
+<span class="n">I</span><span class="s1">&#39;m a float field = 0.00..99.00</span>
+<span class="n">I</span><span class="s1">&#39;m an float field of a different range = -100.00..100.00</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="files">
+<h5>Files<a class="headerlink" href="#files" title="Permalink to this headline">¶</a></h5>
+<p>A file upload is defined like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a file upload field = *.*</span>
+</pre></div>
+</div>
+<p>This particular example would allow any file. To allow only certain files
+do something like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a image filed = *.png|*.jpg|*.gif</span>
+<span class="n">I</span><span class="s1">&#39;m a document = *.doc</span>
+<span class="n">I</span><span class="s1">&#39;m any document = *.doc|*.pdf</span>
+</pre></div>
+</div>
+<p>The files are checked against their file extension. Onegov.form also checks
+that uploaded files have the mimetype they claim to have and it won’t accept
+obviously dangerous uploads like binaries (unless you really want to).</p>
+</div>
+<div class="section" id="standard-numbers">
+<h5>Standard Numbers<a class="headerlink" href="#standard-numbers" title="Permalink to this headline">¶</a></h5>
+<p>onegov.form uses <a class="reference external" href="https://github.com/arthurdejong/python-stdnum">python-stdnum</a> to offer a wide range of
+standard formats that are guaranteed to be validated.</p>
+<p>To use, simply use a <cite>#</cite>, followed by the stdnum format to use:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">I</span><span class="s1">&#39;m a valid IBAN (or empty) = # iban</span>
+<span class="n">I</span><span class="s1">&#39;m a valid IBAN (required) * = # iban</span>
+</pre></div>
+</div>
+<p>The format string after the <cite>#</cite> must be importable from stdnum. In other words,
+this must work, if you are using <code class="docutils literal"><span class="pre">ch.ssn</span></code> (to use an example):</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ python
+&gt;&gt;&gt; from stdnum.ch import ssn
+</pre></div>
+</div>
+<p>This is a bit of an advanced feature and since it delegates most work to an
+external library there’s no guarantee that a format once used may be reused
+in the future.</p>
+<p>Still, the library should be somewhat stable and the benefit is huge.</p>
+<p>To see the available format, have a look at the docs:
+<a class="reference external" href="http://arthurdejong.org/python-stdnum/doc/1.1/index.html#available-formats">http://arthurdejong.org/python-stdnum/doc/1.1/index.html#available-formats</a></p>
+</div>
+<div class="section" id="radio-buttons">
+<h5>Radio Buttons<a class="headerlink" href="#radio-buttons" title="Permalink to this headline">¶</a></h5>
+<p>Radio button fields consist of x radio buttons, out of which one may be
+preselected. Radio buttons need to be indented on the lines after the
+definition:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Gender</span> <span class="o">=</span>
+    <span class="p">(</span> <span class="p">)</span> <span class="n">Female</span>
+    <span class="p">(</span> <span class="p">)</span> <span class="n">Male</span>
+    <span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="n">I</span> <span class="n">don</span><span class="s1">&#39;t want to say</span>
+</pre></div>
+</div>
+<p>Radio buttons also have the ability to define optional form parts. Those
+parts are only shown if a question was answered a certain way.</p>
+<p>Form parts are properly nested if they lign up with the label above them.</p>
+<p>For example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Delivery</span> <span class="n">Method</span> <span class="o">=</span>
+    <span class="p">(</span> <span class="p">)</span> <span class="n">Pickup</span>
+        <span class="n">Pickup</span> <span class="n">Time</span> <span class="o">*</span> <span class="o">=</span> <span class="n">___</span>
+    <span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="n">Address</span>
+        <span class="n">Street</span> <span class="o">*</span> <span class="o">=</span> <span class="n">___</span>
+        <span class="n">Town</span> <span class="o">*</span> <span class="o">=</span> <span class="n">___</span>
+</pre></div>
+</div>
+<p>Here, the street and the town only need to be provided, if the delivery method
+is ‘Address’. If the user selects a different option, the fields are not
+shown and they will not be required.</p>
+<p>On the other hand, if ‘Pickup’ is selected, the ‘Pickup Time’ needs to be
+filled out and the address options are hidden.</p>
+<p>This kind of nesting may continue ad infinitum. Meaning you can nest radio
+buttons as deeply as you like. Note however, that this is discouraged and that
+your users will not be too happy if you present them with a deeply nested
+form.</p>
+<p>More than one level of nesting is a clear indicator that your form is too
+complex.</p>
+</div>
+<div class="section" id="checkboxes">
+<h5>Checkboxes<a class="headerlink" href="#checkboxes" title="Permalink to this headline">¶</a></h5>
+<p>Checkboxes work exactly like radio buttons, just that you can select
+multiple fields:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Extras</span> <span class="o">=</span>
+    <span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="n">Phone</span> <span class="n">insurance</span>
+    <span class="p">[</span> <span class="p">]</span> <span class="n">Phone</span> <span class="n">case</span>
+    <span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="n">Extra</span> <span class="n">battery</span>
+</pre></div>
+</div>
+<p>Just like radiobuttons, checkboxes may be nested to created dependencies:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Additional</span> <span class="n">toppings</span> <span class="o">=</span>
+    <span class="p">[</span> <span class="p">]</span> <span class="n">Salami</span>
+    <span class="p">[</span> <span class="p">]</span> <span class="n">Olives</span>
+    <span class="p">[</span> <span class="p">]</span> <span class="n">Other</span>
+        <span class="n">Description</span> <span class="o">=</span> <span class="n">___</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="pricing-information">
+<h5>Pricing Information<a class="headerlink" href="#pricing-information" title="Permalink to this headline">¶</a></h5>
+<p>Radio buttons and checkboxes may be priced. For example, the following order
+form can be modeled:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Node</span> <span class="n">Size</span> <span class="o">=</span>
+    <span class="p">(</span> <span class="p">)</span> <span class="n">Small</span> <span class="p">(</span><span class="mi">20</span> <span class="n">USD</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="n">Medium</span> <span class="p">(</span><span class="mi">30</span> <span class="n">USD</span><span class="p">)</span>
+    <span class="p">(</span> <span class="p">)</span> <span class="n">Large</span> <span class="p">(</span><span class="mi">40</span> <span class="n">USD</span><span class="p">)</span>
+
+<span class="n">Extras</span> <span class="o">=</span>
+    <span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="n">Second</span> <span class="n">IP</span> <span class="n">Address</span> <span class="p">(</span><span class="mi">20</span> <span class="n">CHF</span><span class="p">)</span>
+    <span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="n">Backup</span> <span class="p">(</span><span class="mi">20</span> <span class="n">CHF</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The additional pricing metadata can be used to provide simple order forms.
+As in any other form, dependencies are taken into account.</p>
+<dl class="class">
+<dt id="onegov.form.parser.core.CustomLoader">
+<em class="property">class </em><code class="descclassname">onegov.form.parser.core.</code><code class="descname">CustomLoader</code><span class="sig-paren">(</span><em>stream</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/core.html#CustomLoader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.core.CustomLoader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extends the default yaml loader with customized constructors.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.parser.core.constructor">
+<em class="property">class </em><code class="descclassname">onegov.form.parser.core.</code><code class="descname">constructor</code><span class="sig-paren">(</span><em>tag</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/core.html#constructor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.core.constructor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds decorated functions to as constructors to the CustomLoader.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.parser.core.Fieldset">
+<em class="property">class </em><code class="descclassname">onegov.form.parser.core.</code><code class="descname">Fieldset</code><span class="sig-paren">(</span><em>label</em>, <em>fields=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/core.html#Fieldset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.core.Fieldset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a parsed fieldset.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.parser.core.Choice">
+<em class="property">class </em><code class="descclassname">onegov.form.parser.core.</code><code class="descname">Choice</code><span class="sig-paren">(</span><em>key</em>, <em>label</em>, <em>selected=False</em>, <em>fields=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/core.html#Choice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.core.Choice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a parsed choice.</p>
+<p>Note: Choices may have child-fields which are meant to be shown to the
+user if the given choice was selected.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.form.parser.core.Field">
+<em class="property">class </em><code class="descclassname">onegov.form.parser.core.</code><code class="descname">Field</code><span class="sig-paren">(</span><em>label</em>, <em>required</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/core.html#Field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.core.Field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a parsed field.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.core.parse_formcode">
+<code class="descclassname">onegov.form.parser.core.</code><code class="descname">parse_formcode</code><span class="sig-paren">(</span><em>formcode</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/core.html#parse_formcode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.core.parse_formcode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the given formcode and returns an intermediate representation
+that can be used to generate forms or do other things.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.core.parse_field_block">
+<code class="descclassname">onegov.form.parser.core.</code><code class="descname">parse_field_block</code><span class="sig-paren">(</span><em>field_block</em>, <em>field_classes</em>, <em>used_ids</em>, <em>fieldset_label</em>, <em>parent=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/core.html#parse_field_block"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.core.parse_field_block" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the given parsed field block and yields the fields from it</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.core.match">
+<code class="descclassname">onegov.form.parser.core.</code><code class="descname">match</code><span class="sig-paren">(</span><em>expr</em>, <em>text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/core.html#match"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.core.match" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if the given parser expression matches the given text.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.core.try_parse">
+<code class="descclassname">onegov.form.parser.core.</code><code class="descname">try_parse</code><span class="sig-paren">(</span><em>expr</em>, <em>text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/core.html#try_parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.core.try_parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the result of the given parser expression and text, or None.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.core.prepare">
+<code class="descclassname">onegov.form.parser.core.</code><code class="descname">prepare</code><span class="sig-paren">(</span><em>text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/core.html#prepare"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.core.prepare" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the raw form source and prepares it for the translation into
+yaml.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.core.ensure_a_fieldset">
+<code class="descclassname">onegov.form.parser.core.</code><code class="descname">ensure_a_fieldset</code><span class="sig-paren">(</span><em>lines</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/core.html#ensure_a_fieldset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.core.ensure_a_fieldset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes sure that the given lines all belong to a fieldset. That means
+adding an empty fieldset before all lines, if none is found first.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.core.translate_to_yaml">
+<code class="descclassname">onegov.form.parser.core.</code><code class="descname">translate_to_yaml</code><span class="sig-paren">(</span><em>text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/core.html#translate_to_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.core.translate_to_yaml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the given form text and constructs an easier to parse yaml
+string.</p>
+</dd></dl>
+
+</div>
+</div>
+</div>
+<span class="target" id="module-onegov.form.parser.grammar"></span><dl class="function">
+<dt id="onegov.form.parser.grammar.text_without">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">text_without</code><span class="sig-paren">(</span><em>characters</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#text_without"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.text_without" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all printable text without the given characters.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.matches">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">matches</code><span class="sig-paren">(</span><em>character</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#matches"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if the given character matches the token.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.literal">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">literal</code><span class="sig-paren">(</span><em>text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#literal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.literal" title="Permalink to this definition">¶</a></dt>
+<dd><p>” Returns the given value, ignoring the tokens alltogether.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.as_int">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">as_int</code><span class="sig-paren">(</span><em>tokens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#as_int"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.as_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the token to int if possible.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.as_decimal">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">as_decimal</code><span class="sig-paren">(</span><em>tokens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#as_decimal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.as_decimal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the token to decimal if possible.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.as_uppercase">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">as_uppercase</code><span class="sig-paren">(</span><em>tokens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#as_uppercase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.as_uppercase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the token to uppercase if possible.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.as_integer_range">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">as_integer_range</code><span class="sig-paren">(</span><em>tokens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#as_integer_range"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.as_integer_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the token to an integer range if possible.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.as_decimal_range">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">as_decimal_range</code><span class="sig-paren">(</span><em>tokens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#as_decimal_range"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.as_decimal_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the token to a decimal range if possible.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.as_regex">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">as_regex</code><span class="sig-paren">(</span><em>tokens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#as_regex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.as_regex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the token to a working regex if possible.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.rstrip">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">rstrip</code><span class="sig-paren">(</span><em>tokens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#rstrip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.rstrip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Strips whitetext on the right of the token.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.unwrap">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">unwrap</code><span class="sig-paren">(</span><em>tokens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#unwrap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.unwrap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unwraps grouped tokens.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.tag">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">tag</code><span class="sig-paren">(</span><em>**tags</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#tag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.tag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the given tags and applies them to the token.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.with_whitespace_inside">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">with_whitespace_inside</code><span class="sig-paren">(</span><em>expr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#with_whitespace_inside"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.with_whitespace_inside" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an expression that allows for whitespace inside, but not
+outside the expression.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.enclosed_in">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">enclosed_in</code><span class="sig-paren">(</span><em>expr</em>, <em>characters</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#enclosed_in"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.enclosed_in" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps the given expression in the given characters.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.number_enclosed_in">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">number_enclosed_in</code><span class="sig-paren">(</span><em>characters</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#number_enclosed_in"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.number_enclosed_in" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps numers in the given characters, making sure the result is an int.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.mark_enclosed_in">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">mark_enclosed_in</code><span class="sig-paren">(</span><em>characters</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#mark_enclosed_in"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.mark_enclosed_in" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a mark (x) inclosed in the given characters. For example,
+<code class="docutils literal"><span class="pre">mark_enclosed_in('[]')</span></code> creates an expression that accepts any of these
+and sets the result of the ‘x’ value to True, the others to False:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
+<span class="p">[</span> <span class="p">]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.textfield">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">textfield</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#textfield"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.textfield" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a textfield parser.</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">____</span><span class="p">[</span><span class="mi">50</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The number defines the maximum length.</p>
+<p>Additionally, a regex may be specified to validate the field:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">___</span><span class="o">/</span><span class="p">[</span><span class="mi">0</span><span class="o">-</span><span class="mi">9</span><span class="p">]{</span><span class="mi">4</span><span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.textarea">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">textarea</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#textarea"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.textarea" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a textarea parser.</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">...</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The number defines the number of rows.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.password">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">password</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#password"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.password" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a password field parser.</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">***</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.email">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">email</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.email" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an email field parser.</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">@@@</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.url">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">url</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an url field parser.</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">http</span><span class="p">:</span><span class="o">//</span>
+<span class="n">https</span><span class="p">:</span><span class="o">//</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.date">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">date</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#date"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.date" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a date parser.</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">YYYY</span><span class="o">.</span><span class="n">MM</span><span class="o">.</span><span class="n">DD</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.datetime">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">datetime</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.datetime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a datetime parser.</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">YYYY</span><span class="o">.</span><span class="n">MM</span><span class="o">.</span><span class="n">DD</span> <span class="n">HH</span><span class="p">:</span><span class="n">MM</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.time">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a time parser.</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">HH</span><span class="p">:</span><span class="n">MM</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.stdnum">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">stdnum</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#stdnum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.stdnum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an stdnum parser.</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># iban</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.fileinput">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">fileinput</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#fileinput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.fileinput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a fileinput parser.</p>
+<dl class="docutils">
+<dt>For all kindes of files::</dt>
+<dd><em>.</em></dd>
+<dt>For specific files:</dt>
+<dd><em>.pdf|</em>.doc</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.decimal">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">decimal</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#decimal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.decimal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a decimal parser.</p>
+<p>Decimal point is ‘.’.</p>
+<p>For example:</p>
+<blockquote>
+<div>0.00
+123
+11.1
+-10.0</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.range_field">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">range_field</code><span class="sig-paren">(</span><em>value_expression</em>, <em>parse_action</em>, <em>type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#range_field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.range_field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic range field parser.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.integer_range_field">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">integer_range_field</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#integer_range_field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.integer_range_field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an integer range parser.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.decimal_range_field">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">decimal_range_field</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#decimal_range_field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.decimal_range_field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a decimal range parser.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.currency">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">currency</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#currency"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.currency" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a currency parser.</p>
+<p>For example:</p>
+<blockquote>
+<div>chf
+USD
+Cny</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.marker_box">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">marker_box</code><span class="sig-paren">(</span><em>characters</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#marker_box"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.marker_box" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a marker box:</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>(x) Male
+[x] Female
+{x} What?
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.radio">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">radio</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#radio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.radio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a radio parser:</p>
+<dl class="docutils">
+<dt>Example::</dt>
+<dd>(x) Male
+( ) Female</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.checkbox">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">checkbox</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#checkbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.checkbox" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a checkbox parser:</p>
+<dl class="docutils">
+<dt>Example::</dt>
+<dd>[x] Male
+[ ] Female</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.fieldset_title">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">fieldset_title</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#fieldset_title"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.fieldset_title" title="Permalink to this definition">¶</a></dt>
+<dd><p>A fieldset title parser. Fieldset titles are just like headings in
+markdown:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># My header</span>
+</pre></div>
+</div>
+<p>It’s possible to have an empty fieldset title (to disable a fieldset):</p>
+<blockquote>
+<div># …</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.form.parser.grammar.field_identifier">
+<code class="descclassname">onegov.form.parser.grammar.</code><code class="descname">field_identifier</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/parser/grammar.html#field_identifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.parser.grammar.field_identifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a field identifier parser:</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">My</span> <span class="n">field</span> <span class="o">*</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.form.errors">
+<span id="errors"></span><h2>Errors<a class="headerlink" href="#module-onegov.form.errors" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/onegov_form.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

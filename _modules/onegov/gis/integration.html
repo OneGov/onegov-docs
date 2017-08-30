@@ -1,0 +1,178 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.gis.integration &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.gis.integration</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">more.webassets</span> <span class="k">import</span> <span class="n">WebassetsApp</span>
+
+
+<div class="viewcode-block" id="MapboxApp"><a class="viewcode-back" href="../../../onegov_gis.html#onegov.gis.integration.MapboxApp">[docs]</a><span class="k">class</span> <span class="nc">MapboxApp</span><span class="p">(</span><span class="n">WebassetsApp</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Provides mapbox integration</span>
+<span class="sd">    :class:`onegov.core.framework.Framework` based applications.</span>
+
+<span class="sd">    Doesn&#39;t do much except serve the mapbox public token, so we can store it</span>
+<span class="sd">    in configuration and not with the source. Not that this token is inherently</span>
+<span class="sd">    unsafe and must be the *public* token.</span>
+
+<span class="sd">    Do not use private tokens!</span>
+
+<span class="sd">    If we wanted to avoid this we would have to use a mapbox proxy server,</span>
+<span class="sd">    which seems a bit too much. If we detect abuse of the public token we</span>
+<span class="sd">    just switch to a new one. If it must be we can even automatically rotate</span>
+<span class="sd">    the token regularly.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MapboxApp.configure_mapbox"><a class="viewcode-back" href="../../../onegov_gis.html#onegov.gis.integration.MapboxApp.configure_mapbox">[docs]</a>    <span class="k">def</span> <span class="nf">configure_mapbox</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Configures the mapbox.</span>
+
+<span class="sd">        The following configuration options are accepted:</span>
+
+<span class="sd">        :mapbox_token:</span>
+<span class="sd">            The public mapbox token to be used for the mapbox api.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mapbox_token&#39;</span><span class="p">,</span> <span class="s1">&#39;pk&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pk&#39;</span><span class="p">),</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            Only public mapbox tokens are allowed!</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mapbox_token</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mapbox_token&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@MapboxApp</span><span class="o">.</span><span class="n">webasset_path</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">get_js_path</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s1">&#39;assets/js&#39;</span>
+
+
+<span class="nd">@MapboxApp</span><span class="o">.</span><span class="n">webasset_path</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">get_css_path</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s1">&#39;assets/css&#39;</span>
+
+
+<span class="nd">@MapboxApp</span><span class="o">.</span><span class="n">webasset</span><span class="p">(</span><span class="s1">&#39;leaflet&#39;</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;css&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;datauri&#39;</span><span class="p">,</span> <span class="s1">&#39;custom-rcssmin&#39;</span><span class="p">]})</span>
+<span class="k">def</span> <span class="nf">get_leaflet_asset</span><span class="p">():</span>
+    <span class="k">yield</span> <span class="s1">&#39;leaflet.css&#39;</span>
+    <span class="k">yield</span> <span class="s1">&#39;leaflet-easybutton.css&#39;</span>
+    <span class="k">yield</span> <span class="s1">&#39;leaflet-control-geocoder.css&#39;</span>
+    <span class="k">yield</span> <span class="s1">&#39;leaflet-integration.css&#39;</span>
+    <span class="k">yield</span> <span class="s1">&#39;leaflet.js&#39;</span>
+    <span class="k">yield</span> <span class="s1">&#39;leaflet-sleep.js&#39;</span>
+    <span class="k">yield</span> <span class="s1">&#39;leaflet-easybutton.js&#39;</span>
+    <span class="k">yield</span> <span class="s1">&#39;leaflet-control-geocoder.js&#39;</span>
+    <span class="k">yield</span> <span class="s1">&#39;leaflet-integration.js&#39;</span>
+
+
+<span class="nd">@MapboxApp</span><span class="o">.</span><span class="n">tween_factory</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">inject_mapbox_api_token_tween_factory</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+
+    <span class="n">replacement</span> <span class="o">=</span> <span class="s1">&#39;&lt;body data-mapbox-token=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">mapbox_token</span><span class="p">)</span>
+    <span class="n">replacement</span> <span class="o">=</span> <span class="n">replacement</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">inject_mapbox_api_token_tween</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="n">handler</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">mapbox_token</span><span class="p">:</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="sa">b</span><span class="s1">&#39;&lt;body&#39;</span><span class="p">,</span>
+                <span class="n">replacement</span><span class="p">,</span>
+                <span class="mi">1</span>  <span class="c1"># only replace the first occurrence</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">response</span>
+
+    <span class="k">return</span> <span class="n">inject_mapbox_api_token_tween</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

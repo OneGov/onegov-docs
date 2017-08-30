@@ -1,0 +1,177 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.org.models.organisation &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.org.models.organisation</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Contains the model describing the organisation proper. &quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span><span class="p">,</span> <span class="n">TimestampMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">UUID</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">linkify</span>
+<span class="kn">from</span> <span class="nn">onegov.org.theme</span> <span class="k">import</span> <span class="n">user_options</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
+
+
+<div class="viewcode-block" id="Organisation"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.organisation.Organisation">[docs]</a><span class="k">class</span> <span class="nc">Organisation</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Defines the basic information associated with an organisation.</span>
+
+<span class="sd">    It is assumed that there&#39;s only one organisation record in the schema!</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;organisations&#39;</span>
+
+    <span class="c1">#: the id of the organisation, an automatically generated uuid</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
+
+    <span class="c1">#: the name of the organisation</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the logo of the organisation</span>
+    <span class="n">logo_url</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: the theme options of the organisation</span>
+    <span class="n">theme_options</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">JSON</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">user_options</span><span class="o">.</span><span class="n">copy</span><span class="p">)</span>
+
+    <span class="c1">#: additional data associated with the organisation</span>
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">JSON</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="c1"># meta bound values</span>
+    <span class="n">contact</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;contact&#39;</span><span class="p">)</span>
+    <span class="n">contact_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;contact_url&#39;</span><span class="p">)</span>
+    <span class="n">opening_hours</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;opening_hours&#39;</span><span class="p">)</span>
+    <span class="n">opening_hours_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;opening_hours_url&#39;</span><span class="p">)</span>
+    <span class="n">reply_to</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;reply_to&#39;</span><span class="p">)</span>
+    <span class="n">facebook_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;facebook_url&#39;</span><span class="p">)</span>
+    <span class="n">twitter_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;twitter_url&#39;</span><span class="p">)</span>
+    <span class="n">analytics_code</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;analytics_code&#39;</span><span class="p">)</span>
+    <span class="n">online_counter_label</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;online_counter_label&#39;</span><span class="p">)</span>
+    <span class="n">reservations_label</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;reservations_label&#39;</span><span class="p">)</span>
+    <span class="n">daypass_label</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;daypass_label&#39;</span><span class="p">)</span>
+    <span class="n">default_map_view</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;default_map_view&#39;</span><span class="p">)</span>
+    <span class="n">homepage_structure</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;homepage_structure&#39;</span><span class="p">)</span>
+    <span class="n">homepage_cover</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;homepage_cover&#39;</span><span class="p">)</span>
+    <span class="n">bank_account</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;bank_account&#39;</span><span class="p">)</span>
+    <span class="n">bank_beneficiary</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;bank_beneficiary&#39;</span><span class="p">)</span>
+    <span class="n">bank_payment_order_type</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;bank_payment_order_type&#39;</span><span class="p">)</span>
+    <span class="n">bank_esr_participant_number</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;bank_esr_participant_number&#39;</span><span class="p">)</span>
+    <span class="n">square_logo_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;square_logo_url&#39;</span><span class="p">)</span>
+
+    <span class="nd">@contact</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">contact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;contact&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;contact_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">linkify</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;br&gt;&#39;</span><span class="p">)</span>
+
+    <span class="nd">@opening_hours</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">opening_hours</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;opening_hours&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;opening_hours_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">linkify</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;br&gt;&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">title</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">title_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;|&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

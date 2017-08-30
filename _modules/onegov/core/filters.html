@@ -1,0 +1,169 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.core.filters &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.core.filters</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Extra webasset filters. &quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">webassets.filter</span> <span class="k">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">register_filter</span>
+<span class="kn">from</span> <span class="nn">webassets.filter.datauri</span> <span class="k">import</span> <span class="n">CSSDataUri</span><span class="p">,</span> <span class="n">CSSUrlRewriter</span>
+
+
+<span class="k">class</span> <span class="nc">JsxFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;jsx&#39;</span>
+
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">react</span> <span class="k">import</span> <span class="n">jsx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span> <span class="o">=</span> <span class="n">jsx</span><span class="o">.</span><span class="n">JSXTransformer</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_in</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="o">.</span><span class="n">transform_string</span><span class="p">(</span><span class="n">_in</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+
+
+<span class="n">register_filter</span><span class="p">(</span><span class="n">JsxFilter</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="DataUriFilter"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.filters.DataUriFilter">[docs]</a><span class="k">class</span> <span class="nc">DataUriFilter</span><span class="p">(</span><span class="n">CSSDataUri</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Overrides the default datauri filter to work around this issue:</span>
+
+<span class="sd">    https://github.com/miracle2k/webassets/issues/387</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;datauri&#39;</span>
+
+    <span class="k">def</span> <span class="nf">input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_in</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span> <span class="o">=</span> <span class="n">kw</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">source_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span><span class="p">[</span><span class="s1">&#39;output_path&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">CSSUrlRewriter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">input</span><span class="p">(</span><span class="n">_in</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">source_url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">resolver</span><span class="o">.</span><span class="n">resolve_source_to_url</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">])</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">output_url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">resolver</span><span class="o">.</span><span class="n">resolve_output_to_url</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span><span class="p">[</span><span class="s1">&#39;output&#39;</span><span class="p">])</span></div>
+
+
+<span class="n">register_filter</span><span class="p">(</span><span class="n">DataUriFilter</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="RCSSMinFilter"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.filters.RCSSMinFilter">[docs]</a><span class="k">class</span> <span class="nc">RCSSMinFilter</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds the rcssmin filter (not yet included in webassets) &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;custom-rcssmin&#39;</span>
+
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">rcssmin</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">EnvironmentError</span><span class="p">(</span><span class="s1">&#39;The &quot;rcssmin&quot; package is not installed.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rcssmin</span> <span class="o">=</span> <span class="n">rcssmin</span>
+
+    <span class="k">def</span> <span class="nf">output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_in</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rcssmin</span><span class="o">.</span><span class="n">cssmin</span><span class="p">(</span><span class="n">_in</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span></div>
+
+
+<span class="n">register_filter</span><span class="p">(</span><span class="n">RCSSMinFilter</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,139 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.core.crypto.token &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.core.crypto.token</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<span class="c1"># for external reference, update if the hashing function ever changes</span>
+<span class="n">RANDOM_TOKEN_LENGTH</span> <span class="o">=</span> <span class="mi">64</span>
+
+
+<div class="viewcode-block" id="random_token"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.crypto.random_token">[docs]</a><span class="k">def</span> <span class="nf">random_token</span><span class="p">(</span><span class="n">nbytes</span><span class="o">=</span><span class="mi">512</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Generates an unguessable token. Generates a random string with</span>
+<span class="sd">    the given number of bytes (may not be lower than 512) and hashes</span>
+<span class="sd">    the result to get a token with a consistent length of 64.</span>
+
+<span class="sd">    Why hashing?</span>
+
+<span class="sd">    We could of course just create a random token with a length of 64, but that</span>
+<span class="sd">    would leak the random numbers we actually create. This can be a bit of</span>
+<span class="sd">    a problem if the random generator you use turns out to have some</span>
+<span class="sd">    vulnerability. By hashing a larger number we hide the result of our random</span>
+<span class="sd">    generator.</span>
+
+<span class="sd">    Doesn&#39;t generating a hash from a larger number limit the number of tokens?</span>
+
+<span class="sd">    Yes it does. The number of different tokens is 2^256 after hashing,</span>
+<span class="sd">    which is a number larger than all the atoms on earth (approx. 2^166).</span>
+<span class="sd">    So there is a chance of a collision occuring, but it is *very* unlikely</span>
+<span class="sd">    to *ever* happen.</span>
+
+<span class="sd">    More information:</span>
+
+<span class="sd">    `&lt;http://wyattbaldwin.com/2014/01/09/generating-random-tokens-in-python&gt;`_</span>
+
+<span class="sd">    `&lt;http://www.2uo.de/myths-about-urandom/&gt;`_</span>
+
+<span class="sd">    `&lt;http://crypto.stackexchange.com/q/1401&gt;`_</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">nbytes</span> <span class="o">&gt;=</span> <span class="mi">512</span>
+    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">urandom</span><span class="p">(</span><span class="n">nbytes</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

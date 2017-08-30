@@ -1,0 +1,309 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.foundation.theme &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.foundation.theme</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os.path</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">chain</span>
+<span class="kn">from</span> <span class="nn">rcssmin</span> <span class="k">import</span> <span class="n">cssmin</span>
+<span class="kn">from</span> <span class="nn">scss.compiler</span> <span class="k">import</span> <span class="n">Compiler</span>
+
+
+<div class="viewcode-block" id="BaseTheme"><a class="viewcode-back" href="../../../onegov_foundation.html#onegov.foundation.theme.BaseTheme">[docs]</a><span class="k">class</span> <span class="nc">BaseTheme</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Base class for Zurb Foundation based themes. Use this class to</span>
+<span class="sd">    create a theme that customizes Zurb Foundation somehow.</span>
+
+<span class="sd">    If you don&#39;t want to customize it at all, use :class:`Theme`.</span>
+
+<span class="sd">    To customize start like this::</span>
+
+<span class="sd">        from onegov.foundation import BaseTheme</span>
+
+<span class="sd">        class MyTheme(BaseTheme):</span>
+<span class="sd">            name = &#39;my-theme&#39;</span>
+<span class="sd">            version = &#39;1.0&#39;</span>
+
+<span class="sd">    You can then add paths with your own scss files, as well as imports that</span>
+<span class="sd">    should be added *before* the foundation theme, and imports that should</span>
+<span class="sd">    be added *after* the foundation theme.</span>
+
+<span class="sd">    Finally, options passed to the :meth:`compile` function take this form::</span>
+
+<span class="sd">        options = {</span>
+<span class="sd">            &#39;rowWidth&#39;: &#39;1000px&#39;,</span>
+<span class="sd">            &#39;columnGutter&#39;: &#39;30px&#39;</span>
+<span class="sd">        }</span>
+
+<span class="sd">    Those options result in variables added at the very top of the sass source</span>
+<span class="sd">    before it is compiled::</span>
+
+<span class="sd">        @import &#39;foundation/functions&#39;;</span>
+
+<span class="sd">        $rowWidth: 1000px;</span>
+<span class="sd">        $columnGutter: 30px;</span>
+
+<span class="sd">    If your variables rely on a certain order you need to pass an ordered dict.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Initializes the theme.</span>
+
+<span class="sd">        :compress:</span>
+<span class="sd">            If true, which is the default, the css is compressed before it is</span>
+<span class="sd">            returned.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compress</span> <span class="o">=</span> <span class="n">compress</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">default_options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Default options used when compiling the theme. &quot;&quot;&quot;</span>
+        <span class="c1"># return an ordered dict, in case someone overrides the compile options</span>
+        <span class="c1"># with an ordered dict - this would otherwise result in an unordered</span>
+        <span class="c1"># dict when both dicts are merged</span>
+        <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pre_imports</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Imports added before the foundation import. The imports must be</span>
+<span class="sd">        found in one of the paths (see :attr:`extra_search_paths`).</span>
+
+<span class="sd">        The form of a single import is &#39;example&#39; (which would search for</span>
+<span class="sd">        files named &#39;example.scss&#39;)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">foundation_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; All used foundation components. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s1">&#39;grid&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;accordion&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;alert-boxes&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;block-grid&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;breadcrumbs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;button-groups&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;buttons&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;clearing&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;dropdown&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;dropdown-buttons&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;flex-video&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;forms&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;icon-bar&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;inline-lists&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;joyride&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;keystrokes&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;labels&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;magellan&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;orbit&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;pagination&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;panels&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;pricing-tables&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;progress-bars&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;range-slider&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;reveal&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;side-nav&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;split-buttons&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;sub-nav&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;switches&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;tables&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;tabs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;thumbs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;tooltips&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;top-bar&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;type&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;offcanvas&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;visibility&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">imports</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; All imports, including the foundation ones. Override with care. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">chain</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pre_imports</span><span class="p">,</span>
+            <span class="p">(</span><span class="s1">&#39;normalize&#39;</span><span class="p">,</span> <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s1">&#39;foundation/components/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">foundation_components</span>
+            <span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">post_imports</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">post_imports</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Imports added after the foundation import. The imports must be found</span>
+<span class="sd">        in one of the paths (see :attr:`extra_search_paths`).</span>
+
+<span class="sd">        The form of a single import is &#39;example&#39; (which would search for</span>
+<span class="sd">        files named &#39;example.scss&#39;)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">extra_search_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; A list of absolute search paths added before the actual foundation</span>
+<span class="sd">        search path.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">foundation_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The search path for the foundation files included in this module.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s1">&#39;foundation&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BaseTheme.compile"><a class="viewcode-back" href="../../../onegov_foundation.html#onegov.foundation.theme.BaseTheme.compile">[docs]</a>    <span class="k">def</span> <span class="nf">compile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{}):</span>
+        <span class="sd">&quot;&quot;&quot; Compiles the theme with the given options. &quot;&quot;&quot;</span>
+
+        <span class="c1"># copy, because the dict may be static if it&#39;s a basic property</span>
+        <span class="n">_options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_options</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">_options</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">_options</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;@import &#39;foundation/functions&#39;;&quot;</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="s2">&quot;$</span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_options</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_search_paths</span>
+        <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">foundation_path</span><span class="p">)</span>
+
+        <span class="n">compiler</span> <span class="o">=</span> <span class="n">Compiler</span><span class="p">(</span><span class="n">search_path</span><span class="o">=</span><span class="n">paths</span><span class="p">)</span>
+        <span class="n">css</span> <span class="o">=</span> <span class="n">compiler</span><span class="o">.</span><span class="n">compile_string</span><span class="p">(</span>
+            <span class="n">prefix</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;@import &#39;</span><span class="si">{}</span><span class="s2">&#39;;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">imports</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compress</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cssmin</span><span class="p">(</span><span class="n">css</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">css</span></div></div>
+
+
+<div class="viewcode-block" id="Theme"><a class="viewcode-back" href="../../../onegov_foundation.html#onegov.foundation.theme.Theme">[docs]</a><span class="k">class</span> <span class="nc">Theme</span><span class="p">(</span><span class="n">BaseTheme</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Zurb Foundation vanilla theme. Use this if you don&#39;t want any changes</span>
+<span class="sd">    to zurb foundation, except for setting supported variables.</span>
+
+<span class="sd">    Do not use this class as a base for your own theme!</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        from onegov.core import Framework</span>
+<span class="sd">        from onegov.foundation import Theme</span>
+
+<span class="sd">        class App(Framework):</span>
+<span class="sd">            theme_options = {</span>
+<span class="sd">                &#39;rowWidth&#39;: &#39;1200px&#39;</span>
+<span class="sd">            }</span>
+
+<span class="sd">        @App.setting(section=&#39;core&#39;, name=&#39;theme&#39;)</span>
+<span class="sd">        def get_theme():</span>
+<span class="sd">            return Theme()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;zurb.foundation&#39;</span>
+    <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;1.0&#39;</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,1010 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.ballot.models.election &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.ballot.models.election</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.common</span> <span class="k">import</span> <span class="n">DomainOfInfluenceMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.common</span> <span class="k">import</span> <span class="n">MetaMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.common</span> <span class="k">import</span> <span class="n">StatusMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">translation_hybrid</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">HSTORE</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">increment_name</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Date</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">desc</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">ForeignKey</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">func</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Integer</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">select</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.ext.hybrid</span> <span class="k">import</span> <span class="n">hybrid_property</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">aliased</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">backref</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
+
+
+<div class="viewcode-block" id="DerivedAttributes"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.DerivedAttributes">[docs]</a><span class="k">class</span> <span class="nc">DerivedAttributes</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; A simple mixin to add commonly used functions to elections and their</span>
+<span class="sd">    results. &quot;&quot;&quot;</span>
+
+    <span class="nd">@hybrid_property</span>
+    <span class="k">def</span> <span class="nf">unaccounted_ballots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The number of unaccounted ballots. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank_ballots</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid_ballots</span>
+
+    <span class="nd">@hybrid_property</span>
+    <span class="k">def</span> <span class="nf">accounted_ballots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The number of accounted ballots. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">received_ballots</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">unaccounted_ballots</span>
+
+    <span class="nd">@hybrid_property</span>
+    <span class="k">def</span> <span class="nf">turnout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The turnout of the election. &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">elegible_voters</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">received_ballots</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">elegible_voters</span> <span class="o">*</span> <span class="mi">100</span></div>
+
+
+<span class="k">class</span> <span class="nc">Election</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">DerivedAttributes</span><span class="p">,</span>
+               <span class="n">DomainOfInfluenceMixin</span><span class="p">,</span> <span class="n">MetaMixin</span><span class="p">,</span> <span class="n">StatusMixin</span><span class="p">):</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;elections&#39;</span>
+
+    <span class="n">summarized_properties</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s1">&#39;elegible_voters&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;received_ballots&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;accounted_ballots&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;blank_ballots&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;invalid_ballots&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;accounted_votes&#39;</span>
+    <span class="p">]</span>
+
+    <span class="c1">#: Identifies the result, may be used in the url</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: Title of the election</span>
+    <span class="n">title_translations</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">HSTORE</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="n">translation_hybrid</span><span class="p">(</span><span class="n">title_translations</span><span class="p">)</span>
+
+    <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;title_translations&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">title_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">translations</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="n">normalize_for_url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;election&#39;</span>
+            <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">while</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="nb">id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">():</span>
+                <span class="nb">id</span> <span class="o">=</span> <span class="n">increment_name</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span>
+
+    <span class="c1">#: Shortcode for cantons that use it</span>
+    <span class="n">shortcode</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: Identifies the date of the vote</span>
+    <span class="n">date</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Date</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: Type of the election</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span>
+        <span class="n">Enum</span><span class="p">(</span>
+            <span class="s1">&#39;proporz&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;majorz&#39;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;type_of_election&#39;</span>
+        <span class="p">),</span>
+        <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="c1">#: Number of mandates</span>
+    <span class="n">number_of_mandates</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">allocated_mandates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Number of already allocated mandates/elected candidates. &quot;&quot;&quot;</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">(</span>
+                <span class="n">func</span><span class="o">.</span><span class="n">nullif</span><span class="p">(</span><span class="n">Candidate</span><span class="o">.</span><span class="n">elected</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Candidate</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+        <span class="n">mandates</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">mandates</span> <span class="ow">and</span> <span class="n">mandates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="mi">0</span>
+
+    <span class="c1">#: Absolute majority (majorz elections only)</span>
+    <span class="n">absolute_majority</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#: Total number of political entities</span>
+    <span class="n">total_entities</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: Number of already counted political entitites</span>
+    <span class="n">counted_entities</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">progress</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a tuple with the first value being the number of counted</span>
+<span class="sd">        entities and the second value being the number of total entities.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">counted_entities</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_entities</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">counted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Checks if there are results for all entitites. &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_entities</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">counted_entities</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_entities</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">counted_entities</span>
+
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1">#: An election contains n list connections</span>
+    <span class="n">list_connections</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;ListConnection&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;election&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
+        <span class="n">order_by</span><span class="o">=</span><span class="s1">&#39;ListConnection.connection_id&#39;</span>
+    <span class="p">)</span>
+
+    <span class="c1">#: An election contains n lists</span>
+    <span class="n">lists</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;List&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;election&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1">#: An election contains n candidates</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;Candidate&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;election&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
+        <span class="n">order_by</span><span class="o">=</span><span class="s1">&#39;Candidate.candidate_id&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1">#: An election contains n results, one for each political entity</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;ElectionResult&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;election&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
+        <span class="n">order_by</span><span class="o">=</span><span class="s1">&#39;ElectionResult.group&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1">#: An election may contains n party results</span>
+    <span class="n">party_results</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;PartyResult&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;election&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">aggregate_results_expression</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results,</span>
+<span class="sd">        as SQL expression.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">select</span><span class="p">([</span><span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">ElectionResult</span><span class="p">,</span> <span class="n">attribute</span><span class="p">))])</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">attribute</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">last_result_change</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets the latest created/modified date of the election or amongst</span>
+<span class="sd">        the results of this election.</span>
+
+<span class="sd">        This does include changes made to the election itself (title, ...),</span>
+<span class="sd">        the candidate results and the party results.</span>
+
+<span class="sd">        This does not include changes made to candidates, lists, list</span>
+<span class="sd">        connections and children of election results such as candidate</span>
+<span class="sd">        results, list results, ...</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">last_changes</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_change</span><span class="p">:</span>
+            <span class="n">last_changes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_change</span><span class="p">)</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">ElectionResult</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">last_change</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">desc</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">last_change</span><span class="p">))</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">last_change</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">last_change</span><span class="p">:</span>
+            <span class="n">last_changes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">last_change</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">PartyResult</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">PartyResult</span><span class="o">.</span><span class="n">last_change</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">desc</span><span class="p">(</span><span class="n">PartyResult</span><span class="o">.</span><span class="n">last_change</span><span class="p">))</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">PartyResult</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">last_change</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">last_change</span><span class="p">:</span>
+            <span class="n">last_changes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">last_change</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">last_changes</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">last_changes</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">elected_candidates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the first and last names of the elected candidates. &quot;&quot;&quot;</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">first_name</span><span class="p">,</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">family_name</span>
+        <span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">elected</span> <span class="o">==</span> <span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">family_name</span><span class="p">,</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">first_name</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_panachage_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Checks if there are panachage data available. &quot;&quot;&quot;</span>
+
+        <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">ids</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">PanachageResult</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">PanachageResult</span><span class="o">.</span><span class="n">target_list_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns all data connected to this election as list with dicts.</span>
+
+<span class="sd">        This is meant as a base for json/csv/excel exports. The result is</span>
+<span class="sd">        therefore a flat list of dictionaries with repeating values to avoid</span>
+<span class="sd">        the nesting of values. Each record in the resulting list is a single</span>
+<span class="sd">        candidate result for each political entity. Party results are not</span>
+<span class="sd">        included in the export (since they are not really connected with the</span>
+<span class="sd">        lists).</span>
+
+<span class="sd">        Each entry in the list (row) has the following format:</span>
+
+<span class="sd">        * ``election_title``:</span>
+<span class="sd">            Title of the election.</span>
+
+<span class="sd">        * ``election_date``:</span>
+<span class="sd">            The date of the election (an ISO 8601 date string).</span>
+
+<span class="sd">        * ``election_domain``:</span>
+<span class="sd">            ``federation`` for federal, ``canton`` for cantonal,</span>
+<span class="sd">            ``municipality`` for communal votes.</span>
+
+<span class="sd">        * ``election_type``:</span>
+<span class="sd">            ``proporz`` for proportional, ``majorz`` for majority system.</span>
+
+<span class="sd">        * ``election_mandates``:</span>
+<span class="sd">            The number of mandates.</span>
+
+<span class="sd">        * ``election_absolute_majority``:</span>
+<span class="sd">            The absolute majority.  Only relevant for elections based on</span>
+<span class="sd">            majority system.</span>
+
+<span class="sd">        * ``election_status``:</span>
+<span class="sd">            The status of the election: ``unknown``, ``interim`` or ``final``.</span>
+
+<span class="sd">        * ``election_counted_entities``:</span>
+<span class="sd">            The number of already counted entities.</span>
+
+<span class="sd">        * ``election_total_entities``:</span>
+<span class="sd">            The total number of entities.</span>
+
+<span class="sd">        * ``entity_name``:</span>
+<span class="sd">            The name of the entity.</span>
+
+<span class="sd">        * ``entity_bfs_number``:</span>
+<span class="sd">            The id of the entity (e.g. the BFS number).</span>
+
+<span class="sd">        * ``entity_elegible_voters``:</span>
+<span class="sd">            The number of people eligible to vote in this entity.</span>
+
+<span class="sd">        * ``entity_received_ballots``:</span>
+<span class="sd">            The number of received ballots in this entity.</span>
+
+<span class="sd">        * ``entity_blank_ballots``:</span>
+<span class="sd">            The number of blank ballots in this entity.</span>
+
+<span class="sd">        * ``entity_invalid_ballots``:</span>
+<span class="sd">            The number of invalid ballots in this entity.</span>
+
+<span class="sd">        * ``entity_unaccounted_ballots``:</span>
+<span class="sd">            The number of unaccounted ballots in this entity.</span>
+
+<span class="sd">        * ``entity_accounted_ballots``:</span>
+<span class="sd">            The number of accounted ballots in this entity.</span>
+
+<span class="sd">        * ``entity_blank_votes``:</span>
+<span class="sd">            The number of blank votes in this entity.</span>
+
+<span class="sd">        * ``entity_invalid_votes``:</span>
+<span class="sd">            The number of invalid votes in this entity. Is zero for</span>
+<span class="sd">            elections based on proportional representation.</span>
+
+<span class="sd">        * ``entity_accounted_votes``:</span>
+<span class="sd">            The number of accounted votes in this entity.</span>
+
+<span class="sd">        * ``list_name``:</span>
+<span class="sd">            The name of the list this candidate appears on. Only relevant for</span>
+<span class="sd">            elections based on proportional representation.</span>
+
+<span class="sd">        * ``list_id``:</span>
+<span class="sd">            The id of the list this candidate appears on. Only relevant for</span>
+<span class="sd">            elections based on proportional representation.</span>
+
+<span class="sd">        * ``list_number_of_mandates``:</span>
+<span class="sd">            The number of mandates this list has got. Only relevant for</span>
+<span class="sd">            elections based on proportional representation.</span>
+
+<span class="sd">        * ``list_votes``:</span>
+<span class="sd">            The number of votes this list has got in this entity.</span>
+<span class="sd">            Only relevant for elections based on proportional representation.</span>
+
+<span class="sd">        * ``list_connection``:</span>
+<span class="sd">            The ID of the list connection this list is connected to. Only</span>
+<span class="sd">            relevant for elections based on proportional representation.</span>
+
+<span class="sd">        * ``list_connection_parent``:</span>
+<span class="sd">            The ID of the parent list conneciton this list is connected to.</span>
+<span class="sd">            Only relevant for elections based on proportional representation.</span>
+
+<span class="sd">        * ``candidate_family_name``:</span>
+<span class="sd">            The family name of the candidate.</span>
+
+<span class="sd">        * ``candidate_first_name``:</span>
+<span class="sd">            The first name of the candidate.</span>
+
+<span class="sd">        * ``candidate_id``:</span>
+<span class="sd">            The ID of the candidate.</span>
+
+<span class="sd">        * ``candidate_elected``:</span>
+<span class="sd">            True if the candidate has been elected.</span>
+
+<span class="sd">        * ``candidate_party``:</span>
+<span class="sd">            The name of the party of this candidate.</span>
+
+<span class="sd">        * ``candidate_votes``:</span>
+<span class="sd">            The number of votes this candidate got.</span>
+
+<span class="sd">        * ``panachage_votes_from_list_XX``:</span>
+<span class="sd">            The number of votes the list got from the given list.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">ids</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+        <span class="n">SubListConnection</span> <span class="o">=</span> <span class="n">aliased</span><span class="p">(</span><span class="n">ListConnection</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">CandidateResult</span><span class="o">.</span><span class="n">votes</span><span class="p">,</span>
+            <span class="n">Election</span><span class="o">.</span><span class="n">title_translations</span><span class="p">,</span>
+            <span class="n">Election</span><span class="o">.</span><span class="n">date</span><span class="p">,</span>
+            <span class="n">Election</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span>
+            <span class="n">Election</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+            <span class="n">Election</span><span class="o">.</span><span class="n">number_of_mandates</span><span class="p">,</span>
+            <span class="n">Election</span><span class="o">.</span><span class="n">absolute_majority</span><span class="p">,</span>
+            <span class="n">Election</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
+            <span class="n">Election</span><span class="o">.</span><span class="n">counted_entities</span><span class="p">,</span>
+            <span class="n">Election</span><span class="o">.</span><span class="n">total_entities</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">group</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">elegible_voters</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">received_ballots</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">blank_ballots</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">invalid_ballots</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">unaccounted_ballots</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">accounted_ballots</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">blank_votes</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">invalid_votes</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">accounted_votes</span><span class="p">,</span>
+            <span class="n">List</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">List</span><span class="o">.</span><span class="n">list_id</span><span class="p">,</span>
+            <span class="n">List</span><span class="o">.</span><span class="n">number_of_mandates</span><span class="p">,</span>
+            <span class="n">SubListConnection</span><span class="o">.</span><span class="n">connection_id</span><span class="p">,</span>
+            <span class="n">ListConnection</span><span class="o">.</span><span class="n">connection_id</span><span class="p">,</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">family_name</span><span class="p">,</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">first_name</span><span class="p">,</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">candidate_id</span><span class="p">,</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">elected</span><span class="p">,</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">party</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">outerjoin</span><span class="p">(</span><span class="n">CandidateResult</span><span class="o">.</span><span class="n">candidate</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">outerjoin</span><span class="p">(</span><span class="n">CandidateResult</span><span class="o">.</span><span class="n">election_result</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">outerjoin</span><span class="p">(</span><span class="n">Candidate</span><span class="o">.</span><span class="n">list</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">outerjoin</span><span class="p">(</span><span class="n">SubListConnection</span><span class="p">,</span> <span class="n">List</span><span class="o">.</span><span class="n">connection</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">outerjoin</span><span class="p">(</span><span class="n">SubListConnection</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">outerjoin</span><span class="p">(</span><span class="n">Candidate</span><span class="o">.</span><span class="n">election</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">CandidateResult</span><span class="o">.</span><span class="n">election_result_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">group</span><span class="p">,</span>
+            <span class="n">List</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">family_name</span><span class="p">,</span>
+            <span class="n">Candidate</span><span class="o">.</span><span class="n">first_name</span>
+        <span class="p">)</span>
+
+        <span class="c1"># We need to merge in the list results per entity</span>
+        <span class="n">list_results</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">ListResult</span><span class="o">.</span><span class="n">votes</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span>
+            <span class="n">List</span><span class="o">.</span><span class="n">list_id</span>
+        <span class="p">)</span>
+        <span class="n">list_results</span> <span class="o">=</span> <span class="n">list_results</span><span class="o">.</span><span class="n">outerjoin</span><span class="p">(</span><span class="n">ListResult</span><span class="o">.</span><span class="n">election_result</span><span class="p">)</span>
+        <span class="n">list_results</span> <span class="o">=</span> <span class="n">list_results</span><span class="o">.</span><span class="n">outerjoin</span><span class="p">(</span><span class="n">ListResult</span><span class="o">.</span><span class="n">list</span><span class="p">)</span>
+        <span class="n">list_results</span> <span class="o">=</span> <span class="n">list_results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">ListResult</span><span class="o">.</span><span class="n">election_result_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">list_results</span> <span class="o">=</span> <span class="n">list_results</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span>
+            <span class="n">List</span><span class="o">.</span><span class="n">list_id</span>
+        <span class="p">)</span>
+        <span class="n">list_results_grouped</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="n">list_results</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="n">list_results_grouped</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">g</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">group</span><span class="p">])</span>
+
+        <span class="c1"># We need to collect the panachage results per list</span>
+        <span class="n">list_ids</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">List</span><span class="o">.</span><span class="n">list_id</span><span class="p">)</span>
+        <span class="n">list_ids</span> <span class="o">=</span> <span class="n">list_ids</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+        <span class="n">panachage_lists</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">panachage</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_panachage_data</span><span class="p">:</span>
+            <span class="n">panachage_results</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">PanachageResult</span><span class="p">)</span>
+            <span class="n">panachage_results</span> <span class="o">=</span> <span class="n">panachage_results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">PanachageResult</span><span class="o">.</span><span class="n">target_list_id</span><span class="o">.</span><span class="n">in_</span><span class="p">((</span><span class="nb">id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">list_ids</span><span class="p">))</span>
+            <span class="p">)</span>
+
+            <span class="n">panachage_lists</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">list_id</span><span class="p">)</span>
+            <span class="n">panachage_lists</span> <span class="o">=</span> <span class="n">panachage_lists</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">List</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
+            <span class="p">)</span>
+            <span class="n">panachage_lists</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">panachage_lists</span><span class="p">]</span>
+            <span class="n">panachage_lists</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="nb">set</span><span class="p">(</span><span class="n">panachage_lists</span><span class="p">)</span> <span class="o">|</span>
+                <span class="nb">set</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">source_list_id</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">panachage_results</span><span class="p">])</span>
+            <span class="p">)</span>
+
+            <span class="n">list_lookup</span> <span class="o">=</span> <span class="p">{</span><span class="nb">id</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="nb">id</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">list_ids</span><span class="p">}</span>
+            <span class="n">panachage</span> <span class="o">=</span> <span class="p">{</span><span class="nb">id</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">panachage_lists</span><span class="p">}</span>
+            <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">panachage_results</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">list_lookup</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">target_list_id</span><span class="p">)</span>
+                <span class="n">panachage</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">result</span><span class="o">.</span><span class="n">source_list_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">votes</span>
+
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">locale</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_title_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">locale</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">title</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_domain&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_mandates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_absolute_majority&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="ow">or</span> <span class="s1">&#39;unknown&#39;</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_counted_entities&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_total_entities&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span>
+
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_elegible_voters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_received_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_blank_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_invalid_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_unaccounted_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_accounted_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">17</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_blank_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">18</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_invalid_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">19</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_accounted_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">20</span><span class="p">]</span>
+
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;list_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">21</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;list_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">22</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;list_number_of_mandates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">23</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;list_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">list_results_grouped</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_id&#39;</span><span class="p">],</span> <span class="p">{}</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;list_id&#39;</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;list_connection&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">24</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;list_connection_parent&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">25</span><span class="p">]</span>
+
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_family_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">26</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_first_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">27</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">28</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_elected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">29</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_party&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">30</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">target_id</span> <span class="ow">in</span> <span class="n">panachage_lists</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;panachage_votes_from_list_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target_id</span><span class="p">)</span>
+                <span class="n">row</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">panachage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">22</span><span class="p">],</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">target_id</span><span class="p">)</span>
+
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">rows</span>
+
+
+<div class="viewcode-block" id="ListConnection"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.ListConnection">[docs]</a><span class="k">class</span> <span class="nc">ListConnection</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; A list connection. &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;list_connections&#39;</span>
+
+    <span class="n">summarized_properties</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;votes&#39;</span><span class="p">,</span> <span class="s1">&#39;number_of_mandates&#39;</span><span class="p">]</span>
+
+    <span class="c1">#: internal id of the list</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
+
+    <span class="c1">#: external id of the list</span>
+    <span class="n">connection_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the election this result belongs to</span>
+    <span class="n">election_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: ID of the parent list connection</span>
+    <span class="n">parent_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;list_connections.id&#39;</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: a list connection contains n lists</span>
+    <span class="n">lists</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;List&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;connection&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
+        <span class="n">order_by</span><span class="o">=</span><span class="s1">&#39;List.list_id&#39;</span>
+    <span class="p">)</span>
+
+    <span class="c1">#: a list connection contains n sub-connection</span>
+    <span class="n">children</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;ListConnection&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;parent&#39;</span><span class="p">,</span> <span class="n">remote_side</span><span class="o">=</span><span class="s1">&#39;ListConnection.id&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
+        <span class="n">order_by</span><span class="o">=</span><span class="s1">&#39;ListConnection.connection_id&#39;</span>
+    <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">total_votes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the total number of votes. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">votes</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">total_votes</span> <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">total_number_of_mandates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the total number of mandates. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_of_mandates</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="n">child</span><span class="o">.</span><span class="n">total_number_of_mandates</span> <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="ListConnection.aggregate_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.ListConnection.aggregate_results">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span> <span class="k">for</span> <span class="nb">list</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lists</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ListConnection.aggregate_results_expression"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.ListConnection.aggregate_results_expression">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">aggregate_results_expression</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results,</span>
+<span class="sd">        as SQL expression.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">select</span><span class="p">([</span><span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">List</span><span class="p">,</span> <span class="n">attribute</span><span class="p">))])</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">connection_id</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">attribute</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span></div></div>
+
+
+<div class="viewcode-block" id="List"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.List">[docs]</a><span class="k">class</span> <span class="nc">List</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A list. &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;lists&#39;</span>
+
+    <span class="n">summarized_properties</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;votes&#39;</span><span class="p">]</span>
+
+    <span class="c1">#: internal id of the list</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
+
+    <span class="c1">#: external id of the list</span>
+    <span class="n">list_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># number of mandates</span>
+    <span class="n">number_of_mandates</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#: name of the list</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the election this result belongs to</span>
+    <span class="n">election_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the list connection id</span>
+    <span class="n">connection_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">ListConnection</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: a list contains n candidates</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;Candidate&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;list&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1">#: a list contains n results</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;ListResult&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;list&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1">#: a (proporz) list contains votes from other other lists</span>
+    <span class="n">panachage_results</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;PanachageResult&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;list&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="List.aggregate_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.List.aggregate_results">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="List.aggregate_results_expression"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.List.aggregate_results_expression">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">aggregate_results_expression</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results,</span>
+<span class="sd">        as SQL expression.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">select</span><span class="p">([</span><span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">ListResult</span><span class="p">,</span> <span class="n">attribute</span><span class="p">))])</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ListResult</span><span class="o">.</span><span class="n">list_id</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">attribute</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span></div></div>
+
+
+<div class="viewcode-block" id="Candidate"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.Candidate">[docs]</a><span class="k">class</span> <span class="nc">Candidate</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A candidate. &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;candidates&#39;</span>
+
+    <span class="n">summarized_properties</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;votes&#39;</span><span class="p">]</span>
+
+    <span class="c1">#: the internal id of the candidate</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
+
+    <span class="c1">#: the external id of the candidate</span>
+    <span class="n">candidate_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the family name</span>
+    <span class="n">family_name</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the first name</span>
+    <span class="n">first_name</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: True if the candidate is elected</span>
+    <span class="n">elected</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the election this candidate belongs to</span>
+    <span class="n">election_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the list this candidate belongs to</span>
+    <span class="n">list_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: the party name</span>
+    <span class="n">party</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: a candidate contains n results</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;CandidateResult&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;candidate&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="Candidate.aggregate_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.Candidate.aggregate_results">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Candidate.aggregate_results_expression"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.Candidate.aggregate_results_expression">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">aggregate_results_expression</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results,</span>
+<span class="sd">        as SQL expression.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">select</span><span class="p">([</span><span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">CandidateResult</span><span class="p">,</span> <span class="n">attribute</span><span class="p">))])</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">CandidateResult</span><span class="o">.</span><span class="n">candidate_id</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">attribute</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span></div></div>
+
+
+<div class="viewcode-block" id="ElectionResult"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.ElectionResult">[docs]</a><span class="k">class</span> <span class="nc">ElectionResult</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">DerivedAttributes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The election result in a single political entity. &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;election_results&#39;</span>
+
+    <span class="c1">#: identifies the result</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
+
+    <span class="c1">#: the election this result belongs to</span>
+    <span class="n">election_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: groups the result in whatever structure makes sense</span>
+    <span class="n">group</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: entity id (e.g. a BFS number).</span>
+    <span class="n">entity_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: number of elegible voters</span>
+    <span class="n">elegible_voters</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#: number of received ballots</span>
+    <span class="n">received_ballots</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#: number of blank ballots</span>
+    <span class="n">blank_ballots</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#: number of invalid ballots</span>
+    <span class="n">invalid_ballots</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#: number of blank votes</span>
+    <span class="n">blank_votes</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#: number of invalid votes</span>
+    <span class="n">invalid_votes</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="nd">@hybrid_property</span>
+    <span class="k">def</span> <span class="nf">accounted_votes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The number of accounted votes. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">election</span><span class="o">.</span><span class="n">number_of_mandates</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">accounted_ballots</span> <span class="o">-</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">blank_votes</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid_votes</span>
+        <span class="p">)</span>
+
+    <span class="nd">@accounted_votes</span><span class="o">.</span><span class="n">expression</span>
+    <span class="k">def</span> <span class="nf">accounted_votes</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The number of accounted votes. &quot;&quot;&quot;</span>
+
+        <span class="c1"># A bit of a hack :|</span>
+        <span class="n">number_of_mandates</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">Election</span><span class="o">.</span><span class="n">number_of_mandates</span><span class="p">],</span>
+            <span class="n">whereclause</span><span class="o">=</span><span class="s1">&#39;elections.id = election_results.election_id&#39;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">number_of_mandates</span> <span class="o">*</span> <span class="p">(</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">received_ballots</span> <span class="o">-</span> <span class="bp">cls</span><span class="o">.</span><span class="n">blank_ballots</span> <span class="o">-</span> <span class="bp">cls</span><span class="o">.</span><span class="n">invalid_ballots</span>
+            <span class="p">)</span> <span class="o">-</span> <span class="bp">cls</span><span class="o">.</span><span class="n">blank_votes</span> <span class="o">-</span> <span class="bp">cls</span><span class="o">.</span><span class="n">invalid_votes</span>
+        <span class="p">)</span>
+
+    <span class="c1">#: an election result may contain n list results</span>
+    <span class="n">list_results</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;ListResult&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;election_result&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1">#: an election result contains n candidate results</span>
+    <span class="n">candidate_results</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;CandidateResult&#39;</span><span class="p">,</span>
+        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;election_result&#39;</span><span class="p">),</span>
+        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ListResult"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.ListResult">[docs]</a><span class="k">class</span> <span class="nc">ListResult</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The election result of a list in a single political entity. &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;list_results&#39;</span>
+
+    <span class="c1">#: identifies the list</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
+
+    <span class="c1"># votes</span>
+    <span class="n">votes</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#: the election result this result belongs to</span>
+    <span class="n">election_result_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span>
+        <span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="c1">#: the list this result belongs to</span>
+    <span class="n">list_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PanachageResult"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.PanachageResult">[docs]</a><span class="k">class</span> <span class="nc">PanachageResult</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; The votes transferred from one list to another. &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;panachage_results&#39;</span>
+
+    <span class="c1">#: identifies the result</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
+
+    <span class="c1">#: the target this result belongs to</span>
+    <span class="n">target_list_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the source this result belongs to</span>
+    <span class="n">source_list_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># votes</span>
+    <span class="n">votes</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CandidateResult"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.CandidateResult">[docs]</a><span class="k">class</span> <span class="nc">CandidateResult</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The election result of a candidate in a single political entity. &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;candidate_results&#39;</span>
+
+    <span class="c1">#: identifies the candidate result</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
+
+    <span class="c1"># votes</span>
+    <span class="n">votes</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#: the election result this result belongs to</span>
+    <span class="n">election_result_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span>
+        <span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="c1">#: the candidate this result belongs to</span>
+    <span class="n">candidate_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">Candidate</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PartyResult"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.PartyResult">[docs]</a><span class="k">class</span> <span class="nc">PartyResult</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The election result of a party in an election for a given year. &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;party_results&#39;</span>
+
+    <span class="c1">#: identifies the party result</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
+
+    <span class="c1">#: the election this result belongs to</span>
+    <span class="n">election_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># number of mandates</span>
+    <span class="n">number_of_mandates</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># votes</span>
+    <span class="n">votes</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># total votes</span>
+    <span class="n">total_votes</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#: name of the party</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: year</span>
+    <span class="n">year</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#: color code</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

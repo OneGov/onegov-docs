@@ -1,0 +1,312 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.core.orm.cache &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.core.orm.cache</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Provides a simple and mostly transparent way of defining orm-cached</span>
+<span class="sd">properties on the application class.</span>
+
+<span class="sd">For example::</span>
+
+<span class="sd">    from onegov.core import Framework</span>
+<span class="sd">    from onegov.core.orm import orm_cached</span>
+
+<span class="sd">    class App(Framework):</span>
+
+<span class="sd">        @orm_cached(policy=&#39;on-table-change:users&#39;)</span>
+<span class="sd">        def users(self):</span>
+<span class="sd">            # ... fetch users from database</span>
+
+<span class="sd">Properties defined in this way are accessible through the instance::</span>
+
+<span class="sd">    app.users</span>
+
+<span class="sd">If there are any changes to the users table, the cache is removed. Since the</span>
+<span class="sd">cache is usually a shared memcached instance, this works for multiple</span>
+<span class="sd">processes.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">sqlalchemy</span>
+
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm.query</span> <span class="k">import</span> <span class="n">Query</span>
+
+
+<span class="k">class</span> <span class="nc">OrmCacheApp</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Integrates the orm cache handling into the application</span>
+<span class="sd">    (i.e. :class:`onegov.core.framework.Framework&#39;).</span>
+
+<span class="sd">    In addition, the application needs to call :meth:`setup_orm_cache` inside</span>
+<span class="sd">    of `:meth:onegov.server.application.Application.set_application_id` to</span>
+<span class="sd">    enable the cache evicition mechanism.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">configure_orm_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_orm_cache_setup</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;is_orm_cache_setup&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setup_orm_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sets up the event handlers for the change-detection. &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_orm_cache_setup</span>
+
+        <span class="k">for</span> <span class="n">descriptor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">orm_cache_descriptors</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">on_insert</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">descriptor_bound_orm_change_handler</span><span class="p">(</span><span class="n">descriptor</span><span class="p">),</span>
+                <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">on_update</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">descriptor_bound_orm_change_handler</span><span class="p">(</span><span class="n">descriptor</span><span class="p">),</span>
+                <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">on_delete</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">descriptor_bound_orm_change_handler</span><span class="p">(</span><span class="n">descriptor</span><span class="p">),</span>
+                <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_orm_cache_setup</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">descriptor_bound_orm_change_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">descriptor</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Listens to changes to the database and evicts the cache if the</span>
+<span class="sd">        policy demands it. Available policies:</span>
+
+<span class="sd">        * policy=&#39;on-table-change:table&#39;: clears the cache if there&#39;s a change</span>
+<span class="sd">          on the given table</span>
+
+<span class="sd">        * policy=lambda obj: ...: clears the cache if the given policy function</span>
+<span class="sd">          returns true (it receives the object which has changed)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">handle_orm_change</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+
+            <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">descriptor</span><span class="o">.</span><span class="n">cache_policy</span><span class="p">):</span>
+                <span class="n">dirty</span> <span class="o">=</span> <span class="n">descriptor</span><span class="o">.</span><span class="n">cache_policy</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">descriptor</span><span class="o">.</span><span class="n">cache_policy</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;on-table-change&#39;</span><span class="p">):</span>
+                <span class="n">tablename</span> <span class="o">=</span> <span class="n">descriptor</span><span class="o">.</span><span class="n">cache_policy</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">dirty</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">__tablename__</span> <span class="o">==</span> <span class="n">tablename</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">dirty</span><span class="p">:</span>
+                <span class="c1"># Two circumstances ensure that only the cache of the current</span>
+                <span class="c1"># schema is evicted:</span>
+                <span class="c1">#</span>
+                <span class="c1"># 1. There&#39;s a current schema set when the event is fired.</span>
+                <span class="c1"># 2. The current cache is bound to the current schema.</span>
+                <span class="c1">#</span>
+                <span class="c1"># Still, trust but verify:</span>
+                <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">==</span> <span class="n">schema</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">descriptor</span><span class="o">.</span><span class="n">cache_key</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">descriptor</span><span class="o">.</span><span class="n">cache_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_cache</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_cache</span><span class="p">[</span><span class="n">descriptor</span><span class="o">.</span><span class="n">cache_key</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">handle_orm_change</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">orm_cache_descriptors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Yields all orm cache descriptors installed on the class. &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">member_name</span><span class="p">,</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">member</span><span class="p">,</span> <span class="n">OrmCacheDescriptor</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">member</span>
+
+
+<span class="k">class</span> <span class="nc">OrmCacheDescriptor</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The descriptor implements the protocol for fetching the objects</span>
+<span class="sd">    either from cache or from the database (through the handler).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cache_policy</span><span class="p">,</span> <span class="n">creator</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_policy</span> <span class="o">=</span> <span class="n">cache_policy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_key</span> <span class="o">=</span> <span class="n">creator</span><span class="o">.</span><span class="vm">__qualname__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">creator</span> <span class="o">=</span> <span class="n">creator</span>
+
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Uses the creator to load the object to be cached.</span>
+
+<span class="sd">        Since the return value of the creator might not be something we want</span>
+<span class="sd">        to cache, this function will turn some return values into something</span>
+<span class="sd">        more useful (e.g. queries are completely fetched).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">creator</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Merges the given obj into the given session, *if* this is possible.</span>
+
+<span class="sd">        That is it acts like more forgiving session.merge().</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">sqlalchemy</span><span class="o">.</span><span class="n">inspect</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">raiseerr</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">load</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">is_cached</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Loads the object from the database or cache. &quot;&quot;&quot;</span>
+
+        <span class="n">session</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
+
+        <span class="c1"># before accessing any cached values we need to make sure that all</span>
+        <span class="c1"># pending changes are properly flushed -&gt; this leads to some extra cpu</span>
+        <span class="c1"># cycles spent but eliminates the chance of accessing a stale entry</span>
+        <span class="c1"># after a change</span>
+        <span class="k">if</span> <span class="n">session</span><span class="o">.</span><span class="n">dirty</span><span class="p">:</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+        <span class="c1"># we use a secondary request cache for even more lookup speed and to</span>
+        <span class="c1"># make sure that inside a request we always get the exact same instance</span>
+        <span class="c1"># (otherwise we don&#39;t see changes reflected)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_key</span> <span class="ow">in</span> <span class="n">app</span><span class="o">.</span><span class="n">request_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">app</span><span class="o">.</span><span class="n">request_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_key</span><span class="p">]</span>
+
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+            <span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_key</span><span class="p">,</span>
+            <span class="n">creator</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># named tuples</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="s1">&#39;_make&#39;</span><span class="p">):</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">_make</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">)</span>
+
+        <span class="c1"># lists (we can save some memory here)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+                <span class="n">obj</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span>
+
+        <span class="c1"># generic iterables</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">)):</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">)</span>
+
+        <span class="c1"># generic objects</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+
+        <span class="n">app</span><span class="o">.</span><span class="n">request_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span>
+
+        <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Handles the object/cache access. &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="orm_cached"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.orm.orm_cached">[docs]</a><span class="k">def</span> <span class="nf">orm_cached</span><span class="p">(</span><span class="n">policy</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The decorator use to setup the cache descriptor.</span>
+
+<span class="sd">    See the :mod:`onegov.core.orm.cache` docs for usage.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">orm_cache_decorator</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">OrmCacheDescriptor</span><span class="p">(</span><span class="n">policy</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">orm_cache_decorator</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

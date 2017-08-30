@@ -1,0 +1,523 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Onegov Server API &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="onegov-server-api">
+<h1>Onegov Server API<a class="headerlink" href="#onegov-server-api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-onegov.server.application">
+<span id="application"></span><h2>Application<a class="headerlink" href="#module-onegov.server.application" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.server.application.Application">
+<em class="property">class </em><code class="descclassname">onegov.server.application.</code><code class="descname">Application</code><a class="reference internal" href="_modules/onegov/server/application.html#Application"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.application.Application" title="Permalink to this definition">¶</a></dt>
+<dd><p>WSGI applications inheriting from this class can be served by
+onegov.server.</p>
+<dl class="attribute">
+<dt id="onegov.server.application.Application.allowed_hosts_expression">
+<code class="descname">allowed_hosts_expression</code><em class="property"> = None</em><a class="headerlink" href="#onegov.server.application.Application.allowed_hosts_expression" title="Permalink to this definition">¶</a></dt>
+<dd><p>If the host passed by the request is not localhost, then it is
+checked against the allowed_hosts expression. If it doesn’t match,
+the request is denied.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.server.application.Application.allowed_hosts">
+<code class="descname">allowed_hosts</code><em class="property"> = None</em><a class="headerlink" href="#onegov.server.application.Application.allowed_hosts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Additional allowed hosts may be added to this set. Those are not
+expressions, but straight hostnames.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.server.application.Application.namespace">
+<code class="descname">namespace</code><em class="property"> = None</em><a class="headerlink" href="#onegov.server.application.Application.namespace" title="Permalink to this definition">¶</a></dt>
+<dd><p>The namespace of the application, set before the application is
+configured in <a class="reference internal" href="#onegov.server.application.Application.configure_application" title="onegov.server.application.Application.configure_application"><code class="xref py py-meth docutils literal"><span class="pre">configure_application()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.server.application.Application.configure_application">
+<code class="descname">configure_application</code><span class="sig-paren">(</span><em>**configuration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/application.html#Application.configure_application"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.application.Application.configure_application" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called <em>once</em> when the application is instantiated, with the
+configuration values defined for this application.</p>
+<p>This will be called <em>before</em> <a class="reference internal" href="#onegov.server.application.Application.set_application_base_path" title="onegov.server.application.Application.set_application_base_path"><code class="xref py py-meth docutils literal"><span class="pre">set_application_base_path()</span></code></a> is
+called, as this happens <em>before</em> the request.</p>
+<p>Be sure to call this method from any subclasses you create. The server
+adds its own configuration here!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.server.application.Application.set_application_id">
+<code class="descname">set_application_id</code><span class="sig-paren">(</span><em>application_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/application.html#Application.set_application_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.application.Application.set_application_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the application id before __call__ is called. That is, before
+each request.</p>
+<p>The application id consists of two values, delimitd by a ‘/’. The first
+value is the namespace of the application, the second value is the
+last fragment of the base_path.</p>
+<p>That is <cite>namespace/app</cite> for all requests in the following config:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;applications&#39;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="n">path</span><span class="p">:</span> <span class="s1">&#39;/app&#39;</span><span class="p">,</span>
+            <span class="n">namespace</span><span class="p">:</span> <span class="s1">&#39;namespace&#39;</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>And <cite>namespace/blog</cite> for a <cite>/sites/blog</cite> request in the following
+config:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;applications&#39;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="n">path</span><span class="p">:</span> <span class="s1">&#39;/sites/*&#39;</span><span class="p">,</span>
+            <span class="n">namespace</span><span class="p">:</span> <span class="s1">&#39;namespace&#39;</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.server.application.Application.set_application_base_path">
+<code class="descname">set_application_base_path</code><span class="sig-paren">(</span><em>base_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/application.html#Application.set_application_base_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.application.Application.set_application_base_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the base path of the application before __call__ is called.
+That is, before each request.</p>
+<p>The base_path of static applications is equal to path the application
+was configured to run under.</p>
+<p>The base_path of wildcard applications includes the path matched
+by the wildcard. For example, if the application is configured to run
+under <cite>/sites/*</cite>, the base_path would be <cite>/sites/blog</cite> if
+<cite>/sites/blog/login</cite> was requested.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.server.application.Application.is_allowed_hostname">
+<code class="descname">is_allowed_hostname</code><span class="sig-paren">(</span><em>hostname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/application.html#Application.is_allowed_hostname"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.application.Application.is_allowed_hostname" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called at least once per request with the given hostname.</p>
+<p>If True is returned, the request with the given hostname is allowed.
+If False is returned, the request is denied.</p>
+<p>You usually won’t need to override this method, as
+<a class="reference internal" href="#onegov.server.application.Application.allowed_hosts_expression" title="onegov.server.application.Application.allowed_hosts_expression"><code class="xref py py-attr docutils literal"><span class="pre">allowed_hosts_expression</span></code></a> and <a class="reference internal" href="#onegov.server.application.Application.allowed_hosts" title="onegov.server.application.Application.allowed_hosts"><code class="xref py py-attr docutils literal"><span class="pre">allowed_hosts</span></code></a> already
+gives you a way to influence its behavior.</p>
+<p>If you do override, it’s all on you though (except for localhost
+requests).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.server.application.Application.is_allowed_application_id">
+<code class="descname">is_allowed_application_id</code><span class="sig-paren">(</span><em>application_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/application.html#Application.is_allowed_application_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.application.Application.is_allowed_application_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called at least once per request with the given application id.</p>
+<p>If True is returned, the request with the given application_id is
+allowed. If False is returned, the request is denied.</p>
+<p>By default, all application ids are allowed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.server.application.Application.alias">
+<code class="descname">alias</code><span class="sig-paren">(</span><em>application_id</em>, <em>alias</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/application.html#Application.alias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.application.Application.alias" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds an alias under which this application is available on the
+server.</p>
+<p>The alias only works for wildcard applications - it has no effect
+on static applications!</p>
+<p>This is how it works:</p>
+<p>An application running under <cite>/sites/main</cite> can be made available
+under <cite>/sites/blog</cite> by running <cite>self.alias(‘main’, ‘blog’)</cite>.</p>
+<p>Aliases must be unique, so this method will fail with a
+<a class="reference internal" href="#onegov.server.errors.ApplicationConflictError" title="onegov.server.errors.ApplicationConflictError"><code class="xref py py-class docutils literal"><span class="pre">onegov.server.errors.ApplicationConflictError</span></code></a> if an alias
+is already in use by another application running under the same path.</p>
+<p>Note that an application opened through an alias will still have
+the application_id set to the actual root, not the alias. So
+<cite>/sites/blog</cite> in the example above would still lead to an
+application_id of <cite>main</cite> instead of <cite>blog</cite>.</p>
+<p>This is mainly meant to be used for dynamic DNS setups. Say you have
+an application available through test.onegov.dev (pointing to
+<cite>/sites/test</cite>). You now want to make this site available through
+example.org. You can do this as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">allowed_hosts</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;example.org&#39;</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;example_org&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If your server has a catch-all rule that sends unknown domains to
+<cite>/sites/domain_without_dots</cite>, then you can add domains dynamically
+and the customer just points the DNS to your ip address.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.server.core">
+<span id="core-functionality"></span><h2>Core Functionality<a class="headerlink" href="#module-onegov.server.core" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.server.core.Server">
+<em class="property">class </em><code class="descclassname">onegov.server.core.</code><code class="descname">Server</code><span class="sig-paren">(</span><em>config</em>, <em>configure_morepath=True</em>, <em>post_mortem=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/core.html#Server"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.core.Server" title="Permalink to this definition">¶</a></dt>
+<dd><p>A WSGI application that hosts multiple WSGI applications in the
+same process.</p>
+<p>Not to be confused with Morepath’s mounting functionality. The morepath
+applications hosted by this WSGI application are root applications, not
+mounted applications.</p>
+<p>See <a class="reference external" href="http://morepath.readthedocs.org/en/latest/app_reuse.html#nesting-applications">Morepath’s way of nesting applications</a></p>
+<p>Applications are hosted in two ways:</p>
+<ol class="arabic simple">
+<li>As static applications under a base path (<cite>/app</cite>)</li>
+<li>As wildcard applications under a base path with wildcard (<cite>/sites/*</cite>)</li>
+</ol>
+<p>There is no further nesting and there is no way to run an application
+under <cite>/</cite>.</p>
+<p>The idea for this server is to run a number of WSGI applications that
+are relatively independent, but share a common framework. Though thought
+to be used with Morepath this module does not try to assume anything but
+a WSGI application.</p>
+<p>Since most of the time we <em>will</em> be running morepath applications, this
+server automatically configures morepath for the applications that depend
+on it.</p>
+<p>If morepath autoconfig is not desired, set <code class="docutils literal"><span class="pre">configure_morepath</span></code> to False.</p>
+<dl class="method">
+<dt id="onegov.server.core.Server.configure_logging">
+<code class="descname">configure_logging</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/core.html#Server.configure_logging"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.core.Server.configure_logging" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configures the python logging.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Config:</th><td class="field-body">A dictionary that is understood by python’s
+<cite>logging.config.dictConfig</cite> method.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.server.core.Server.configure_morepath">
+<code class="descname">configure_morepath</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/core.html#Server.configure_morepath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.core.Server.configure_morepath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configures morepath automatically, if any application uses it.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.server.cli">
+<span id="commandline-interface"></span><h2>Commandline Interface<a class="headerlink" href="#module-onegov.server.cli" title="Permalink to this headline">¶</a></h2>
+<p>The onegov.server can be run through the ‘onegov-server’ command after
+installation.</p>
+<p>Said command runs the onegov server with the given configuration file in the
+foreground.</p>
+<p>Use this <strong>for debugging/development only</strong>.</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">onegov</span><span class="o">-</span><span class="n">server</span> <span class="o">--</span><span class="n">config</span><span class="o">-</span><span class="n">file</span> <span class="n">test</span><span class="o">.</span><span class="n">yml</span>
+</pre></div>
+</div>
+<p>The onegov-server will load ‘onegov.yml’ by default and it will restart
+when any file in the current folder or any file somewhere inside ‘./src’
+changes.</p>
+<p>Changes to omlette directories require a manual restart.</p>
+<p>A onegov.yml file looks like this:</p>
+<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">applications</span><span class="p p-Indicator">:</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">path</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">/apps/*</span>
+    <span class="l l-Scalar l-Scalar-Plain">application</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">my.app.TestApp</span>
+    <span class="l l-Scalar l-Scalar-Plain">namespace</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">apps</span>
+    <span class="l l-Scalar l-Scalar-Plain">configuration</span><span class="p p-Indicator">:</span>
+      <span class="l l-Scalar l-Scalar-Plain">allowed_hosts_expression</span><span class="p p-Indicator">:</span> <span class="s">&#39;^[a-z]+.apps.dev&#39;</span>
+      <span class="l l-Scalar l-Scalar-Plain">dsn</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">postgres://username:password@localhost:5432/db</span>
+      <span class="l l-Scalar l-Scalar-Plain">identity_secure</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+      <span class="l l-Scalar l-Scalar-Plain">identity_secret</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">very-secret-key</span>
+
+<span class="l l-Scalar l-Scalar-Plain">logging</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">formatters</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">simpleFormater</span><span class="p p-Indicator">:</span>
+      <span class="l l-Scalar l-Scalar-Plain">format</span><span class="p p-Indicator">:</span> <span class="s">&#39;%(asctime)s</span><span class="nv"> </span><span class="s">-</span><span class="nv"> </span><span class="s">%(levelname)s:</span><span class="nv"> </span><span class="s">%(message)s&#39;</span>
+      <span class="l l-Scalar l-Scalar-Plain">datefmt</span><span class="p p-Indicator">:</span> <span class="s">&#39;%Y-%m-%d</span><span class="nv"> </span><span class="s">%H:%M:%S&#39;</span>
+
+<span class="l l-Scalar l-Scalar-Plain">handlers</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">console</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">class</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">logging.StreamHandler</span>
+    <span class="l l-Scalar l-Scalar-Plain">formatter</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">simpleFormater</span>
+    <span class="l l-Scalar l-Scalar-Plain">level</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">DEBUG</span>
+    <span class="l l-Scalar l-Scalar-Plain">stream</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">ext://sys.stdout</span>
+
+<span class="l l-Scalar l-Scalar-Plain">loggers</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">onegov.core</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">level</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">DEBUG</span>
+    <span class="l l-Scalar l-Scalar-Plain">handlers</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">[</span><span class="nv">console</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<dl class="class">
+<dt id="onegov.server.cli.CustomWSGIRequestHandler">
+<em class="property">class </em><code class="descclassname">onegov.server.cli.</code><code class="descname">CustomWSGIRequestHandler</code><span class="sig-paren">(</span><em>request</em>, <em>client_address</em>, <em>server</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/cli.html#CustomWSGIRequestHandler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.cli.CustomWSGIRequestHandler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Measures the time it takes to respond to a request and prints it
+at the end of the request.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.server.cli.WsgiProcess">
+<em class="property">class </em><code class="descclassname">onegov.server.cli.</code><code class="descname">WsgiProcess</code><span class="sig-paren">(</span><em>app_factory</em>, <em>host='127.0.0.1'</em>, <em>port=8080</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/cli.html#WsgiProcess"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.cli.WsgiProcess" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the WSGI reference server in a separate process.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.server.cli.WsgiServer">
+<em class="property">class </em><code class="descclassname">onegov.server.cli.</code><code class="descname">WsgiServer</code><span class="sig-paren">(</span><em>app_factory</em>, <em>host='127.0.0.1'</em>, <em>port=8080</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/cli.html#WsgiServer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.cli.WsgiServer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps the WSGI process, providing the ability to restart the process
+and acting as an event-handler for watchdog.</p>
+<dl class="method">
+<dt id="onegov.server.cli.WsgiServer.on_any_event">
+<code class="descname">on_any_event</code><span class="sig-paren">(</span><em>event</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/cli.html#WsgiServer.on_any_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.cli.WsgiServer.on_any_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>If anything of significance changed, restart the process.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.server.config">
+<span id="configuration"></span><h2>Configuration<a class="headerlink" href="#module-onegov.server.config" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.server.config.Config">
+<em class="property">class </em><code class="descclassname">onegov.server.config.</code><code class="descname">Config</code><span class="sig-paren">(</span><em>configuration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/config.html#Config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.config.Config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents the configuration of the server.</p>
+<dl class="classmethod">
+<dt id="onegov.server.config.Config.from_yaml_file">
+<em class="property">classmethod </em><code class="descname">from_yaml_file</code><span class="sig-paren">(</span><em>yaml_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/config.html#Config.from_yaml_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.config.Config.from_yaml_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the given yaml file and return a new Configuration instance
+with the configuration values found in the yaml file.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="onegov.server.config.Config.from_yaml_string">
+<em class="property">classmethod </em><code class="descname">from_yaml_string</code><span class="sig-paren">(</span><em>yaml_string</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/config.html#Config.from_yaml_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.config.Config.from_yaml_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the given yaml string and return a new Configuration instance
+with the configuration values found in the yaml string.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.server.config.ApplicationConfig">
+<em class="property">class </em><code class="descclassname">onegov.server.config.</code><code class="descname">ApplicationConfig</code><span class="sig-paren">(</span><em>configuration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/config.html#ApplicationConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.config.ApplicationConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents an application config entry loaded from a dictionary like
+this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;path&#39;</span><span class="p">:</span> <span class="s1">&#39;/application&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;application&#39;</span><span class="p">:</span> <span class="s1">&#39;my.module.StaticApp&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;namespace&#39;</span><span class="p">:</span> <span class="s1">&#39;my-namespace&#39;</span>
+    <span class="s1">&#39;configuration&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;my&#39;</span><span class="p">:</span> <span class="s1">&#39;custom&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;config&#39;</span><span class="p">:</span> <span class="s1">&#39;values&#39;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>It may contain the following keys:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Path:</th><td class="field-body"><p class="first">The path of the application is the prefix under which the application
+is running. For each path onegov.server loads and caches an
+application.</p>
+<p>Applications are basically WSGI containers that are run independently
+in the same process.</p>
+<p>See <a class="reference internal" href="#onegov.server.application.Application" title="onegov.server.application.Application"><code class="xref py py-class docutils literal"><span class="pre">Application</span></code></a> for more.</p>
+<p>There are two types of applications, static applications without a
+wildcard (<cite>*</cite>) in their path and wildcard applications <em>with</em> a
+wildcard in their path.</p>
+<p>Static applications always have the same application_id (<cite>ns/static</cite>,
+if the path is <cite>/static</cite> and the namespace is <cite>ns</cite>).</p>
+<p>Wildcard applications have the application_id set to the wildcard
+part of the path: (<cite>/wildcard/*</cite> can result in an applicaiton_id of
+<cite>ns/blog</cite> if <cite>/wildcard/blog</cite> is opened and the namespace is <cite>ns</cite>).</p>
+<p>See also: <a class="reference internal" href="#onegov.server.application.Application.set_application_id" title="onegov.server.application.Application.set_application_id"><code class="xref py py-meth docutils literal"><span class="pre">set_application_id()</span></code></a>.</p>
+<p>Nested paths are not supported. <cite>/static</cite> works and <cite>/wildcard/*</cite>
+works, but not <cite>/static/site</cite> or <cite>/wildcard/site/*</cite>.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Application:</th><td class="field-body"><p class="first">The application class or string to an application class that inherits
+from <a class="reference internal" href="#onegov.server.application.Application" title="onegov.server.application.Application"><code class="xref py py-class docutils literal"><span class="pre">Application</span></code></a>.</p>
+<p>If <cite>application</cite> is a string, the class it points to is loaded
+immediately.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Namespace:</th><td class="field-body"><p class="first">Each application has a namespace that must be unique. It is used
+make the application_id unique. Dashes in the namespace are replaced
+by underscores.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Configuration:</th><td class="field-body"><p class="first last">A dictionary that is passed to the application once it is initialized.
+See <a class="reference internal" href="#onegov.server.application.Application.configure_application" title="onegov.server.application.Application.configure_application"><code class="xref py py-meth docutils literal"><span class="pre">application.Application.configure_application()</span></code></a>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="onegov.server.config.ApplicationConfig.root">
+<code class="descname">root</code><a class="headerlink" href="#onegov.server.config.ApplicationConfig.root" title="Permalink to this definition">¶</a></dt>
+<dd><p>The path without the wildcard such that <cite>/app</cite> and <cite>/app/*</cite> produce
+the same root (<cite>/app</cite>).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.server.config.ApplicationConfig.is_static">
+<code class="descname">is_static</code><a class="headerlink" href="#onegov.server.config.ApplicationConfig.is_static" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if the application is static (has no ‘*’ in the path).</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.server.collection">
+<span id="list-of-applications"></span><h2>List of Applications<a class="headerlink" href="#module-onegov.server.collection" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.server.collection.CachedApplication">
+<em class="property">class </em><code class="descclassname">onegov.server.collection.</code><code class="descname">CachedApplication</code><span class="sig-paren">(</span><em>application_class</em>, <em>namespace</em>, <em>configuration={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/collection.html#CachedApplication"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.collection.CachedApplication" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps an application class with a configuration, returning a new
+instance the first time <cite>get()</cite> is called and the same instance very
+time after that.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.server.collection.ApplicationCollection">
+<em class="property">class </em><code class="descclassname">onegov.server.collection.</code><code class="descname">ApplicationCollection</code><span class="sig-paren">(</span><em>applications=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/collection.html#ApplicationCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.collection.ApplicationCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Keeps a list of applications and their roots.</p>
+<p>The applications are registered lazily and only instantiated/configured
+once the <cite>get()</cite> is called.</p>
+<dl class="method">
+<dt id="onegov.server.collection.ApplicationCollection.register">
+<code class="descname">register</code><span class="sig-paren">(</span><em>root</em>, <em>application_class</em>, <em>namespace</em>, <em>configuration={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/collection.html#ApplicationCollection.register"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.collection.ApplicationCollection.register" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers the given path for the given application_class and
+configuration.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.server.collection.ApplicationCollection.get">
+<code class="descname">get</code><span class="sig-paren">(</span><em>root</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/collection.html#ApplicationCollection.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.collection.ApplicationCollection.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the applicaton for the given path, creating a new instance
+if none exists already.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.server.collection.ApplicationCollection.morepath_applications">
+<code class="descname">morepath_applications</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/collection.html#ApplicationCollection.morepath_applications"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.collection.ApplicationCollection.morepath_applications" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterates through the applications that depend on morepath.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.server.errors">
+<span id="errors"></span><h2>Errors<a class="headerlink" href="#module-onegov.server.errors" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="onegov.server.errors.OnegovServerError">
+<em class="property">exception </em><code class="descclassname">onegov.server.errors.</code><code class="descname">OnegovServerError</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/errors.html#OnegovServerError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.errors.OnegovServerError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for all errors raised by onegov.server.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="onegov.server.errors.ApplicationConflictError">
+<em class="property">exception </em><code class="descclassname">onegov.server.errors.</code><code class="descname">ApplicationConflictError</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/errors.html#ApplicationConflictError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.errors.ApplicationConflictError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised if an application conflicts with another application.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="onegov.server.errors.ApplicationConfigError">
+<em class="property">exception </em><code class="descclassname">onegov.server.errors.</code><code class="descname">ApplicationConfigError</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/errors.html#ApplicationConfigError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.errors.ApplicationConfigError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when there’s an error in an application configuration.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/onegov_server.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

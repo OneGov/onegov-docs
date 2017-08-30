@@ -1,0 +1,205 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.file.models.file &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.file.models.file</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">depot.fields.sqlalchemy</span> <span class="k">import</span> <span class="n">UploadedFileField</span> <span class="k">as</span> <span class="n">UploadedFileFieldBase</span>
+<span class="kn">from</span> <span class="nn">onegov.core.crypto</span> <span class="k">import</span> <span class="n">random_token</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.file.filters</span> <span class="k">import</span> <span class="n">OnlyIfImage</span><span class="p">,</span> <span class="n">WithThumbnailFilter</span>
+<span class="kn">from</span> <span class="nn">onegov.file.attachments</span> <span class="k">import</span> <span class="n">ProcessedUploadedFile</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
+
+
+<div class="viewcode-block" id="UploadedFileField"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.UploadedFileField">[docs]</a><span class="k">class</span> <span class="nc">UploadedFileField</span><span class="p">(</span><span class="n">UploadedFileFieldBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A customized version of Depot&#39;s uploaded file field. This version</span>
+<span class="sd">    stores its data in an unlimited text field, whereas the original uses</span>
+<span class="sd">    a limited varchar field.</span>
+
+<span class="sd">    We probably won&#39;t hit the 4000 character limit any time soon, but to</span>
+<span class="sd">    avoid any chance of this happening, we use Text instead.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">load_dialect_impl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dialect</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">dialect</span><span class="o">.</span><span class="n">type_descriptor</span><span class="p">(</span><span class="n">Text</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="File"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.File">[docs]</a><span class="k">class</span> <span class="nc">File</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A general file (image, document, pdf, etc), referenced in the database.</span>
+
+<span class="sd">    Thanks to the use of `Depot &lt;http://depot.readthedocs.io&gt;`_ files</span>
+<span class="sd">    can be seemingly stored in the database (with transaction guarantees),</span>
+<span class="sd">    without actually storing it in the database.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;files&#39;</span>
+
+    <span class="c1">#: the unique, public id of the file</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">random_token</span><span class="p">)</span>
+
+    <span class="c1">#: the name of the file, incl. extension (not used for public links)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: a short note about the file (for captions, other information)</span>
+    <span class="n">note</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: the type of the file, this can be used to create custom polymorphic</span>
+    <span class="c1">#: subclasses. See `&lt;http://docs.sqlalchemy.org/en/improve_toc/</span>
+    <span class="c1">#: orm/extensions/declarative/inheritance.html&gt;`_.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: not to be confused with the the actual filetype which is stored</span>
+    <span class="c1">#: on the :attr:`reference`!</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: the reference to the actual file, uses depot to point to a file on</span>
+    <span class="c1">#: the local file system or somewhere else (e.g. S3)</span>
+    <span class="n">reference</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UploadedFileField</span><span class="p">(</span>
+        <span class="n">upload_type</span><span class="o">=</span><span class="n">ProcessedUploadedFile</span><span class="p">,</span>
+        <span class="n">filters</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">OnlyIfImage</span><span class="p">(</span>
+                <span class="c1"># note, the thumbnail configuration should not be changed</span>
+                <span class="c1"># anywhere but here - for consistency.</span>
+                <span class="n">WithThumbnailFilter</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;png&#39;</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the md5 checksum of the file *before* it was processed by us, that is</span>
+    <span class="c1">#: if the file was very large and we in turn made it smaller, it&#39;s the</span>
+    <span class="c1">#: checksum of the file before it was changed by us</span>
+    <span class="c1">#: this is useful to check if an uploaded file was already uploaded before</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: note, this is not meant to be cryptographically secure - this is</span>
+    <span class="c1">#: strictly a check of file duplicates, not protection against tampering</span>
+    <span class="n">checksum</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;polymorphic_on&#39;</span><span class="p">:</span> <span class="s1">&#39;type&#39;</span>
+    <span class="p">}</span>
+
+    <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;reference&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">reference_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reference</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checksum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;checksum&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">file_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The file_id of the contained reference.</span>
+
+<span class="sd">        If :attr:`virtual_file_id` is not None, it is returned instead.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">virtual_file_id</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">file_id</span>
+
+<div class="viewcode-block" id="File.get_thumbnail_id"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.File.get_thumbnail_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_thumbnail_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the thumbnail id with the given size (e.g. &#39;small&#39;).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># make sure to always prefix the name with thumbnail_, otherwise this</span>
+        <span class="c1"># mechanism might be used to access other files created by filters</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;thumbnail_&#39;</span> <span class="o">+</span> <span class="n">size</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

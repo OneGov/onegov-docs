@@ -1,0 +1,298 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.ticket.handler &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.ticket.handler</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">onegov.ticket.errors</span> <span class="k">import</span> <span class="n">DuplicateHandlerError</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
+
+
+<div class="viewcode-block" id="Handler"><a class="viewcode-back" href="../../../onegov_ticket.html#onegov.ticket.handler.Handler">[docs]</a><span class="k">class</span> <span class="nc">Handler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Defines a generic handler, responsible for a subset of the tickets.</span>
+
+<span class="sd">    onegov.ticket is meant to be a rather generic bucket of tickets, to which</span>
+<span class="sd">    varying modules submit tickets with varying content and different</span>
+<span class="sd">    actionables.</span>
+
+<span class="sd">    Each module wanting to submit tickets needs to implement a handler with</span>
+<span class="sd">    a unique id and a unique short code. The short code is added in front of</span>
+<span class="sd">    the ticket number.</span>
+
+<span class="sd">    Tickets submitted to the database are shown in a list, without handler</span>
+<span class="sd">    involvement. When a ticket is displayed, the handler is called with</span>
+<span class="sd">    whatever data the handler supplied during ticket submission.</span>
+
+<span class="sd">    The handler then uses the handler data to access whatever data it needs</span>
+<span class="sd">    to display a summary as well as links to certain actions (possibly a link</span>
+<span class="sd">    to the original item, links that change the state of the ticket as well</span>
+<span class="sd">    as the data associated with the handler, etc.).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ticket</span><span class="p">,</span> <span class="n">handler_id</span><span class="p">,</span> <span class="n">handler_data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span> <span class="o">=</span> <span class="n">ticket</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">handler_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">handler_data</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">session</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Handler.refresh"><a class="viewcode-back" href="../../../onegov_ticket.html#onegov.ticket.handler.Handler.refresh">[docs]</a>    <span class="k">def</span> <span class="nf">refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Updates the current ticket with the latest data from the handler.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deleted</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">title</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">subtitle</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subtitle</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">subtitle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subtitle</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">group</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">group</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">group</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">handler_id</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">handler_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">handler_data</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">handler_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">email</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the email address behind the ticket request. &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">title</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the title of the ticket. If this title may change over</span>
+<span class="sd">        time, the handler must call :meth:`self.refresh` when there&#39;s a change.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">group</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the group of the ticket. If this group may change over</span>
+<span class="sd">        time, the handler must call :meth:`self.refresh` when there&#39;s a change.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">deleted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns true if the underlying model was deleted. It is best to</span>
+<span class="sd">        never let that happen, as we want tickets to stay around forever.</span>
+
+<span class="sd">        However, this can make sense in certain scenarios. Note that if</span>
+<span class="sd">        you do delete your underlying model, make sure to call</span>
+<span class="sd">        :meth:`onegov.ticket.models.Ticket.create_snapshot` beforehand!</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">extra_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; An array of string values which are indexed in elasticsearch when</span>
+<span class="sd">        the ticket is stored there.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">payment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; An optional link to a onegov.pay payment record. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Handler.handle_extra_parameters"><a class="viewcode-back" href="../../../onegov_ticket.html#onegov.ticket.handler.Handler.handle_extra_parameters">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">handle_extra_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">extra_parameters</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Takes a dictionary of extra parameters and uses it to optionally</span>
+<span class="sd">        modifiy the query used for the collection.</span>
+
+<span class="sd">        Use this to add handler-defined custom filters with extra query</span>
+<span class="sd">        parameters. Only called if the collection is already limited to the</span>
+<span class="sd">        given handler. If all handlers are shown in the collection, this</span>
+<span class="sd">        method is not called.</span>
+
+<span class="sd">        If no extra paramaters were given, this method is *not* called.</span>
+
+<span class="sd">        Returns the modified or unmodified query.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">query</span></div>
+
+<div class="viewcode-block" id="Handler.get_summary"><a class="viewcode-back" href="../../../onegov_ticket.html#onegov.ticket.handler.Handler.get_summary">[docs]</a>    <span class="k">def</span> <span class="nf">get_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the summary of the current ticket as a html string. &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="Handler.get_links"><a class="viewcode-back" href="../../../onegov_ticket.html#onegov.ticket.handler.Handler.get_links">[docs]</a>    <span class="k">def</span> <span class="nf">get_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the links associated with the current ticket in the</span>
+<span class="sd">        following format::</span>
+
+<span class="sd">            [</span>
+<span class="sd">                (&#39;Link Title&#39;, &#39;http://link&#39;),</span>
+<span class="sd">                (&#39;Link Title 2&#39;, &#39;http://link2&#39;),</span>
+<span class="sd">            ]</span>
+
+<span class="sd">        If the links are not tuples, but callables, they will be called with</span>
+<span class="sd">        the request which should return the rendered link.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">HandlerRegistry</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="n">_reserved_handler_codes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ALL&#39;</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registry</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler_code</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the handler registration for the given id. If the id</span>
+<span class="sd">        does not exist, a KeyError is raised.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="p">[</span><span class="n">handler_code</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">register</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler_code</span><span class="p">,</span> <span class="n">handler_class</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Registers a handler.</span>
+
+<span class="sd">        :handler_code:</span>
+<span class="sd">            Three characters long shortcode of the handler added in front of</span>
+<span class="sd">            the ticket number. Must be globally unique and must not change!</span>
+
+<span class="sd">            Examples for good handler_codes::</span>
+
+<span class="sd">                FRM</span>
+<span class="sd">                ONS</span>
+<span class="sd">                RES</span>
+<span class="sd">                EVT</span>
+
+<span class="sd">        :handler_class:</span>
+<span class="sd">            A handler class inheriting from :class:`Handler`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">handler_code</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="k">assert</span> <span class="n">handler_code</span> <span class="o">==</span> <span class="n">handler_code</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">handler_code</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reserved_handler_codes</span>
+
+        <span class="k">if</span> <span class="n">handler_code</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">DuplicateHandlerError</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="p">[</span><span class="n">handler_code</span><span class="p">]</span> <span class="o">=</span> <span class="n">handler_class</span>
+
+    <span class="k">def</span> <span class="nf">registered_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler_code</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; A decorator to register handles as follows::</span>
+
+<span class="sd">        @handlers.registered_handler(&#39;FOO&#39;)</span>
+<span class="sd">        class FooHandler(Handler):</span>
+<span class="sd">            pass</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">handler_class</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">handler_code</span><span class="p">,</span> <span class="n">handler_class</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">handler_class</span>
+        <span class="k">return</span> <span class="n">wrapper</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

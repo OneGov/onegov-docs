@@ -1,0 +1,232 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.core.mail &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.core.mail</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">mailthon.headers</span> <span class="k">as</span> <span class="nn">headers</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">email.mime.multipart</span> <span class="k">import</span> <span class="n">MIMEMultipart</span>
+<span class="kn">from</span> <span class="nn">html2text</span> <span class="k">import</span> <span class="n">html2text</span>
+<span class="kn">from</span> <span class="nn">mailbox</span> <span class="k">import</span> <span class="n">Maildir</span><span class="p">,</span> <span class="n">MaildirMessage</span>
+<span class="kn">from</span> <span class="nn">mailthon.enclosure</span> <span class="k">import</span> <span class="n">HTML</span><span class="p">,</span> <span class="n">PlainText</span><span class="p">,</span> <span class="n">Attachment</span>
+<span class="kn">from</span> <span class="nn">mailthon.envelope</span> <span class="k">import</span> <span class="n">Envelope</span> <span class="k">as</span> <span class="n">BaseEnvelope</span>
+<span class="kn">from</span> <span class="nn">mailthon.postman</span> <span class="k">import</span> <span class="n">Postman</span>
+
+
+<span class="n">VALID_PLAINTEXT_CHARACTERS</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    [</span>
+<span class="s2">        \d  # decimals</span>
+<span class="s2">        \w  # words</span>
+<span class="s2">        \n  # new lines</span>
+
+<span class="s2">        # emojis</span>
+<span class="s2">        \U00002600-\U000027BF</span>
+<span class="s2">        \U0001f300-\U0001f64F</span>
+<span class="s2">        \U0001f680-\U0001f6FF</span>
+<span class="s2">    ]+</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">convert_to_plaintext</span><span class="p">(</span><span class="n">html</span><span class="p">):</span>
+
+    <span class="c1"># filter out duplicated lines and lines without any text</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">html2text</span><span class="p">(</span><span class="n">html</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">bodywidth</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">)</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">(</span><span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lines</span> <span class="k">if</span> <span class="n">VALID_PLAINTEXT_CHARACTERS</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+
+    <span class="c1"># use double newlines to get paragraphs</span>
+    <span class="n">plaintext</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+    <span class="c1"># in an attempt to create proper markdown html2text will escape</span>
+    <span class="c1"># dots. Since markdown is not something we care about here, we undo that</span>
+    <span class="n">plaintext</span> <span class="o">=</span> <span class="n">plaintext</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">plaintext</span>
+
+
+<div class="viewcode-block" id="email"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.mail.email">[docs]</a><span class="k">def</span> <span class="nf">email</span><span class="p">(</span><span class="n">sender</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">receivers</span><span class="o">=</span><span class="p">(),</span> <span class="n">cc</span><span class="o">=</span><span class="p">(),</span> <span class="n">bcc</span><span class="o">=</span><span class="p">(),</span>
+          <span class="n">subject</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf8&#39;</span><span class="p">,</span>
+          <span class="n">attachments</span><span class="o">=</span><span class="p">()):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates an Envelope object with a HTML *content*, as well as a *plaintext*</span>
+<span class="sd">    alternative generated from the HTML content.</span>
+
+<span class="sd">    :param content: HTML content.</span>
+<span class="sd">    :param encoding: Encoding of the email.</span>
+<span class="sd">    :param attachments: List of filenames to</span>
+<span class="sd">        attach to the email.</span>
+
+<span class="sd">    Note: this is basically a copy of :func:`mailthon.api.email`, though it</span>
+<span class="sd">    adds the plaintext alternative.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">content</span><span class="p">:</span>
+        <span class="c1"># turn the html email into a plaintext representation</span>
+        <span class="c1"># this leads to a lower spam rating</span>
+        <span class="n">plaintext</span> <span class="o">=</span> <span class="n">convert_to_plaintext</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">plaintext</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># According to RFC 2046, the last part of a multipart message, in this case</span>
+    <span class="c1"># the HTML message, is best and preferred</span>
+    <span class="n">enclosure</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">PlainText</span><span class="p">(</span><span class="n">plaintext</span><span class="p">,</span> <span class="n">encoding</span><span class="p">),</span>
+        <span class="n">HTML</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">encoding</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="n">enclosure</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">Attachment</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">attachments</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Envelope</span><span class="p">(</span>
+        <span class="n">headers</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">headers</span><span class="o">.</span><span class="n">subject</span><span class="p">(</span><span class="n">subject</span><span class="p">),</span>
+            <span class="n">headers</span><span class="o">.</span><span class="n">sender</span><span class="p">(</span><span class="n">sender</span><span class="p">),</span>
+            <span class="n">headers</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">receivers</span><span class="p">),</span>
+            <span class="n">headers</span><span class="o">.</span><span class="n">cc</span><span class="p">(</span><span class="o">*</span><span class="n">cc</span><span class="p">),</span>
+            <span class="n">headers</span><span class="o">.</span><span class="n">bcc</span><span class="p">(</span><span class="o">*</span><span class="n">bcc</span><span class="p">),</span>
+            <span class="n">headers</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
+            <span class="n">headers</span><span class="o">.</span><span class="n">message_id</span><span class="p">(),</span>
+        <span class="p">],</span>
+        <span class="n">enclosure</span><span class="o">=</span><span class="n">enclosure</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Envelope"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.mail.Envelope">[docs]</a><span class="k">class</span> <span class="nc">Envelope</span><span class="p">(</span><span class="n">BaseEnvelope</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Changes the mailthon envelope to use mime-multipart/alternative.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">mime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">mime</span> <span class="o">=</span> <span class="n">MIMEMultipart</span><span class="p">(</span><span class="s1">&#39;alternative&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">enclosure</span><span class="p">:</span>
+            <span class="n">mime</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">mime</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">prepare</span><span class="p">(</span><span class="n">mime</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mime</span></div>
+
+
+<div class="viewcode-block" id="MaildirTransport"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.mail.MaildirTransport">[docs]</a><span class="k">class</span> <span class="nc">MaildirTransport</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A transport that pretends to be like python&#39;s smtplib.SMTP transport,</span>
+<span class="sd">    but actually just stores files into a maildir.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">maildir</span><span class="p">):</span>
+        <span class="c1"># host and port exist for mailthon compatibility, they are ignored</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maildir</span> <span class="o">=</span> <span class="n">Maildir</span><span class="p">(</span><span class="n">maildir</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">maildir</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;new&#39;</span><span class="p">,</span> <span class="s1">&#39;cur&#39;</span><span class="p">,</span> <span class="s1">&#39;tmp&#39;</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">sendmail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">from_addr</span><span class="p">,</span> <span class="n">to_addrs</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maildir</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">MaildirMessage</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">noop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">250</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">ehlo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">quit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="MaildirPostman"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.mail.MaildirPostman">[docs]</a><span class="k">class</span> <span class="nc">MaildirPostman</span><span class="p">(</span><span class="n">Postman</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A mailthon postman that stores mails to a maildir. &quot;&quot;&quot;</span>
+    <span class="n">transport</span> <span class="o">=</span> <span class="n">MaildirTransport</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

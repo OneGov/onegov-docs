@@ -1,0 +1,154 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.file.models.fileset &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.file.models.fileset</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">onegov.core.crypto</span> <span class="k">import</span> <span class="n">random_token</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">,</span> <span class="n">Table</span><span class="p">,</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
+
+
+<span class="c1"># many to many relationship between File and FileSets</span>
+<span class="n">file_to_set_associations</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+    <span class="s1">&#39;file_to_set_associations&#39;</span><span class="p">,</span> <span class="n">Base</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
+    <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;file_id&#39;</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;files.id&#39;</span><span class="p">)),</span>
+    <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;fileset_id&#39;</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;filesets.id&#39;</span><span class="p">))</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="FileSet"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.fileset.FileSet">[docs]</a><span class="k">class</span> <span class="nc">FileSet</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A set of files that belong together. Each file may be part of</span>
+<span class="sd">    none, one or many sets. Each set may containe none, one or many files.</span>
+
+<span class="sd">    The fileset uses uuids for public urls instead of a readable url-safe</span>
+<span class="sd">    name, because files are meant to be always public with an unguessable url,</span>
+<span class="sd">    and so the filesets containing files must also have the same property.</span>
+
+<span class="sd">    Otherwise we might not be able to guess the name the of the file, but we</span>
+<span class="sd">    will be able to guess the name of a fileset containing files.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;filesets&#39;</span>
+
+    <span class="c1">#: the unique, public id of the fileset</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">random_token</span><span class="p">)</span>
+
+    <span class="c1">#: the title of the fileset (not usable in url)</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the type of the fileset, this can be used to create custom polymorphic</span>
+    <span class="c1">#: subclasses. See `&lt;http://docs.sqlalchemy.org/en/improve_toc/</span>
+    <span class="c1">#: orm/extensions/declarative/inheritance.html&gt;`_.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: this is independent from the :attr:`onegov.file.models.File.type`</span>
+    <span class="c1">#: attribute on the :class:`~onegov.file.models.File`.</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">files</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;File&#39;</span><span class="p">,</span>
+        <span class="n">secondary</span><span class="o">=</span><span class="n">file_to_set_associations</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="s1">&#39;filesets&#39;</span><span class="p">,</span>
+        <span class="n">order_by</span><span class="o">=</span><span class="s1">&#39;desc(File.last_change)&#39;</span>
+    <span class="p">)</span>
+
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;polymorphic_on&#39;</span><span class="p">:</span> <span class="s1">&#39;type&#39;</span>
+    <span class="p">}</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

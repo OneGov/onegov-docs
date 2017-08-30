@@ -1,0 +1,205 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.event.utils &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.event.utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">csv</span> <span class="k">import</span> <span class="n">DictReader</span><span class="p">,</span> <span class="n">DictWriter</span>
+<span class="kn">from</span> <span class="nn">dateutil.parser</span> <span class="k">import</span> <span class="n">parse</span>
+<span class="kn">from</span> <span class="nn">onegov.event.models</span> <span class="k">import</span> <span class="n">Event</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">distinct</span>
+
+
+<div class="viewcode-block" id="get_json_keys"><a class="viewcode-back" href="../../../onegov_event.html#onegov.event.utils.get_json_keys">[docs]</a><span class="k">def</span> <span class="nf">get_json_keys</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">column</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns all keys of a column.</span>
+
+<span class="sd">    This could be more efficient with json_object_keys :(.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">distinct</span><span class="p">(</span><span class="n">column</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">subitem</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">subitem</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="export_csv"><a class="viewcode-back" href="../../../onegov_event.html#onegov.event.utils.export_csv">[docs]</a><span class="k">def</span> <span class="nf">export_csv</span><span class="p">(</span><span class="n">collection</span><span class="p">,</span> <span class="n">csvfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Exports the given collection to a CSV file with the given name. &quot;&quot;&quot;</span>
+
+    <span class="n">session</span> <span class="o">=</span> <span class="n">collection</span><span class="o">.</span><span class="n">session</span>
+    <span class="n">meta_keys</span> <span class="o">=</span> <span class="n">get_json_keys</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">Event</span><span class="o">.</span><span class="n">meta</span><span class="p">)</span>
+    <span class="n">content_keys</span> <span class="o">=</span> <span class="n">get_json_keys</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">Event</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="s1">&#39;timezone&#39;</span><span class="p">,</span> <span class="s1">&#39;recurrence&#39;</span><span class="p">,</span> <span class="s1">&#39;tags&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;location&#39;</span>
+    <span class="p">]</span>
+    <span class="n">headers</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s1">&#39;meta_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">meta_keys</span><span class="p">])</span>
+    <span class="n">headers</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s1">&#39;content_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">content_keys</span><span class="p">])</span>
+
+    <span class="n">writer</span> <span class="o">=</span> <span class="n">DictWriter</span><span class="p">(</span><span class="n">csvfile</span><span class="p">,</span> <span class="n">fieldnames</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">writeheader</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">collection</span><span class="o">.</span><span class="n">query</span><span class="p">():</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+            <span class="s1">&#39;start&#39;</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">localized_start</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s1">&#39;end&#39;</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">localized_end</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s1">&#39;timezone&#39;</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">timezone</span><span class="p">,</span>
+            <span class="s1">&#39;tags&#39;</span><span class="p">:</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">tags</span><span class="p">),</span>
+            <span class="s1">&#39;location&#39;</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
+            <span class="s1">&#39;recurrence&#39;</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">recurrence</span><span class="p">,</span>
+            <span class="s1">&#39;state&#39;</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">state</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">meta_keys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">meta</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="s1">&#39;meta_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">)]</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">content_keys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="s1">&#39;content_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">)]</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">collection</span><span class="o">.</span><span class="n">query</span><span class="p">()</span><span class="o">.</span><span class="n">count</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="import_csv"><a class="viewcode-back" href="../../../onegov_event.html#onegov.event.utils.import_csv">[docs]</a><span class="k">def</span> <span class="nf">import_csv</span><span class="p">(</span><span class="n">collection</span><span class="p">,</span> <span class="n">csvfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Imports the events from the given CSV file to the given collection. &quot;&quot;&quot;</span>
+
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="s1">&#39;timezone&#39;</span><span class="p">,</span> <span class="s1">&#39;recurrence&#39;</span><span class="p">,</span> <span class="s1">&#39;tags&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;location&#39;</span>
+    <span class="p">)</span>
+
+    <span class="n">reader</span> <span class="o">=</span> <span class="n">DictReader</span><span class="p">(</span><span class="n">csvfile</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span>
+        <span class="n">field</span> <span class="ow">in</span> <span class="n">headers</span> <span class="ow">or</span> <span class="n">field</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;meta_&#39;</span><span class="p">)</span> <span class="ow">or</span>
+        <span class="n">field</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;content_&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">reader</span><span class="o">.</span><span class="n">fieldnames</span>
+    <span class="p">])</span>
+
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;meta_&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">event</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;meta_&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">event</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;content_&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">event</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                <span class="n">content</span><span class="p">[</span><span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;content_&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">event</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+        <span class="n">added</span> <span class="o">=</span> <span class="n">collection</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">),</span>
+            <span class="n">start</span><span class="o">=</span><span class="n">parse</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;start&#39;</span><span class="p">)),</span>
+            <span class="n">end</span><span class="o">=</span><span class="n">parse</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">)),</span>
+            <span class="n">timezone</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;timezone&#39;</span><span class="p">),</span>
+            <span class="n">location</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;location&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">recurrence</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;recurrence&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="n">tag</span> <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">tag</span><span class="p">],</span>
+            <span class="n">meta</span><span class="o">=</span><span class="n">meta</span><span class="p">,</span>
+            <span class="n">content</span><span class="o">=</span><span class="n">content</span>
+        <span class="p">)</span>
+
+        <span class="n">state</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="s1">&#39;published&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;submitted&#39;</span><span class="p">,</span> <span class="s1">&#39;published&#39;</span><span class="p">,</span> <span class="s1">&#39;withdrawn&#39;</span><span class="p">):</span>
+            <span class="n">added</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;published&#39;</span><span class="p">,</span> <span class="s1">&#39;withdrawn&#39;</span><span class="p">):</span>
+            <span class="n">added</span><span class="o">.</span><span class="n">publish</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;withdrawn&#39;</span><span class="p">):</span>
+            <span class="n">added</span><span class="o">.</span><span class="n">withdraw</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">count</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

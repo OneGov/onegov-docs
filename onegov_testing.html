@@ -1,0 +1,197 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Onegov Testing API &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="onegov-testing-api">
+<h1>Onegov Testing API<a class="headerlink" href="#onegov-testing-api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-onegov_testing.fixtures">
+<span id="fixtures"></span><h2>Fixtures<a class="headerlink" href="#module-onegov_testing.fixtures" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="onegov_testing.fixtures.treat_sqlalchemy_warnings_as_errors">
+<code class="descclassname">onegov_testing.fixtures.</code><code class="descname">treat_sqlalchemy_warnings_as_errors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov_testing/fixtures.html#treat_sqlalchemy_warnings_as_errors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov_testing.fixtures.treat_sqlalchemy_warnings_as_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>All onegov models treat SQLAlchemy warnings as errors, because usually
+SQLAlchemy warnings are errors waiting to happen.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov_testing.fixtures.cache_password_hashing">
+<code class="descclassname">onegov_testing.fixtures.</code><code class="descname">cache_password_hashing</code><span class="sig-paren">(</span><em>monkeysession</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov_testing/fixtures.html#cache_password_hashing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov_testing.fixtures.cache_password_hashing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Monkey-patch the password hashing/verification functions during tests
+for a big speed increase (we login with the same password over and over
+again).</p>
+<p>Changes to the auth are delicate, so we make sure this is only done during
+testing by having it here, instead of support some mechanism like this
+in onegov.core itself.</p>
+<p>So this dangerous code is not only inexistant in the core, it is also not
+present on the server because onegov_testing is strictly a testing
+dependency and finally it is only run when invoked through pytest.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov_testing.fixtures.postgres">
+<code class="descclassname">onegov_testing.fixtures.</code><code class="descname">postgres</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov_testing/fixtures.html#postgres"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov_testing.fixtures.postgres" title="Permalink to this definition">¶</a></dt>
+<dd><p>Starts a postgres server using <a class="reference external" href="https://pypi.python.org/pypi/testing.postgresql/">testing.postgresql</a> once per test session.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov_testing.fixtures.postgres_dsn">
+<code class="descclassname">onegov_testing.fixtures.</code><code class="descname">postgres_dsn</code><span class="sig-paren">(</span><em>postgres</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov_testing/fixtures.html#postgres_dsn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov_testing.fixtures.postgres_dsn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dsn to a temporary postgres server. Cleans up the database
+after running the tests.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov_testing.fixtures.session_manager">
+<code class="descclassname">onegov_testing.fixtures.</code><code class="descname">session_manager</code><span class="sig-paren">(</span><em>postgres_dsn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov_testing/fixtures.html#session_manager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov_testing.fixtures.session_manager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides a <code class="xref py py-class docutils literal"><span class="pre">onegov.core.orm.session_manager.SessionManager</span></code>
+setup with <a class="reference internal" href="#onegov_testing.fixtures.postgres_dsn" title="onegov_testing.fixtures.postgres_dsn"><code class="xref py py-func docutils literal"><span class="pre">postgres_dsn()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov_testing.fixtures.session">
+<code class="descclassname">onegov_testing.fixtures.</code><code class="descname">session</code><span class="sig-paren">(</span><em>session_manager</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov_testing/fixtures.html#session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov_testing.fixtures.session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides an SQLAlchemy session, scoped to a random schema.</p>
+<p>This is the fixture you usually want to use for ORM tests.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov_testing.fixtures.temporary_directory">
+<code class="descclassname">onegov_testing.fixtures.</code><code class="descname">temporary_directory</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov_testing/fixtures.html#temporary_directory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov_testing.fixtures.temporary_directory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides a temporary directory that is removed after the test.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov_testing.fixtures.temporary_path">
+<code class="descclassname">onegov_testing.fixtures.</code><code class="descname">temporary_path</code><span class="sig-paren">(</span><em>temporary_directory</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov_testing/fixtures.html#temporary_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov_testing.fixtures.temporary_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Same as <a class="reference internal" href="#onegov_testing.fixtures.temporary_directory" title="onegov_testing.fixtures.temporary_directory"><code class="xref py py-func docutils literal"><span class="pre">temporary_directory()</span></code></a>, but providing a <code class="docutils literal"><span class="pre">Path</span></code> instead
+of a string.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov_testing.fixtures.es_url">
+<code class="descclassname">onegov_testing.fixtures.</code><code class="descname">es_url</code><span class="sig-paren">(</span><em>es_process</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov_testing/fixtures.html#es_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov_testing.fixtures.es_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides an url to an elasticsearch cluster that is guaranteed to be
+empty at the beginning of each test.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov_testing.fixtures.es_client">
+<code class="descclassname">onegov_testing.fixtures.</code><code class="descname">es_client</code><span class="sig-paren">(</span><em>es_url</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov_testing/fixtures.html#es_client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov_testing.fixtures.es_client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides an elasticsearch client.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov_testing.utils">
+<span id="utils"></span><h2>Utils<a class="headerlink" href="#module-onegov_testing.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="onegov_testing.utils.create_image">
+<code class="descclassname">onegov_testing.utils.</code><code class="descname">create_image</code><span class="sig-paren">(</span><em>width=50</em>, <em>height=50</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov_testing/utils.html#create_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov_testing.utils.create_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a test image and returns it’s file handle.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov_testing.utils.random_namespace">
+<code class="descclassname">onegov_testing.utils.</code><code class="descname">random_namespace</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov_testing/utils.html#random_namespace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov_testing.utils.random_namespace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a random namespace.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/onegov_testing.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

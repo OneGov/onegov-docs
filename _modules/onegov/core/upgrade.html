@@ -1,0 +1,539 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.core.upgrade &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.core.upgrade</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">importlib</span>
+<span class="kn">import</span> <span class="nn">pkg_resources</span>
+<span class="kn">import</span> <span class="nn">transaction</span>
+
+<span class="kn">from</span> <span class="nn">alembic.migration</span> <span class="k">import</span> <span class="n">MigrationContext</span>
+<span class="kn">from</span> <span class="nn">alembic.operations</span> <span class="k">import</span> <span class="n">Operations</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="k">import</span> <span class="n">getmembers</span><span class="p">,</span> <span class="n">isfunction</span><span class="p">,</span> <span class="n">ismethod</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">JSON</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.engine.reflection</span> <span class="k">import</span> <span class="n">Inspector</span>
+<span class="kn">from</span> <span class="nn">toposort</span> <span class="k">import</span> <span class="n">toposort</span><span class="p">,</span> <span class="n">toposort_flatten</span>
+
+
+<div class="viewcode-block" id="UpgradeState"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.UpgradeState">[docs]</a><span class="k">class</span> <span class="nc">UpgradeState</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Keeps the state of all upgrade steps over all modules. &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;upgrades&#39;</span>
+
+    <span class="c1"># the name of the module (e.g. onegov.core)</span>
+    <span class="n">module</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># a json holding the state of the upgrades</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">JSON</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">executed_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;executed_tasks&#39;</span><span class="p">,</span> <span class="p">[]))</span>
+
+    <span class="k">def</span> <span class="nf">was_already_executed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">task</span><span class="o">.</span><span class="n">task_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">executed_tasks</span>
+
+    <span class="k">def</span> <span class="nf">mark_as_executed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="s1">&#39;executed_tasks&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;executed_tasks&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">task_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;executed_tasks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;executed_tasks&#39;</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;executed_tasks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">task_name</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">changed</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="get_distributions_with_entry_map"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.get_distributions_with_entry_map">[docs]</a><span class="k">def</span> <span class="nf">get_distributions_with_entry_map</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Iterates through all distributions with entry_maps and yields</span>
+<span class="sd">    each distribution along side the entry map with the given key.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">distribution</span> <span class="ow">in</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">working_set</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">distribution</span><span class="p">,</span> <span class="s1">&#39;get_entry_map&#39;</span><span class="p">):</span>
+            <span class="n">entry_map</span> <span class="o">=</span> <span class="n">distribution</span><span class="o">.</span><span class="n">get_entry_map</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">entry_map</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">distribution</span><span class="p">,</span> <span class="n">entry_map</span></div>
+
+
+<div class="viewcode-block" id="get_upgrade_modules"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.get_upgrade_modules">[docs]</a><span class="k">def</span> <span class="nf">get_upgrade_modules</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Returns all modules that registered themselves for onegov.core</span>
+<span class="sd">    upgrades like this::</span>
+
+<span class="sd">        entry_points={</span>
+<span class="sd">            &#39;onegov.core&#39;: [</span>
+<span class="sd">                &#39;upgrade = onegov.mypackage.upgrade&#39;</span>
+<span class="sd">            ]</span>
+<span class="sd">        }</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">distribution</span><span class="p">,</span> <span class="n">entry_map</span> <span class="ow">in</span> <span class="n">get_distributions_with_entry_map</span><span class="p">(</span><span class="s1">&#39;onegov&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;upgrade&#39;</span> <span class="ow">in</span> <span class="n">entry_map</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="p">(</span>
+                <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">entry_map</span><span class="p">[</span><span class="s1">&#39;upgrade&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">module_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]),</span>
+                <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">entry_map</span><span class="p">[</span><span class="s1">&#39;upgrade&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">module_name</span><span class="p">)</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="upgrade_task"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.upgrade_task">[docs]</a><span class="k">class</span> <span class="nc">upgrade_task</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Marks the decorated function as an upgrade task. Upgrade tasks should</span>
+<span class="sd">    be defined outside classes (except for testing) - that is in the root of</span>
+<span class="sd">    the module (directly in onegov/form/upgrades.py for example).</span>
+
+<span class="sd">    Each upgrade task has the following properties:</span>
+
+<span class="sd">    :name:</span>
+<span class="sd">        The name of the task in readable English. Do not change the name of</span>
+<span class="sd">        the task once you pushed your changes. This name is used as an id!</span>
+
+<span class="sd">    :always_run:</span>
+<span class="sd">        By default, tasks are run once on if they haven&#39;t been run yet, or if</span>
+<span class="sd">        the module was not yet under upgrade control (it just added itself</span>
+<span class="sd">        through the entry_points mechanism).</span>
+
+<span class="sd">        There are times where this is not wanted.</span>
+
+<span class="sd">        If you enable upgrades in your module and you plan to run an upgrade</span>
+<span class="sd">        task in the same release, then you need to &#39;always_run&#39; and detect</span>
+<span class="sd">        yourself if you need to do any changes.</span>
+
+<span class="sd">        If you need to enable upgrades and run a task at the same time which</span>
+<span class="sd">        can only be run once and is impossible to make idempotent, then you</span>
+<span class="sd">        need to make two releases. One that enables upgade control and a second</span>
+<span class="sd">        one that</span>
+
+<span class="sd">        Also, if you want to run an upgrade task every time you upgrade (for</span>
+<span class="sd">        example, for maintenance), then you should also use it.</span>
+
+<span class="sd">        The easiest way to use upgrade control is to enable it from the first</span>
+<span class="sd">        release on.</span>
+
+<span class="sd">        Another way to tackle this is to write update methods idempotent as</span>
+<span class="sd">        often as possible and to always run them.</span>
+
+<span class="sd">    :requires:</span>
+<span class="sd">        A reference to another projects upgrade task that should be run first.</span>
+
+<span class="sd">        For example::</span>
+
+<span class="sd">            requires=&#39;onegov.form:Add new form field&#39;</span>
+
+<span class="sd">        If the reference cannot be found, the upgrade fails.</span>
+
+<span class="sd">    Always run tasks may return ``False`` if they wish to be considered</span>
+<span class="sd">    as not run (and therefore not shown in the upgrade runner).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">always_run</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">requires</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">always_run</span> <span class="o">=</span> <span class="n">always_run</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">requires</span> <span class="o">=</span> <span class="n">requires</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="n">fn</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">fn</span><span class="o">.</span><span class="n">always_run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">always_run</span>
+        <span class="n">fn</span><span class="o">.</span><span class="n">requires</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">requires</span>
+        <span class="k">return</span> <span class="n">fn</span></div>
+
+
+<div class="viewcode-block" id="is_task"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.is_task">[docs]</a><span class="k">def</span> <span class="nf">is_task</span><span class="p">(</span><span class="n">function</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns True if the given function is an uprade task. &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">isfunction</span><span class="p">(</span><span class="n">function</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ismethod</span><span class="p">(</span><span class="n">function</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="s1">&#39;task_name&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_module_tasks"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.get_module_tasks">[docs]</a><span class="k">def</span> <span class="nf">get_module_tasks</span><span class="p">(</span><span class="n">module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Goes through a module or class and returns all upgrade tasks. &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">getmembers</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">is_task</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">function</span></div>
+
+
+<div class="viewcode-block" id="get_tasks_by_id"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.get_tasks_by_id">[docs]</a><span class="k">def</span> <span class="nf">get_tasks_by_id</span><span class="p">(</span><span class="n">upgrade_modules</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a list of upgrade modules or classes and returns the tasks</span>
+<span class="sd">    keyed by id.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tasks</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">fn_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">distribution</span><span class="p">,</span> <span class="n">upgrade_module</span> <span class="ow">in</span> <span class="n">upgrade_modules</span><span class="p">:</span>
+
+        <span class="k">for</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">get_module_tasks</span><span class="p">(</span><span class="n">upgrade_module</span><span class="p">):</span>
+            <span class="n">task_id</span> <span class="o">=</span> <span class="s1">&#39;:&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">distribution</span><span class="p">,</span> <span class="n">function</span><span class="o">.</span><span class="n">task_name</span><span class="p">))</span>
+
+            <span class="k">assert</span> <span class="n">task_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">,</span> <span class="s2">&quot;Duplicate task&quot;</span>
+            <span class="n">tasks</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">function</span>
+
+            <span class="c1"># make sure we don&#39;t have duplicate function names - it works, but</span>
+            <span class="c1"># it makes debugging harder</span>
+            <span class="k">assert</span> <span class="n">function</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fn_names</span><span class="p">,</span> <span class="s2">&quot;Duplicate function name&quot;</span>
+            <span class="n">fn_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tasks</span></div>
+
+
+<div class="viewcode-block" id="get_module_order_key"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.get_module_order_key">[docs]</a><span class="k">def</span> <span class="nf">get_module_order_key</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns a sort order key which orders task_ids in order of their</span>
+<span class="sd">    module dependencies. That is a task from onegov.core is sorted before</span>
+<span class="sd">    a task in onegov.user, because onegov.user depends on onegov.core.</span>
+
+<span class="sd">    This is used to order unrelated tasks in a sane way.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">modules</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+        <span class="n">modules</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">graph</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">packages</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">working_set</span>
+
+    <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">modules</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">module</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">graph</span><span class="p">:</span>
+            <span class="n">graph</span><span class="p">[</span><span class="n">module</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">packages</span><span class="o">.</span><span class="n">by_key</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">dependency</span> <span class="ow">in</span> <span class="n">packages</span><span class="o">.</span><span class="n">by_key</span><span class="p">[</span><span class="n">module</span><span class="p">]</span><span class="o">.</span><span class="n">requires</span><span class="p">():</span>
+                <span class="n">graph</span><span class="p">[</span><span class="n">module</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">dependency</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="n">sorted_modules</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">task_id</span><span class="p">:</span> <span class="n">ix</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">task_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">toposort_flatten</span><span class="p">(</span><span class="n">graph</span><span class="p">))</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">sortkey</span><span class="p">(</span><span class="n">task_id</span><span class="p">):</span>
+        <span class="n">module</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">task_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sorted_modules</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)),</span> <span class="n">task_id</span>
+
+    <span class="k">return</span> <span class="n">sortkey</span></div>
+
+
+<div class="viewcode-block" id="get_tasks"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.get_tasks">[docs]</a><span class="k">def</span> <span class="nf">get_tasks</span><span class="p">(</span><span class="n">upgrade_modules</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a list of upgrade modules or classes and returns the</span>
+<span class="sd">    tasks that should be run in the order they should be run.</span>
+
+<span class="sd">    The order takes dependencies into account.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tasks</span> <span class="o">=</span> <span class="n">get_tasks_by_id</span><span class="p">(</span><span class="n">upgrade_modules</span> <span class="ow">or</span> <span class="n">get_upgrade_modules</span><span class="p">())</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">task_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">graph</span><span class="p">:</span>
+            <span class="n">graph</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">requires</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">graph</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">requires</span><span class="p">)</span>
+
+    <span class="n">sorted_tasks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">order_key</span> <span class="o">=</span> <span class="n">get_module_order_key</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">task_ids</span> <span class="ow">in</span> <span class="n">toposort</span><span class="p">(</span><span class="n">graph</span><span class="p">):</span>
+        <span class="n">sorted_tasks</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">task_ids</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">order_key</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="p">[(</span><span class="n">task_id</span><span class="p">,</span> <span class="n">tasks</span><span class="p">[</span><span class="n">task_id</span><span class="p">])</span> <span class="k">for</span> <span class="n">task_id</span> <span class="ow">in</span> <span class="n">sorted_tasks</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="register_modules"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.register_modules">[docs]</a><span class="k">def</span> <span class="nf">register_modules</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">modules</span><span class="p">,</span> <span class="n">tasks</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Sets up the state tracking for all modules. Initially, all tasks</span>
+<span class="sd">    are marekd as executed, because we assume tasks to upgrade older</span>
+<span class="sd">    deployments to a new deployment.</span>
+
+<span class="sd">    If this is a new deployment we do not need to execute these tasks.</span>
+
+<span class="sd">    Tasks where this is not desired should be marked as &#39;always_run&#39;.</span>
+<span class="sd">    They will then manage their own state (i.e. check if they need to</span>
+<span class="sd">    run or not).</span>
+
+<span class="sd">    This function is idempotent.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">module</span><span class="p">,</span> <span class="n">upgrade_module</span> <span class="ow">in</span> <span class="n">modules</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">UpgradeState</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">UpgradeState</span><span class="o">.</span><span class="n">module</span> <span class="o">==</span> <span class="n">module</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">first</span><span class="p">():</span>
+            <span class="k">continue</span>
+
+        <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+            <span class="n">UpgradeState</span><span class="p">(</span><span class="n">module</span><span class="o">=</span><span class="n">module</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;executed_tasks&#39;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="n">task</span><span class="o">.</span><span class="n">task_name</span> <span class="k">for</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span>
+                    <span class="k">if</span> <span class="n">task_id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+                <span class="p">]</span>
+            <span class="p">})</span>
+        <span class="p">)</span>
+
+    <span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="register_all_modules_and_tasks"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.register_all_modules_and_tasks">[docs]</a><span class="k">def</span> <span class="nf">register_all_modules_and_tasks</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Registers all the modules and all the tasks. &quot;&quot;&quot;</span>
+    <span class="n">register_modules</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">get_upgrade_modules</span><span class="p">(),</span> <span class="n">get_tasks</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="UpgradeTransaction"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.UpgradeTransaction">[docs]</a><span class="k">class</span> <span class="nc">UpgradeTransaction</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Holds the session and the alembic operations connection together and</span>
+<span class="sd">    commits/aborts both at the same time.</span>
+
+<span class="sd">    Not really a two-phase commit solution. That could be accomplished but</span>
+<span class="sd">    for now this suffices.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operations_transaction</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">operations_connection</span><span class="o">.</span><span class="n">begin</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">session</span>
+
+    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operations_transaction</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">transaction</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">abort</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operations_transaction</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="n">transaction</span><span class="o">.</span><span class="n">abort</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="UpgradeContext"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.UpgradeContext">[docs]</a><span class="k">class</span> <span class="nc">UpgradeContext</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Holdes the context of the upgrade. An instance of this is passed</span>
+<span class="sd">    to each upgrade task.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">request</span> <span class="o">=</span> <span class="n">request</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">current_schema</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">bind</span>
+
+        <span class="c1"># The locale of the upgrade is the default locale</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">set_locale</span><span class="p">(</span>
+            <span class="n">current_locale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span><span class="p">,</span>
+            <span class="n">default_locale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">default_locale</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Make sure the connection is the same for the session, the engine</span>
+        <span class="c1"># and the alembic migrations context. Otherwise the upgrade locks up.</span>
+        <span class="c1"># If that happens again, test with this:</span>
+        <span class="c1">#</span>
+        <span class="c1">#       http://docs.sqlalchemy.org/en/latest/core/pooling.html</span>
+        <span class="c1">#       #sqlalchemy.pool.AssertionPool</span>
+        <span class="c1">#</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operations_connection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">_connection_for_bind</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">bind</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operations</span> <span class="o">=</span> <span class="n">Operations</span><span class="p">(</span>
+            <span class="n">MigrationContext</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">operations_connection</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">begin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">UpgradeTransaction</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">has_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">column</span><span class="p">):</span>
+        <span class="n">inspector</span> <span class="o">=</span> <span class="n">Inspector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">operations_connection</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">column</span> <span class="ow">in</span> <span class="p">{</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">inspector</span><span class="o">.</span><span class="n">get_columns</span><span class="p">(</span>
+            <span class="n">table</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
+        <span class="p">)}</span>
+
+    <span class="k">def</span> <span class="nf">has_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="n">inspector</span> <span class="o">=</span> <span class="n">Inspector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">operations_connection</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">inspector</span><span class="o">.</span><span class="n">get_table_names</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UpgradeRunner"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.UpgradeRunner">[docs]</a><span class="k">class</span> <span class="nc">UpgradeRunner</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Runs all tasks of a :class:`UpgradeTasksRegistry`. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modules</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">commit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">on_task_success</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">on_task_fail</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modules</span> <span class="o">=</span> <span class="n">modules</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="n">tasks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commit</span> <span class="o">=</span> <span class="n">commit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">states</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_on_task_success</span> <span class="o">=</span> <span class="n">on_task_success</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_on_task_fail</span> <span class="o">=</span> <span class="n">on_task_fail</span>
+
+    <span class="k">def</span> <span class="nf">on_task_success</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_on_task_success</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_on_task_success</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">on_task_fail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_on_task_fail</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_on_task_fail</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">module</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">module</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">UpgradeState</span><span class="p">)</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">UpgradeState</span><span class="o">.</span><span class="n">module</span> <span class="o">==</span> <span class="n">module</span><span class="p">)</span>
+
+            <span class="c1"># assume that all modules have been ran through register_module</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">module</span><span class="p">]</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">one</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">context</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">module</span><span class="p">],</span> <span class="n">load</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">register_modules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="n">register_modules</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">:</span>
+            <span class="n">transaction</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_module_from_task_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">task_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">run_upgrade</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_modules</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="n">tasks</span> <span class="o">=</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">get_module_from_task_id</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span>
+        <span class="n">executed</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">module</span><span class="p">,</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+            <span class="n">context</span> <span class="o">=</span> <span class="n">UpgradeContext</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">task</span><span class="o">.</span><span class="n">always_run</span> <span class="ow">and</span> <span class="n">state</span><span class="o">.</span><span class="n">was_already_executed</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">upgrade</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">begin</span><span class="p">()</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">task</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+
+                <span class="c1"># mark all tasks as executed, even &#39;always run&#39; ones</span>
+                <span class="n">state</span><span class="o">.</span><span class="n">mark_as_executed</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+                <span class="n">upgrade</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+                <span class="c1"># always-run tasks which return False are considered</span>
+                <span class="c1"># to have not run</span>
+                <span class="n">hidden</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">always_run</span> <span class="ow">and</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">False</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">hidden</span><span class="p">:</span>
+                    <span class="n">executed</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">on_task_success</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">upgrade</span><span class="o">.</span><span class="n">abort</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">on_task_fail</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+
+                <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">:</span>
+                    <span class="n">upgrade</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">upgrade</span><span class="o">.</span><span class="n">abort</span><span class="p">()</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">invalidate</span><span class="p">()</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">executed</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,294 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.core.layout &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.core.layout</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">arrow</span>
+<span class="kn">import</span> <span class="nn">babel.dates</span>
+<span class="kn">import</span> <span class="nn">babel.numbers</span>
+<span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">import</span> <span class="nn">sedate</span>
+
+<span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">pytz</span> <span class="k">import</span> <span class="n">timezone</span>
+
+
+<span class="c1"># I introduced a bug with arrow that should be fixed in a future release, this</span>
+<span class="c1"># here is a workaround, until this is merged:</span>
+<span class="c1"># https://github.com/crsmithdev/arrow/pull/410</span>
+<span class="kn">from</span> <span class="nn">arrow.locales</span> <span class="k">import</span> <span class="n">SwissLocale</span>
+<span class="n">SwissLocale</span><span class="o">.</span><span class="n">timeframes</span><span class="p">[</span><span class="s1">&#39;days&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1"> Tagen&#39;</span>
+
+
+<div class="viewcode-block" id="Layout"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.layout.Layout">[docs]</a><span class="k">class</span> <span class="nc">Layout</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Contains useful methods related to rendering pages in html. Think of it</span>
+<span class="sd">    as an API that you can rely on in your templates.</span>
+
+<span class="sd">    The idea is to provide basic layout functions here, if they are usful for</span>
+<span class="sd">    any kind of html application. You should then extend the core layout</span>
+<span class="sd">    classes with your own.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#: The timezone is currently fixed to &#39;Europe/Zurich&#39; since all our</span>
+    <span class="c1">#: business with onegov is done here. Once the need arises, we should</span>
+    <span class="c1">#: lookup the timezone from the IP of the user, or use a javascript</span>
+    <span class="c1">#: library that sets the timezone for the user session.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: There&#39;s also going to be the case where we want the timezone set</span>
+    <span class="c1">#: specifically for a certain layout (say a reservation of a room, where</span>
+    <span class="c1">#: the room&#39;s timezone is relevant). This is why this setting should</span>
+    <span class="c1">#: remain close to the layout, and not necessarily close to the request.</span>
+    <span class="n">timezone</span> <span class="o">=</span> <span class="n">timezone</span><span class="p">(</span><span class="s1">&#39;Europe/Zurich&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: Just like the timezone, these values are fixed for Switzerland now,</span>
+    <span class="c1">#: though the non-numerical information is actually translated.</span>
+    <span class="c1">#: Format:</span>
+    <span class="c1">#</span>
+    <span class="c1">#: http://www.unicode.org/reports/tr35/tr35-39/tr35-dates.html</span>
+    <span class="c1">#: #Date_Format_Patterns</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: Classes inheriting from :class:`Layout` may add their own formats, as</span>
+    <span class="c1">#: long as they end in ``_format``. For example::</span>
+    <span class="c1">#:</span>
+    <span class="c1">#:     class MyLayout(Layout):</span>
+    <span class="c1">#:         my_format = &#39;dd.MMMM&#39;</span>
+    <span class="c1">#:</span>
+    <span class="c1">#:     MyLayout().format_date(dt, &#39;my&#39;)</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: XXX this is not yet i18n and could be done better</span>
+    <span class="n">time_format</span> <span class="o">=</span> <span class="s1">&#39;HH:mm&#39;</span>
+    <span class="n">date_format</span> <span class="o">=</span> <span class="s1">&#39;dd.MM.yyyy&#39;</span>
+    <span class="n">datetime_format</span> <span class="o">=</span> <span class="s1">&#39;dd.MM.yyyy HH:mm&#39;</span>
+
+    <span class="n">date_long_format</span> <span class="o">=</span> <span class="s1">&#39;dd. MMMM yyyy&#39;</span>
+    <span class="n">datetime_long_format</span> <span class="o">=</span> <span class="s1">&#39;d. MMMM yyyy HH:mm&#39;</span>
+    <span class="n">weekday_long_format</span> <span class="o">=</span> <span class="s1">&#39;EEEE&#39;</span>
+    <span class="n">month_long_format</span> <span class="o">=</span> <span class="s1">&#39;MMMM&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">request</span> <span class="o">=</span> <span class="n">request</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">app</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the application behind the request. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">app</span>
+
+<div class="viewcode-block" id="Layout.chunks"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.layout.Layout.chunks">[docs]</a>    <span class="k">def</span> <span class="nf">chunks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; See :func:`onegov.core.utils.chunks`. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">chunks</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">csrf_token</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a csrf token for use with DELETE links (forms do their</span>
+<span class="sd">        own thing automatically).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">new_csrf_token</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">token</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="n">token</span>
+
+<div class="viewcode-block" id="Layout.csrf_protected_url"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.layout.Layout.csrf_protected_url">[docs]</a>    <span class="k">def</span> <span class="nf">csrf_protected_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Adds a csrf token to the given url. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">append_query_param</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="s1">&#39;csrf-token&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">csrf_token</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Layout.format_date"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.layout.Layout.format_date">[docs]</a>    <span class="k">def</span> <span class="nf">format_date</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="nb">format</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Takes a datetime and formats it according to local timezone and</span>
+<span class="sd">        the given format.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="s1">&#39;tzinfo&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39;relative&#39;</span><span class="p">:</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="n">arrow</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">humanize</span><span class="p">(</span><span class="n">locale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">humanize</span><span class="p">(</span><span class="n">locale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="s1">&#39;hour&#39;</span><span class="p">):</span>
+            <span class="n">formatter</span> <span class="o">=</span> <span class="n">babel</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">format_datetime</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">formatter</span> <span class="o">=</span> <span class="n">babel</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">format_date</span>
+
+        <span class="k">return</span> <span class="n">formatter</span><span class="p">(</span>
+            <span class="n">dt</span><span class="p">,</span>
+            <span class="nb">format</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span> <span class="o">+</span> <span class="s1">&#39;_format&#39;</span><span class="p">),</span>
+            <span class="n">locale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Layout.isodate"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.layout.Layout.isodate">[docs]</a>    <span class="k">def</span> <span class="nf">isodate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">date</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the given date in the ISO 8601 format. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">date</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Layout.format_number"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.layout.Layout.format_number">[docs]</a>    <span class="k">def</span> <span class="nf">format_number</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">number</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Takes the given numer and formats it according to locale.</span>
+
+<span class="sd">        If the number is an integer, the default decimal places are 0,</span>
+<span class="sd">        otherwise 2.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">decimal_places</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">number</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">):</span>
+                <span class="n">decimal_places</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">decimal_places</span> <span class="o">=</span> <span class="mi">2</span>
+
+        <span class="n">locale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span>
+
+        <span class="n">decimal</span> <span class="o">=</span> <span class="n">babel</span><span class="o">.</span><span class="n">numbers</span><span class="o">.</span><span class="n">get_decimal_symbol</span><span class="p">(</span><span class="n">locale</span><span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">babel</span><span class="o">.</span><span class="n">numbers</span><span class="o">.</span><span class="n">get_group_symbol</span><span class="p">(</span><span class="n">locale</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="s1">&#39;{{:,.</span><span class="si">{}</span><span class="s1">f}}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">decimal_places</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">number</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">translate</span><span class="p">({</span><span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">):</span> <span class="n">group</span><span class="p">,</span> <span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span> <span class="n">decimal</span><span class="p">})</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">view_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the view name of the current view, or None if it is the</span>
+<span class="sd">        default view.</span>
+
+<span class="sd">        Note: This relies on morepath internals and is experimental in nature!</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">unconsumed</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">unconsumed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">or</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">today</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">sedate</span><span class="o">.</span><span class="n">to_timezone</span><span class="p">(</span><span class="n">sedate</span><span class="o">.</span><span class="n">utcnow</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="ChameleonLayout"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.layout.ChameleonLayout">[docs]</a><span class="k">class</span> <span class="nc">ChameleonLayout</span><span class="p">(</span><span class="n">Layout</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends the base layout class with methods related to chameleon</span>
+<span class="sd">    template rendering.</span>
+
+<span class="sd">    This class assumes the existance of two templates:</span>
+
+<span class="sd">    - layout.pt -&gt; Contains the page skeleton with headers, body and so on.</span>
+<span class="sd">    - macros.pt -&gt; Contains chameleon macros.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">template_loader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the chameleon template loader. &quot;&quot;&quot;</span>
+        <span class="n">registry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">template_engine_registry</span>
+        <span class="k">return</span> <span class="n">registry</span><span class="o">.</span><span class="n">_template_loaders</span><span class="p">[</span><span class="s1">&#39;.pt&#39;</span><span class="p">]</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">base</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the layout, which defines the base layout of all town</span>
+<span class="sd">        pages. See ``templates/layout.pt``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_loader</span><span class="p">[</span><span class="s1">&#39;layout.pt&#39;</span><span class="p">]</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">macros</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the macros, which offer often used html constructs.</span>
+<span class="sd">        See ``templates/macros.pt``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_loader</span><span class="o">.</span><span class="n">macros</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

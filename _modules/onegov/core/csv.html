@@ -1,0 +1,644 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.core.csv &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.core.csv</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Offers tools to deal with csv (and xls, xlsx) files. &quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">codecs</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">xlrd</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span><span class="p">,</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">csv</span> <span class="k">import</span> <span class="n">DictWriter</span><span class="p">,</span> <span class="n">Sniffer</span><span class="p">,</span> <span class="n">QUOTE_ALL</span>
+<span class="kn">from</span> <span class="nn">csv</span> <span class="k">import</span> <span class="n">Error</span> <span class="k">as</span> <span class="n">CsvError</span>
+<span class="kn">from</span> <span class="nn">csv</span> <span class="k">import</span> <span class="n">reader</span> <span class="k">as</span> <span class="n">csv_reader</span>
+<span class="kn">from</span> <span class="nn">csv</span> <span class="k">import</span> <span class="n">writer</span> <span class="k">as</span> <span class="n">csv_writer</span>
+<span class="kn">from</span> <span class="nn">editdistance</span> <span class="k">import</span> <span class="nb">eval</span> <span class="k">as</span> <span class="n">distance</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">BytesIO</span><span class="p">,</span> <span class="n">StringIO</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">permutations</span>
+<span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">errors</span>
+<span class="kn">from</span> <span class="nn">ordered_set</span> <span class="k">import</span> <span class="n">OrderedSet</span>
+<span class="kn">from</span> <span class="nn">unidecode</span> <span class="k">import</span> <span class="n">unidecode</span>
+<span class="kn">from</span> <span class="nn">xlsxwriter.workbook</span> <span class="k">import</span> <span class="n">Workbook</span>
+
+
+<span class="n">VALID_CSV_DELIMITERS</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">}</span>
+<span class="n">WHITESPACE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s+&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="CSVFile"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.csv.CSVFile">[docs]</a><span class="k">class</span> <span class="nc">CSVFile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Provides access to a csv file.</span>
+
+<span class="sd">    :param csvfile:</span>
+<span class="sd">        The csv file to be accessed. Must be an open file (not a poth), opened</span>
+<span class="sd">        in binary mode. For example::</span>
+
+<span class="sd">            with open(path, &#39;rb&#39;) as f:</span>
+<span class="sd">                csv = CSVFile(f)</span>
+
+<span class="sd">    :param expected_headers:</span>
+<span class="sd">        The expected headers if known. Expected headers are headers which</span>
+<span class="sd">        *must* exist in the CSV file. There may be additional headers.</span>
+
+<span class="sd">        If the headers are slightly misspelled, a matching algorithm tries to</span>
+<span class="sd">        guess the correct header, without accidentally matching the wrong</span>
+<span class="sd">        headers.</span>
+
+<span class="sd">        See :func:`match_headers` for more information.</span>
+
+<span class="sd">        If the no expected_headers are passed, no checks are done, but the</span>
+<span class="sd">        headers are still available. Headers matching is useful if a user</span>
+<span class="sd">        provides the CSV and it might be wrong.</span>
+
+<span class="sd">        If it is impossible for misspellings to occurr, the expected headers</span>
+<span class="sd">        don&#39;t have to be specified.</span>
+
+<span class="sd">    :param dialect:</span>
+<span class="sd">        The CSV dialect to expect. By default, the dialect will be guessed</span>
+<span class="sd">        using Python&#39;s heuristic.</span>
+
+<span class="sd">    :param encoding:</span>
+<span class="sd">        The CSV encoding to expect. By default, the encoding will be guessed</span>
+<span class="sd">        and will either be UTF-8 or CP1252.</span>
+
+<span class="sd">    :param rename_duplicate_column_names:</span>
+<span class="sd">        It is possible to rename duplicate column names to deal with super</span>
+<span class="sd">        wacky files. If this option is set and a duplicate header is found,</span>
+<span class="sd">        a suffix is appended to the column name rather than throwing a</span>
+<span class="sd">        DuplicateColumnNamesError.</span>
+
+<span class="sd">    Once the csv file is open, the records can be acceessed as follows::</span>
+
+<span class="sd">        with open(path, &#39;rb&#39;) as f:</span>
+<span class="sd">            csv = CSVFile(f)</span>
+
+<span class="sd">            for line in csv.lines:</span>
+<span class="sd">                csv.my_field  # access the column with the &#39;my_field&#39; header</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">csvfile</span><span class="p">,</span> <span class="n">expected_headers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dialect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">encoding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rename_duplicate_column_names</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="c1"># guess the encoding if not already provided</span>
+        <span class="n">encoding</span> <span class="o">=</span> <span class="n">encoding</span> <span class="ow">or</span> <span class="n">detect_encoding</span><span class="p">(</span><span class="n">csvfile</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">encoding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">InvalidFormatError</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">csvfile</span> <span class="o">=</span> <span class="n">codecs</span><span class="o">.</span><span class="n">getreader</span><span class="p">(</span><span class="n">encoding</span><span class="p">)(</span><span class="n">csvfile</span><span class="p">)</span>
+
+        <span class="c1"># sniff the dialect if not already provided</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">csvfile</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dialect</span> <span class="o">=</span> <span class="n">dialect</span> <span class="ow">or</span> <span class="n">sniff_dialect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csvfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1024</span><span class="p">))</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">CsvError</span><span class="p">,</span> <span class="n">errors</span><span class="o">.</span><span class="n">InvalidFormatError</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">csvfile</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dialect</span> <span class="o">=</span> <span class="n">sniff_dialect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csvfile</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+        <span class="c1"># match the headers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">csvfile</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># if no expected headers expect, we just take what we can get</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="n">parse_header</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">csvfile</span><span class="o">.</span><span class="n">readline</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dialect</span><span class="p">,</span>
+            <span class="n">rename_duplicate_column_names</span>
+        <span class="p">)</span>
+        <span class="n">expected_headers</span> <span class="o">=</span> <span class="n">expected_headers</span> <span class="ow">or</span> <span class="n">headers</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">match_headers</span><span class="p">(</span>
+                <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
+                <span class="n">expected</span><span class="o">=</span><span class="n">expected_headers</span>
+            <span class="p">))</span>
+        <span class="p">)</span>
+
+        <span class="c1"># create an output type</span>
+        <span class="k">assert</span> <span class="s1">&#39;rownumber&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">expected_headers</span><span class="p">,</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            rownumber can&#39;t be used as a header</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rowtype</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+            <span class="s2">&quot;CSVFileRow&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;rownumber&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">as_valid_identifier</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">as_valid_identifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">normalize_header</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">invalid</span> <span class="ow">in</span> <span class="s1">&#39;- .%&#39;</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">invalid</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="s1">&#39;_0123456789&#39;</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">csvfile</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">encountered_empty_line</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csv_reader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csvfile</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialect</span><span class="p">)):</span>
+
+            <span class="c1"># raise an empty line error if we found one somewhere in the</span>
+            <span class="c1"># middle -&gt; at the end they don&#39;t count</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">encountered_empty_line</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">line</span> <span class="ow">and</span> <span class="n">encountered_empty_line</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">EmptyLineInFileError</span><span class="p">()</span>
+
+            <span class="c1"># the first line is the header</span>
+            <span class="k">if</span> <span class="n">ix</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">rowtype</span><span class="p">(</span>
+                <span class="n">rownumber</span><span class="o">=</span><span class="n">ix</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># row numbers are for customers, not coders</span>
+                <span class="o">**</span><span class="p">{</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">as_valid_identifier</span><span class="p">(</span><span class="n">header</span><span class="p">):</span> <span class="n">line</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">header</span><span class="p">,</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">}</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="detect_encoding"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.csv.detect_encoding">[docs]</a><span class="k">def</span> <span class="nf">detect_encoding</span><span class="p">(</span><span class="n">csvfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Since encoding detection is hard to get right (and work correctly</span>
+<span class="sd">    every time), we limit ourselves here to UTF-8 or CP1252, whichever works</span>
+<span class="sd">    first. CP1252 is basically the csv format you get if you use windows and</span>
+<span class="sd">    excel and it is a superset of ISO-8859-1/LATIN1.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">csvfile</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">csvfile</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
+            <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="s1">&#39;utf-8&#39;</span>
+    <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;cp1252&#39;</span></div>
+
+
+<div class="viewcode-block" id="sniff_dialect"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.csv.sniff_dialect">[docs]</a><span class="k">def</span> <span class="nf">sniff_dialect</span><span class="p">(</span><span class="n">csv</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes the given csv string and returns the dialect or None. Works just</span>
+<span class="sd">    like Python&#39;s built in sniffer, just that it is a bit more conservative and</span>
+<span class="sd">    doesn&#39;t just accept any kind of character as csv delimiter.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">csv</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">EmptyFileError</span><span class="p">()</span>
+
+    <span class="n">dialect</span> <span class="o">=</span> <span class="n">Sniffer</span><span class="p">()</span><span class="o">.</span><span class="n">sniff</span><span class="p">(</span><span class="n">csv</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dialect</span><span class="o">.</span><span class="n">delimiter</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALID_CSV_DELIMITERS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">InvalidFormatError</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">dialect</span></div>
+
+
+<div class="viewcode-block" id="normalize_header"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.csv.normalize_header">[docs]</a><span class="k">def</span> <span class="nf">normalize_header</span><span class="p">(</span><span class="n">header</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Normalizes a header value to be as uniform as possible.</span>
+
+<span class="sd">    This includes:</span>
+<span class="sd">        * stripping the whitespace around it</span>
+<span class="sd">        * lowercasing everything</span>
+<span class="sd">        * transliterating unicode (e.g. &#39;ä&#39; becomes &#39;a&#39;)</span>
+<span class="sd">        * removing duplicate whitespace inside it</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">header</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="n">unidecode</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="n">WHITESPACE</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">header</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">header</span></div>
+
+
+<div class="viewcode-block" id="convert_xls_to_csv"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.csv.convert_xls_to_csv">[docs]</a><span class="k">def</span> <span class="nf">convert_xls_to_csv</span><span class="p">(</span><span class="n">xls</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes an XLS/XLSX file and returns a csv file using the given worksheet</span>
+<span class="sd">    name or the first worksheet found.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">xls</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">excel</span> <span class="o">=</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">open_workbook</span><span class="p">(</span><span class="n">file_contents</span><span class="o">=</span><span class="n">xls</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+    <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span>
+            <span class="s2">&quot;Could not read excel file, &quot;</span>
+            <span class="s2">&quot;be sure to open the file in binary mode!&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">sheet_name</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sheet</span> <span class="o">=</span> <span class="n">excel</span><span class="o">.</span><span class="n">sheet_by_name</span><span class="p">(</span><span class="n">sheet_name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">XLRDError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span>
+                <span class="s2">&quot;Could not find the given sheet in this excel file!&quot;</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sheet</span> <span class="o">=</span> <span class="n">excel</span><span class="o">.</span><span class="n">sheet_by_index</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># XXX we want the output to be bytes encoded, which is not possible using</span>
+    <span class="c1"># python&#39;s csv module. I&#39;m sure there&#39;s a clever way of doing this by</span>
+    <span class="c1"># using a custom StringIO class which encodes on the fly, but I haven&#39;t</span>
+    <span class="c1"># looked into it yet. So for now a conversion is done with some memory</span>
+    <span class="c1"># overhead.</span>
+    <span class="n">text_output</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+    <span class="n">writecsv</span> <span class="o">=</span> <span class="n">csv_writer</span><span class="p">(</span><span class="n">text_output</span><span class="p">,</span> <span class="n">quoting</span><span class="o">=</span><span class="n">QUOTE_ALL</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">rownum</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">sheet</span><span class="o">.</span><span class="n">nrows</span><span class="p">):</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">sheet</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="n">rownum</span><span class="p">):</span>
+
+            <span class="k">if</span> <span class="n">cell</span><span class="o">.</span><span class="n">ctype</span> <span class="o">==</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">XL_CELL_TEXT</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">value</span>
+            <span class="k">elif</span> <span class="n">cell</span><span class="o">.</span><span class="n">ctype</span> <span class="ow">in</span> <span class="p">(</span><span class="n">xlrd</span><span class="o">.</span><span class="n">XL_CELL_EMPTY</span><span class="p">,</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">XL_CELL_BLANK</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+            <span class="k">elif</span> <span class="n">cell</span><span class="o">.</span><span class="n">ctype</span> <span class="o">==</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">XL_CELL_NUMBER</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">cell</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">is_integer</span><span class="p">():</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">cell</span><span class="o">.</span><span class="n">ctype</span> <span class="o">==</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">XL_CELL_DATE</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">xldate_as_tuple</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">excel</span><span class="o">.</span><span class="n">datemode</span><span class="p">)</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+            <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">writecsv</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+
+    <span class="n">text_output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">text_output</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">output</span></div>
+
+
+<div class="viewcode-block" id="get_keys_from_list_of_dicts"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.csv.get_keys_from_list_of_dicts">[docs]</a><span class="k">def</span> <span class="nf">get_keys_from_list_of_dicts</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns all keys of a list of dicts in an ordered tuple.</span>
+
+<span class="sd">    If the list of dicts is irregular, the keys found in later rows are</span>
+<span class="sd">    added at the end of the list.</span>
+
+<span class="sd">    Note that the order of keys is otherwise defined by the order of the keys</span>
+<span class="sd">    of the dictionaries. So if ordered dictionaries are used, the order is</span>
+<span class="sd">    defined. If regular dictionaries are used, the order is undefined.</span>
+
+<span class="sd">    Alternatively, a key and a reverse flag may be provided which will be</span>
+<span class="sd">    used to order the fields. If the list of fields is specified, the key and</span>
+<span class="sd">    the reverse flag is ignored.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fields</span> <span class="o">=</span> <span class="n">OrderedSet</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">dictionary</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="n">fields</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dictionary</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">key</span><span class="p">:</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">fields</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="n">reverse</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fields</span></div>
+
+
+<div class="viewcode-block" id="convert_list_of_dicts_to_csv"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.csv.convert_list_of_dicts_to_csv">[docs]</a><span class="k">def</span> <span class="nf">convert_list_of_dicts_to_csv</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a list of dictionaries and returns a csv.</span>
+
+<span class="sd">    If no fields are provided, all fields are included in the order of the keys</span>
+<span class="sd">    of the first dict. With regular dictionaries this is random. Use an ordered</span>
+<span class="sd">    dict or provide a list of fields to have a fixed order.</span>
+
+<span class="sd">    Alternatively, a key and a reverse flag may be provided which will be</span>
+<span class="sd">    used to order the fields. If the list of fields is specified, the key and</span>
+<span class="sd">    the reverse flag is ignored.</span>
+
+<span class="sd">    The function returns a string created in memory. Therefore this function</span>
+<span class="sd">    is limited to small-ish datasets.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="n">fields</span> <span class="o">=</span> <span class="n">fields</span> <span class="ow">or</span> <span class="n">get_keys_from_list_of_dicts</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">reverse</span><span class="p">)</span>
+
+    <span class="n">output</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+    <span class="n">writer</span> <span class="o">=</span> <span class="n">DictWriter</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">fieldnames</span><span class="o">=</span><span class="n">fields</span><span class="p">)</span>
+
+    <span class="n">writer</span><span class="o">.</span><span class="n">writeheader</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">({</span><span class="n">field</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">})</span>
+
+    <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">output</span><span class="o">.</span><span class="n">read</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="convert_list_of_dicts_to_xlsx"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.csv.convert_list_of_dicts_to_xlsx">[docs]</a><span class="k">def</span> <span class="nf">convert_list_of_dicts_to_xlsx</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a list of dictionaries and returns a xlsx.</span>
+
+<span class="sd">    This behaves the same way as :func:`convert_list_of_dicts_to_csv`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">small_chars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="s1">&#39;fijlrt:,;.+i &#39;</span><span class="p">)</span>
+    <span class="n">large_chars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="s1">&#39;GHMWQ_&#39;</span><span class="p">)</span>
+
+    <span class="n">max_width</span> <span class="o">=</span> <span class="mi">75</span>
+
+    <span class="k">def</span> <span class="nf">character_width</span><span class="p">(</span><span class="n">char</span><span class="p">):</span>
+        <span class="c1"># those numbers have been acquired by chasing unicorns</span>
+        <span class="c1"># and fairies in the magic forest of Excel</span>
+        <span class="c1">#</span>
+        <span class="c1"># tweak them as needed, but know that there&#39;s no correct answer,</span>
+        <span class="c1"># as each excel version on each platform or os-version will render</span>
+        <span class="c1"># the fonts used at different widths</span>
+        <span class="k">if</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">small_chars</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.75</span>
+        <span class="k">elif</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">large_chars</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">1.2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">estimate_width</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+        <span class="n">width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="nb">sum</span><span class="p">(</span><span class="n">character_width</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">line</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">max_width</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">()</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+        <span class="n">workbook</span> <span class="o">=</span> <span class="n">Workbook</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;constant_memory&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+        <span class="n">cellformat</span> <span class="o">=</span> <span class="n">workbook</span><span class="o">.</span><span class="n">add_format</span><span class="p">({</span><span class="s1">&#39;text_wrap&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+
+        <span class="n">worksheet</span> <span class="o">=</span> <span class="n">workbook</span><span class="o">.</span><span class="n">add_worksheet</span><span class="p">()</span>
+
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">fields</span> <span class="ow">or</span> <span class="n">get_keys_from_list_of_dicts</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">reverse</span><span class="p">)</span>
+
+        <span class="c1"># write the header</span>
+        <span class="n">worksheet</span><span class="o">.</span><span class="n">write_row</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">cellformat</span><span class="p">)</span>
+
+        <span class="c1"># keep track of the maximum character width</span>
+        <span class="n">column_widths</span> <span class="o">=</span> <span class="p">[</span><span class="n">estimate_width</span><span class="p">(</span><span class="n">field</span><span class="p">)</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">]</span>
+
+        <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fields</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">column_widths</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                    <span class="n">column_widths</span><span class="p">[</span><span class="n">ix</span><span class="p">],</span>
+                    <span class="n">estimate_width</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+                <span class="k">yield</span> <span class="n">value</span>
+
+        <span class="c1"># write the rows</span>
+        <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">worksheet</span><span class="o">.</span><span class="n">write_row</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">values</span><span class="p">(</span><span class="n">row</span><span class="p">),</span> <span class="n">cellformat</span><span class="p">)</span>
+
+        <span class="c1"># set the column widths</span>
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">width</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">column_widths</span><span class="p">):</span>
+            <span class="n">worksheet</span><span class="o">.</span><span class="n">set_column</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+
+        <span class="n">workbook</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="parse_header"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.csv.parse_header">[docs]</a><span class="k">def</span> <span class="nf">parse_header</span><span class="p">(</span><span class="n">csv</span><span class="p">,</span> <span class="n">dialect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rename_duplicate_column_names</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes the first line of the given csv string and returns the headers.</span>
+
+<span class="sd">    Headers are normalized (stripped and normalized) and expected to be</span>
+<span class="sd">    unique. The dialect is sniffed, if not provided.</span>
+
+<span class="sd">    :return: A list of headers in the order of appearance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">dialect</span> <span class="o">=</span> <span class="n">dialect</span> <span class="ow">or</span> <span class="n">sniff_dialect</span><span class="p">(</span><span class="n">csv</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">errors</span><span class="o">.</span><span class="n">InvalidFormatError</span><span class="p">:</span>
+        <span class="n">dialect</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># let the csv reader try, it might still work</span>
+    <span class="k">except</span> <span class="n">errors</span><span class="o">.</span><span class="n">EmptyFileError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="n">headers</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">csv_reader</span><span class="p">(</span><span class="n">csv</span><span class="o">.</span><span class="n">splitlines</span><span class="p">(),</span> <span class="n">dialect</span><span class="o">=</span><span class="n">dialect</span><span class="p">))</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">[</span><span class="n">normalize_header</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">headers</span> <span class="k">if</span> <span class="n">h</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">rename_duplicate_column_names</span><span class="p">:</span>
+        <span class="n">indexes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">headers</span><span class="p">):</span>
+            <span class="n">indexes</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">indexes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                <span class="n">headers</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">+=</span> <span class="s1">&#39;_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">suffix</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">headers</span></div>
+
+
+<div class="viewcode-block" id="match_headers"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.csv.match_headers">[docs]</a><span class="k">def</span> <span class="nf">match_headers</span><span class="p">(</span><span class="n">headers</span><span class="p">,</span> <span class="n">expected</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a list of normalized headers and matches them up against a</span>
+<span class="sd">    list of expected headers.</span>
+
+<span class="sd">    The headers may differ from the expected headers. This function tries to</span>
+<span class="sd">    match them up using the Levenshtein distance. It does so somewhat carefully</span>
+<span class="sd">    by calculating a sane distance using the input.</span>
+
+<span class="sd">    The passed headers are expected to be have been normalized by</span>
+<span class="sd">    :func:`normalize_header`, since we usually will pass the result of</span>
+<span class="sd">    :func:`parse_header` to this function.</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        match_headers(</span>
+<span class="sd">            headers=[&#39;firstname&#39;, &#39;lastname&#39;],</span>
+<span class="sd">            expected=[&#39;last_name&#39;, &#39;first_name&#39;]</span>
+<span class="sd">        )</span>
+
+<span class="sd">    Results in::</span>
+
+<span class="sd">        [&#39;first_name&#39;, &#39;last_name&#39;]</span>
+
+<span class="sd">    If no match is possible, an</span>
+<span class="sd">    :class:`~onegov.core.errors.MissingColumnsError`, or</span>
+<span class="sd">    :class:`~onegov.core.errors.AmbiguousColumnsError` or</span>
+<span class="sd">    :class:`~onegov.core.errors.DuplicateColumnNamesError` error is raised.</span>
+
+<span class="sd">    :return: The matched headers in the order of appearance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># for this to work we need unique header names</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">headers</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">DuplicateColumnNamesError</span><span class="p">()</span>
+
+    <span class="c1"># we calculate a &#39;sane&#39; levenshtein distance by comparing the</span>
+    <span class="c1"># the distances between all headers, permutations, as well as the lengths</span>
+    <span class="c1"># of all expected headers. This makes sure we don&#39;t end up with matches</span>
+    <span class="c1"># that make no sense (like [&#39;first&#39;, &#39;second&#39;] matching [&#39;first&#39;, &#39;third&#39;])</span>
+    <span class="n">sane_distance</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sys</span><span class="p">,</span> <span class="s1">&#39;maxsize&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxint</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">sane_distance</span> <span class="o">=</span> <span class="nb">min</span><span class="p">((</span>
+            <span class="n">sane_distance</span><span class="p">,</span>
+            <span class="nb">min</span><span class="p">(</span><span class="n">distance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">permutations</span><span class="p">(</span><span class="n">headers</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="p">))</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">sane_distance</span> <span class="o">=</span> <span class="nb">min</span><span class="p">((</span>
+            <span class="n">sane_distance</span><span class="p">,</span>
+            <span class="nb">min</span><span class="p">(</span><span class="n">distance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">permutations</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="p">))</span>
+
+    <span class="n">sane_distance</span> <span class="o">=</span> <span class="nb">min</span><span class="p">((</span>
+        <span class="n">sane_distance</span><span class="p">,</span>
+        <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">expected</span><span class="p">)</span>
+    <span class="p">))</span>
+
+    <span class="n">mapping</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ambiguous</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">expected</span><span class="p">:</span>
+        <span class="n">normalized</span> <span class="o">=</span> <span class="n">normalize_header</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">h</span><span class="p">,</span> <span class="n">distance</span><span class="p">(</span><span class="n">normalized</span><span class="p">,</span> <span class="n">h</span><span class="p">))</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">)</span>
+
+        <span class="n">closest</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">distances</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="n">closest</span> <span class="o">&gt;=</span> <span class="n">sane_distance</span><span class="p">:</span>
+            <span class="n">missing</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">matches</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">distances</span> <span class="k">if</span> <span class="n">distances</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">==</span> <span class="n">closest</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ambiguous</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">matches</span>
+            <span class="k">continue</span>
+
+        <span class="n">mapping</span><span class="p">[</span><span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">column</span>
+
+    <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">MissingColumnsError</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ambiguous</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">AmbiguousColumnsError</span><span class="p">(</span><span class="n">ambiguous</span><span class="p">)</span>
+
+    <span class="c1"># return the mapping or the original header (we allow for extra headers,</span>
+    <span class="c1"># we just don&#39;t allow for missing headers)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">]</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

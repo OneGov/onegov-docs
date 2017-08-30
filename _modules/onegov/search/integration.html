@@ -1,0 +1,329 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.search.integration &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.search.integration</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">certifi</span>
+<span class="kn">import</span> <span class="nn">morepath</span>
+
+<span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="k">import</span> <span class="n">Elasticsearch</span>
+<span class="kn">from</span> <span class="nn">more.transaction.main</span> <span class="k">import</span> <span class="n">transaction_tween_factory</span>
+<span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">Search</span>
+<span class="kn">from</span> <span class="nn">onegov.search.indexer</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">Indexer</span><span class="p">,</span>
+    <span class="n">ORMEventTranslator</span><span class="p">,</span>
+    <span class="n">TypeMappingRegistry</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="ElasticsearchApp"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.ElasticsearchApp">[docs]</a><span class="k">class</span> <span class="nc">ElasticsearchApp</span><span class="p">(</span><span class="n">morepath</span><span class="o">.</span><span class="n">App</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Provides elasticsearch integration for</span>
+<span class="sd">    :class:`onegov.core.framework.Framework` based applications.</span>
+
+<span class="sd">    The application must be connected to a database.</span>
+
+<span class="sd">    Usage::</span>
+
+<span class="sd">        from onegov.core import Framework</span>
+
+<span class="sd">        class MyApp(Framework, ESIntegration):</span>
+<span class="sd">            pass</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ElasticsearchApp.configure_search"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.ElasticsearchApp.configure_search">[docs]</a>    <span class="k">def</span> <span class="nf">configure_search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Configures the elasticsearch client, leaving it as a property</span>
+<span class="sd">        on the class::</span>
+
+<span class="sd">            app.es_client</span>
+
+<span class="sd">        The following configuration options are accepted:</span>
+
+<span class="sd">        :enable_elasticsearch:</span>
+<span class="sd">            If True, elasticsearch is enabled (defaults to True).</span>
+
+<span class="sd">        :elasticsearch_hosts:</span>
+<span class="sd">            A list of elasticsearch clusters, including username, password,</span>
+<span class="sd">            protocol and port.</span>
+
+<span class="sd">            For example: ``https://user:secret@localhost:443``</span>
+
+<span class="sd">            By default the client connects to the localhost on port 9200</span>
+<span class="sd">            (the default), and on port 19200 (the default of boxen).</span>
+
+<span class="sd">            At least one host in the list of servers must be up at startup.</span>
+
+<span class="sd">        :elasticsearch_may_queue_size:</span>
+<span class="sd">            The maximum queue size reserved for documents to be indexed. This</span>
+<span class="sd">            queue is filling up if the elasticsearch cluster cannot be reached.</span>
+
+<span class="sd">            Once the queue is full, warnings are emitted.</span>
+
+<span class="sd">            Defaults to 10&#39;000</span>
+
+<span class="sd">        :elasticsearch_verify_certs:</span>
+<span class="sd">            If true, the elasticsearch client verifies the certificates of</span>
+<span class="sd">            the ssl connection. Defaults to true. Do not disable, unless you</span>
+<span class="sd">            are in testing!</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;enable_elasticsearch&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">es_client</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span>
+
+        <span class="n">hosts</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;elasticsearch_hosts&#39;</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s1">&#39;http://localhost:9200&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;http://localhost:19200&#39;</span>
+        <span class="p">))</span>
+
+        <span class="n">max_queue_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;elasticsarch_max_queue_size&#39;</span><span class="p">,</span> <span class="s1">&#39;10000&#39;</span><span class="p">))</span>
+        <span class="n">verify_certs</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;elasticsearch_verify_certs&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">verify_certs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">es_client</span> <span class="o">=</span> <span class="n">Elasticsearch</span><span class="p">(</span>
+                <span class="n">hosts</span><span class="p">,</span> <span class="n">verify_certs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ca_certs</span><span class="o">=</span><span class="n">certifi</span><span class="o">.</span><span class="n">where</span><span class="p">(),</span>
+                <span class="n">sniff_on_connection_fail</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">es_client</span> <span class="o">=</span> <span class="n">Elasticsearch</span><span class="p">(</span>
+                <span class="n">hosts</span><span class="p">,</span> <span class="n">sniff_on_connection_fail</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_database_connection</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">es_mappings</span> <span class="o">=</span> <span class="n">TypeMappingRegistry</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">bases</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">es_mappings</span><span class="o">.</span><span class="n">register_orm_base</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">es_orm_events</span> <span class="o">=</span> <span class="n">ORMEventTranslator</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">es_mappings</span><span class="p">,</span>
+                <span class="n">max_queue_size</span><span class="o">=</span><span class="n">max_queue_size</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">es_indexer</span> <span class="o">=</span> <span class="n">Indexer</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">es_mappings</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">es_orm_events</span><span class="o">.</span><span class="n">queue</span><span class="p">,</span>
+                <span class="n">es_client</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">es_client</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">on_insert</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">es_orm_events</span><span class="o">.</span><span class="n">on_insert</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">on_update</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">es_orm_events</span><span class="o">.</span><span class="n">on_update</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">on_delete</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">es_orm_events</span><span class="o">.</span><span class="n">on_delete</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ElasticsearchApp.es_search"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.ElasticsearchApp.es_search">[docs]</a>    <span class="k">def</span> <span class="nf">es_search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">include_private</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">explain</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a search scoped to the current application, with the</span>
+<span class="sd">        given languages, types and private documents excluded by default.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span>
+            <span class="n">session</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span>
+            <span class="n">mappings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">es_mappings</span><span class="p">,</span>
+            <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">es_client</span><span class="p">,</span>
+            <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">es_indices</span><span class="p">(</span><span class="n">languages</span><span class="p">,</span> <span class="n">types</span><span class="p">),</span>
+            <span class="n">extra</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">explain</span><span class="o">=</span><span class="n">explain</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">include_private</span><span class="p">:</span>
+            <span class="n">search</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="s2">&quot;term&quot;</span><span class="p">,</span> <span class="n">es_public</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># by default, do not include any fields (this will still include</span>
+        <span class="c1"># the id and the type, which is enough for the orm querying)</span>
+        <span class="n">search</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">source</span><span class="p">(</span><span class="n">excludes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;*&#39;</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">search</span></div>
+
+    <span class="k">def</span> <span class="nf">es_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">es_indexer</span><span class="o">.</span><span class="n">ixmgr</span><span class="o">.</span><span class="n">get_external_index_names</span><span class="p">(</span>
+            <span class="n">schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+            <span class="n">languages</span><span class="o">=</span><span class="n">languages</span><span class="p">,</span>
+            <span class="n">types</span><span class="o">=</span><span class="n">types</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="ElasticsearchApp.es_search_by_request"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.ElasticsearchApp.es_search_by_request">[docs]</a>    <span class="k">def</span> <span class="nf">es_search_by_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">explain</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Takes the current :class:`~onegov.core.request.CoreRequest` and</span>
+<span class="sd">        returns an elastic search scoped to the current application, the</span>
+<span class="sd">        requests language and it&#39;s access rights.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">es_search</span><span class="p">(</span>
+            <span class="n">languages</span><span class="o">=</span><span class="p">[</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]],</span>
+            <span class="n">types</span><span class="o">=</span><span class="n">types</span><span class="p">,</span>
+            <span class="n">include_private</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">es_may_use_private_search</span><span class="p">(</span><span class="n">request</span><span class="p">),</span>
+            <span class="n">explain</span><span class="o">=</span><span class="n">explain</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ElasticsearchApp.es_suggestions"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.ElasticsearchApp.es_suggestions">[docs]</a>    <span class="k">def</span> <span class="nf">es_suggestions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span>
+                       <span class="n">include_private</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns suggestions for the given query. &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">query</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">include_private</span><span class="p">:</span>
+            <span class="n">context</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;public&#39;</span><span class="p">,</span> <span class="s1">&#39;private&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">context</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;public&#39;</span><span class="p">]</span>
+
+        <span class="n">search</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">es_search</span><span class="p">(</span>
+            <span class="n">languages</span><span class="o">=</span><span class="n">languages</span><span class="p">,</span>
+            <span class="n">types</span><span class="o">=</span><span class="n">types</span><span class="p">,</span>
+            <span class="n">include_private</span><span class="o">=</span><span class="n">include_private</span>
+        <span class="p">)</span>
+
+        <span class="n">search</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">suggest</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;es_suggestion&#39;</span><span class="p">,</span>
+            <span class="n">text</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+            <span class="n">completion</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;field&#39;</span><span class="p">:</span> <span class="s1">&#39;es_suggestion&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;contexts&#39;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s1">&#39;es_suggestion_context&#39;</span><span class="p">:</span> <span class="n">context</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute_suggest</span><span class="p">()</span>
+
+        <span class="n">suggestions</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">suggestion</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s1">&#39;es_suggestion&#39;</span><span class="p">,</span> <span class="p">[]):</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">suggestion</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">]:</span>
+                <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">suggestions</span></div>
+
+<div class="viewcode-block" id="ElasticsearchApp.es_suggestions_by_request"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.ElasticsearchApp.es_suggestions_by_request">[docs]</a>    <span class="k">def</span> <span class="nf">es_suggestions_by_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns suggestions for the given query, scoped to the language</span>
+<span class="sd">        and the login status of the given requst.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">es_suggestions</span><span class="p">(</span>
+            <span class="n">query</span><span class="p">,</span>
+            <span class="n">languages</span><span class="o">=</span><span class="p">[</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]],</span>
+            <span class="n">types</span><span class="o">=</span><span class="n">types</span><span class="p">,</span>
+            <span class="n">include_private</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">es_may_use_private_search</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ElasticsearchApp.es_may_use_private_search"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.ElasticsearchApp.es_may_use_private_search">[docs]</a>    <span class="k">def</span> <span class="nf">es_may_use_private_search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns True if the given request is allowed to access private</span>
+<span class="sd">        search results. By default every logged in user has access to those.</span>
+
+<span class="sd">        This method may be overwritten if this is not desired.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">is_logged_in</span></div></div>
+
+
+<span class="nd">@ElasticsearchApp</span><span class="o">.</span><span class="n">tween_factory</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="n">transaction_tween_factory</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">process_indexer_tween_factory</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">process_indexer_tween</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">es_client</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">handler</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">handler</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">es_indexer</span><span class="o">.</span><span class="n">process</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">return</span> <span class="n">process_indexer_tween</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

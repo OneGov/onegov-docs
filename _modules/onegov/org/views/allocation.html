@@ -1,0 +1,308 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.org.views.allocation &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.org.views.allocation</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">morepath</span>
+
+<span class="kn">from</span> <span class="nn">libres.modules.errors</span> <span class="k">import</span> <span class="n">LibresError</span>
+<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span><span class="p">,</span> <span class="n">Private</span>
+<span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Allocation</span><span class="p">,</span> <span class="n">Resource</span><span class="p">,</span> <span class="n">ResourceCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">OrgApp</span><span class="p">,</span> <span class="n">utils</span><span class="p">,</span> <span class="n">_</span>
+<span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">Link</span>
+<span class="kn">from</span> <span class="nn">onegov.org.forms</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">DaypassAllocationForm</span><span class="p">,</span>
+    <span class="n">DaypassAllocationEditForm</span><span class="p">,</span>
+    <span class="n">RoomAllocationForm</span><span class="p">,</span>
+    <span class="n">RoomAllocationEditForm</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">ResourceLayout</span><span class="p">,</span> <span class="n">AllocationEditFormLayout</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">defer</span><span class="p">,</span> <span class="n">defaultload</span>
+<span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
+
+
+<div class="viewcode-block" id="view_allocations_json"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.view_allocations_json">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;slots&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_allocations_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns the allocations in a fullcalendar compatible events feed.</span>
+
+<span class="sd">    See `&lt;http://fullcalendar.io/docs/event_data/events_json_feed/&gt;`_ for</span>
+<span class="sd">    more information.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">parse_fullcalendar_request</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">start</span> <span class="ow">and</span> <span class="n">end</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">()</span>
+
+    <span class="c1"># get all allocations (including mirrors), for the availability calculation</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">allocations_in_range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">masters_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Allocation</span><span class="o">.</span><span class="n">_start</span><span class="p">)</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">defer</span><span class="p">(</span><span class="n">Allocation</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">defer</span><span class="p">(</span><span class="n">Allocation</span><span class="o">.</span><span class="n">group</span><span class="p">))</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">options</span><span class="p">(</span>
+        <span class="n">defaultload</span><span class="p">(</span><span class="s1">&#39;reserved_slots&#39;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">defer</span><span class="p">(</span><span class="s1">&#39;reservation_token&#39;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">defer</span><span class="p">(</span><span class="s1">&#39;allocation_id&#39;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">defer</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">))</span>
+
+    <span class="n">allocations</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="c1"># but only return the master allocations</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
+        <span class="n">e</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">utils</span><span class="o">.</span><span class="n">AllocationEventInfo</span><span class="o">.</span><span class="n">from_allocations</span><span class="p">(</span>
+            <span class="n">request</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="p">,</span> <span class="n">allocations</span>
+        <span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_new_allocation_form_class"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.get_new_allocation_form_class">[docs]</a><span class="k">def</span> <span class="nf">get_new_allocation_form_class</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns the form class for new allocations (different resources have</span>
+<span class="sd">    different allocation forms).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">resource</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;daypass&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">DaypassAllocationForm</span>
+
+    <span class="k">if</span> <span class="n">resource</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;room&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">RoomAllocationForm</span>
+
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="get_edit_allocation_form_class"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.get_edit_allocation_form_class">[docs]</a><span class="k">def</span> <span class="nf">get_edit_allocation_form_class</span><span class="p">(</span><span class="n">allocation</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns the form class for existing allocations (different resources</span>
+<span class="sd">    have different allocation forms).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">resource</span> <span class="o">=</span> <span class="n">ResourceCollection</span><span class="p">(</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">libres_context</span><span class="p">)</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">allocation</span><span class="o">.</span><span class="n">resource</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">resource</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;daypass&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">DaypassAllocationEditForm</span>
+
+    <span class="k">if</span> <span class="n">resource</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;room&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">RoomAllocationEditForm</span>
+
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="handle_new_allocation"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.handle_new_allocation">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;form.pt&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;neue-einteilung&#39;</span><span class="p">,</span>
+             <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">get_new_allocation_form_class</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_new_allocation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Handles new allocations for differing form classes. &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">allocations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">allocate</span><span class="p">(</span>
+                <span class="n">dates</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">dates</span><span class="p">,</span>
+                <span class="n">whole_day</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">whole_day</span><span class="p">,</span>
+                <span class="n">quota</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">quota</span><span class="p">,</span>
+                <span class="n">quota_limit</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">quota_limit</span><span class="p">,</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                <span class="n">partly_available</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">partly_available</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="n">LibresError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">show_libres_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Successfully added $</span><span class="si">{n}</span><span class="s2"> allocations&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;n&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">allocations</span><span class="p">)</span>
+            <span class="p">}))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">highlight_allocations</span><span class="p">(</span><span class="n">allocations</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">:</span>
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">parse_fullcalendar_request</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+        <span class="n">whole_day</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;whole_day&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span>
+
+        <span class="k">if</span> <span class="n">start</span> <span class="ow">and</span> <span class="n">end</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">whole_day</span><span class="p">:</span>
+                <span class="n">form</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">start</span>
+                <span class="n">form</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">end</span>
+
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="s1">&#39;as_whole_day&#39;</span><span class="p">):</span>
+                    <span class="n">form</span><span class="o">.</span><span class="n">as_whole_day</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;yes&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">form</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">start</span>
+                <span class="n">form</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">end</span>
+
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="s1">&#39;as_whole_day&#39;</span><span class="p">):</span>
+                    <span class="n">form</span><span class="o">.</span><span class="n">as_whole_day</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;no&#39;</span>
+
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="s1">&#39;start_time&#39;</span><span class="p">):</span>
+                    <span class="n">form</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">start</span>
+                    <span class="n">form</span><span class="o">.</span><span class="n">end_time</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">end</span>
+
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ResourceLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="n">layout</span><span class="o">.</span><span class="n">breadcrumbs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;New allocation&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">))</span>
+    <span class="n">layout</span><span class="o">.</span><span class="n">editbar_links</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;New allocation&quot;</span><span class="p">),</span>
+        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="handle_edit_allocation"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.handle_edit_allocation">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Allocation</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;form.pt&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;bearbeiten&#39;</span><span class="p">,</span>
+             <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">get_edit_allocation_form_class</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_edit_allocation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Handles edit allocation for differing form classes. &quot;&quot;&quot;</span>
+
+    <span class="n">resources</span> <span class="o">=</span> <span class="n">ResourceCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">libres_context</span><span class="p">)</span>
+    <span class="n">resource</span> <span class="o">=</span> <span class="n">resources</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resource</span><span class="p">)</span>
+
+    <span class="c1"># this is a bit of a hack to keep the current view when a user drags an</span>
+    <span class="c1"># allocation around, which opens this form and later leads back to the</span>
+    <span class="c1"># calendar - if the user does this on the day view we want to return to</span>
+    <span class="c1"># the same day view after the process</span>
+    <span class="c1"># therefore we set the view on the resource (where this is okay) and on</span>
+    <span class="c1"># the form action (where it&#39;s a bit of a hack), to ensure that the view</span>
+    <span class="c1"># parameter is around for the whole time</span>
+    <span class="k">if</span> <span class="s1">&#39;view&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="p">:</span>
+        <span class="n">resource</span><span class="o">.</span><span class="n">view</span> <span class="o">=</span> <span class="n">view</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;view&#39;</span><span class="p">]</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">action</span> <span class="o">=</span> <span class="n">URL</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">action</span><span class="p">)</span><span class="o">.</span><span class="n">query_param</span><span class="p">(</span><span class="s1">&#39;view&#39;</span><span class="p">,</span> <span class="n">view</span><span class="p">)</span><span class="o">.</span><span class="n">as_string</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="n">new_start</span><span class="p">,</span> <span class="n">new_end</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">dates</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">resource</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">move_allocation</span><span class="p">(</span>
+                <span class="n">master_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">new_start</span><span class="o">=</span><span class="n">new_start</span><span class="p">,</span>
+                <span class="n">new_end</span><span class="o">=</span><span class="n">new_end</span><span class="p">,</span>
+                <span class="n">new_quota</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">quota</span><span class="p">,</span>
+                <span class="n">quota_limit</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">quota_limit</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="n">LibresError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">show_libres_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your changes were saved&quot;</span><span class="p">))</span>
+            <span class="n">resource</span><span class="o">.</span><span class="n">highlight_allocations</span><span class="p">([</span><span class="bp">self</span><span class="p">])</span>
+
+            <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">resource</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">:</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">apply_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">parse_fullcalendar_request</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="ow">and</span> <span class="n">end</span><span class="p">:</span>
+            <span class="n">form</span><span class="o">.</span><span class="n">apply_dates</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">AllocationEditFormLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">),</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit allocation&quot;</span><span class="p">),</span>
+        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="handle_delete_allocation"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.handle_delete_allocation">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Allocation</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_delete_allocation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Deletes the given resource (throwing an error if there are existing</span>
+<span class="sd">    reservations associated with it).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
+
+    <span class="n">resource</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">libres_resources</span><span class="o">.</span><span class="n">by_allocation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    <span class="n">resource</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">remove_allocation</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+    <span class="k">def</span> <span class="nf">trigger_calendar_update</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;rc-allocations-changed&#39;</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

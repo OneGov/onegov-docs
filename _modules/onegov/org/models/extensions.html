@@ -1,0 +1,476 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.org.models.extensions &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.org.models.extensions</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span><span class="p">,</span> <span class="n">content_property</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">linkify</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FieldDependency</span><span class="p">,</span> <span class="n">WTFormsClassBuilder</span>
+<span class="kn">from</span> <span class="nn">onegov.gis</span> <span class="k">import</span> <span class="n">CoordinatesField</span>
+<span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
+<span class="kn">from</span> <span class="nn">onegov.people</span> <span class="k">import</span> <span class="n">Person</span><span class="p">,</span> <span class="n">PersonCollection</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
+<span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">BooleanField</span><span class="p">,</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">TextAreaField</span>
+
+
+<div class="viewcode-block" id="ContentExtension"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.extensions.ContentExtension">[docs]</a><span class="k">class</span> <span class="nc">ContentExtension</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends classes based on :class:`onegov.core.orm.mixins.ContentMixin`</span>
+<span class="sd">    with custom data that is stored in either &#39;meta&#39; or &#39;content&#39;.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">content_extensions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns all base classes of the current class which themselves have</span>
+<span class="sd">        ``ContentExtension`` as baseclass.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__bases__</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ContentExtension</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__bases__</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="bp">cls</span>
+
+<div class="viewcode-block" id="ContentExtension.with_content_extensions"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.extensions.ContentExtension.with_content_extensions">[docs]</a>    <span class="k">def</span> <span class="nf">with_content_extensions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form_class</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">extensions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Takes the given form and request and extends the form with</span>
+<span class="sd">        all content extensions in the order in which they occur in the base</span>
+<span class="sd">        class list.</span>
+
+<span class="sd">        In other words, extends the forms with all used extension-fields.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">extension</span> <span class="ow">in</span> <span class="n">extensions</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">content_extensions</span><span class="p">:</span>
+            <span class="n">form_class</span> <span class="o">=</span> <span class="n">extension</span><span class="o">.</span><span class="n">extend_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form_class</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">form_class</span></div>
+
+<div class="viewcode-block" id="ContentExtension.extend_form"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.extensions.ContentExtension.extend_form">[docs]</a>    <span class="k">def</span> <span class="nf">extend_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form_class</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Must be implemented by each ContentExtension. Takes the form</span>
+<span class="sd">        class without extension and adds the required fields to it.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+
+<div class="viewcode-block" id="HiddenFromPublicExtension"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.extensions.HiddenFromPublicExtension">[docs]</a><span class="k">class</span> <span class="nc">HiddenFromPublicExtension</span><span class="p">(</span><span class="n">ContentExtension</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends any class that has a meta dictionary field with the ability to</span>
+<span class="sd">    hide it from the public.</span>
+
+<span class="sd">    see :func:`onegov.core.security.rules.has_permission_not_logged_in`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">is_hidden_from_public</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;is_hidden_from_public&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">extend_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form_class</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+        <span class="k">class</span> <span class="nc">HiddenPageForm</span><span class="p">(</span><span class="n">form_class</span><span class="p">):</span>
+            <span class="n">is_hidden_from_public</span> <span class="o">=</span> <span class="n">BooleanField</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Hide from the public&quot;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">HiddenPageForm</span></div>
+
+
+<div class="viewcode-block" id="CoordinatesExtension"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.extensions.CoordinatesExtension">[docs]</a><span class="k">class</span> <span class="nc">CoordinatesExtension</span><span class="p">(</span><span class="n">ContentExtension</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends any class that has a data dictionary field with the ability</span>
+<span class="sd">    to add coordinates to it.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">coordinates</span> <span class="o">=</span> <span class="n">content_property</span><span class="p">(</span><span class="s1">&#39;coordinates&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lat&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lon&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lat&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lon</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lon&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">zoom</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;zoom&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">extend_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form_class</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+        <span class="k">class</span> <span class="nc">CoordinatesForm</span><span class="p">(</span><span class="n">form_class</span><span class="p">):</span>
+            <span class="n">coordinates</span> <span class="o">=</span> <span class="n">CoordinatesField</span><span class="p">(</span>
+                <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Coordinates&quot;</span><span class="p">),</span>
+                <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span>
+                    <span class="s2">&quot;The marker can be moved by dragging it with the mouse&quot;</span>
+                <span class="p">),</span>
+                <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Map&quot;</span><span class="p">),</span>
+                <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;data-map-type&#39;</span><span class="p">:</span> <span class="s1">&#39;marker&#39;</span><span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">CoordinatesForm</span></div>
+
+
+<div class="viewcode-block" id="VisibleOnHomepageExtension"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.extensions.VisibleOnHomepageExtension">[docs]</a><span class="k">class</span> <span class="nc">VisibleOnHomepageExtension</span><span class="p">(</span><span class="n">ContentExtension</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends any class that has a meta dictionary field with the ability to</span>
+<span class="sd">    a boolean indicating if the page should be shown on the homepage or not.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">is_visible_on_homepage</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;is_visible_on_homepage&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">extend_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form_class</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+        <span class="c1"># do not show on root pages</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">form_class</span>
+
+        <span class="k">class</span> <span class="nc">VisibleOnHomepageForm</span><span class="p">(</span><span class="n">form_class</span><span class="p">):</span>
+            <span class="c1"># pass label by keyword to give the News model access</span>
+            <span class="n">is_visible_on_homepage</span> <span class="o">=</span> <span class="n">BooleanField</span><span class="p">(</span>
+                <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Visible on homepage&quot;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">VisibleOnHomepageForm</span></div>
+
+
+<div class="viewcode-block" id="ContactExtension"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.extensions.ContactExtension">[docs]</a><span class="k">class</span> <span class="nc">ContactExtension</span><span class="p">(</span><span class="n">ContentExtension</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends any class that has a content dictionary field with a simple</span>
+<span class="sd">    contacts field.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">contact</span> <span class="o">=</span> <span class="n">content_property</span><span class="p">(</span><span class="s1">&#39;contact&#39;</span><span class="p">)</span>
+
+    <span class="nd">@contact</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">contact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;contact&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;contact_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&lt;ul&gt;&lt;li&gt;</span><span class="si">{}</span><span class="s1">&lt;/li&gt;&lt;/ul&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s1">&#39;&lt;/li&gt;&lt;li&gt;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">linkify</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">())</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;contact_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">contact_html</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;contact_html&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">extend_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form_class</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+        <span class="k">class</span> <span class="nc">ContactPageForm</span><span class="p">(</span><span class="n">form_class</span><span class="p">):</span>
+            <span class="n">contact</span> <span class="o">=</span> <span class="n">TextAreaField</span><span class="p">(</span>
+                <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Address&quot;</span><span class="p">),</span>
+                <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Contact&quot;</span><span class="p">),</span>
+                <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ContactPageForm</span></div>
+
+
+<div class="viewcode-block" id="PersonLinkExtension"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.extensions.PersonLinkExtension">[docs]</a><span class="k">class</span> <span class="nc">PersonLinkExtension</span><span class="p">(</span><span class="n">ContentExtension</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends any class that has a content dictionary field with the ability</span>
+<span class="sd">    to reference people from :class:`onegov.people.PersonCollection`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">people</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the people linked to this content or None.</span>
+
+<span class="sd">        The context specific function is temporarily stored on the</span>
+<span class="sd">        ``context_specific_function`` attribute on each object in the</span>
+<span class="sd">        resulting list.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;people&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">people</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;people&#39;</span><span class="p">])</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="n">PersonCollection</span><span class="p">(</span><span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Person</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">people</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">person</span><span class="o">.</span><span class="n">context_specific_function</span> <span class="o">=</span> <span class="n">people</span><span class="p">[</span><span class="n">person</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="p">]</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">person</span><span class="p">)</span>
+
+        <span class="n">order</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">people</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+<div class="viewcode-block" id="PersonLinkExtension.get_selectable_people"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.extensions.PersonLinkExtension.get_selectable_people">[docs]</a>    <span class="k">def</span> <span class="nf">get_selectable_people</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a list of people which may be linked. &quot;&quot;&quot;</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="n">PersonCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Person</span><span class="o">.</span><span class="n">last_name</span><span class="p">,</span> <span class="n">Person</span><span class="o">.</span><span class="n">first_name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">get_person_function_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">_id</span><span class="p">,</span> <span class="n">function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;people&#39;</span><span class="p">,</span> <span class="p">[]):</span>
+            <span class="k">if</span> <span class="nb">id</span> <span class="o">==</span> <span class="n">_id</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">function</span>
+
+<div class="viewcode-block" id="PersonLinkExtension.move_person"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.extensions.PersonLinkExtension.move_person">[docs]</a>    <span class="k">def</span> <span class="nf">move_person</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">direction</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Moves the subject below or above the target.</span>
+
+<span class="sd">        :subject:</span>
+<span class="sd">            The key of the person to be moved.</span>
+
+<span class="sd">        :target:</span>
+<span class="sd">            The key of the person above or below which the subject is moved.</span>
+
+<span class="sd">        :direction:</span>
+<span class="sd">            The direction relative to the target. Either &#39;above&#39; or &#39;below&#39;.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">direction</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;above&#39;</span><span class="p">,</span> <span class="s1">&#39;below&#39;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">subject</span> <span class="o">!=</span> <span class="n">target</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;people&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">new_order</span><span class="p">():</span>
+            <span class="n">subject_function</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_person_function_by_id</span><span class="p">(</span><span class="n">subject</span><span class="p">)</span>
+            <span class="n">target_function</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_person_function_by_id</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">person</span><span class="p">,</span> <span class="n">function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;people&#39;</span><span class="p">]:</span>
+
+                <span class="k">if</span> <span class="n">person</span> <span class="o">==</span> <span class="n">subject</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">person</span> <span class="o">==</span> <span class="n">target</span> <span class="ow">and</span> <span class="n">direction</span> <span class="o">==</span> <span class="s1">&#39;above&#39;</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">subject</span><span class="p">,</span> <span class="n">subject_function</span>
+                    <span class="k">yield</span> <span class="n">target</span><span class="p">,</span> <span class="n">target_function</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">person</span> <span class="o">==</span> <span class="n">target</span> <span class="ow">and</span> <span class="n">direction</span> <span class="o">==</span> <span class="s1">&#39;below&#39;</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">target</span><span class="p">,</span> <span class="n">target_function</span>
+                    <span class="k">yield</span> <span class="n">subject</span><span class="p">,</span> <span class="n">subject_function</span>
+                    <span class="k">continue</span>
+
+                <span class="k">yield</span> <span class="n">person</span><span class="p">,</span> <span class="n">function</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;people&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">new_order</span><span class="p">())</span></div>
+
+    <span class="k">def</span> <span class="nf">extend_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form_class</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+        <span class="c1"># XXX this is kind of implicitly set by the builder</span>
+        <span class="n">fieldset_id</span> <span class="o">=</span> <span class="s1">&#39;people&#39;</span>
+        <span class="n">fieldset_label</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;People&quot;</span><span class="p">)</span>
+
+        <span class="k">class</span> <span class="nc">PeoplePageForm</span><span class="p">(</span><span class="n">form_class</span><span class="p">):</span>
+
+            <span class="k">def</span> <span class="nf">get_people_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">with_function</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">field_id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">fieldset_id</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">with_function</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">field_id</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;_function&#39;</span><span class="p">):</span>
+                            <span class="k">yield</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">field</span>
+
+            <span class="k">def</span> <span class="nf">get_people_and_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selected_only</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_people_fields</span><span class="p">(</span><span class="n">with_function</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">selected_only</span> <span class="ow">or</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                        <span class="n">person_id</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span>
+                        <span class="n">function</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="p">[</span><span class="n">field_id</span> <span class="o">+</span> <span class="s1">&#39;_function&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+
+                        <span class="k">yield</span> <span class="n">person_id</span><span class="p">,</span> <span class="n">function</span>
+
+            <span class="k">def</span> <span class="nf">is_ordered_people</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">existing_people</span><span class="p">):</span>
+                <span class="sd">&quot;&quot;&quot; Returns True if the current list of people is ordered</span>
+<span class="sd">                from A to Z.</span>
+
+<span class="sd">                &quot;&quot;&quot;</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">existing_people</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+
+                <span class="n">ordered_people</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_people_and_function</span><span class="p">(</span>
+                    <span class="n">selected_only</span><span class="o">=</span><span class="kc">False</span>
+                <span class="p">))</span>
+
+                <span class="n">existing_people</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">key</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">existing_people</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">ordered_people</span>
+                <span class="p">]</span>
+
+                <span class="n">sorted_existing_people</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+                    <span class="n">existing_people</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">ordered_people</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+                <span class="k">return</span> <span class="n">existing_people</span> <span class="o">==</span> <span class="n">sorted_existing_people</span>
+
+            <span class="k">def</span> <span class="nf">populate_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="c1"># XXX this no longer be necessary once the person links</span>
+                <span class="c1"># have been turned into a field, see #74</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">populate_obj</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_model</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">process_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+                <span class="c1"># XXX this no longer be necessary once the person links</span>
+                <span class="c1"># have been turned into a field, see #74</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">process_obj</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">apply_model</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">update_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+                <span class="n">previous_people</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;people&#39;</span><span class="p">,</span> <span class="p">[])</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_ordered_people</span><span class="p">(</span><span class="n">previous_people</span><span class="p">):</span>
+                    <span class="c1"># if the people are ordered a-z, we take the ordering from</span>
+                    <span class="c1"># get_people_and_function, which comes by A-Z already</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;people&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">get_people_and_function</span><span class="p">()</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># if the people are not ordered we keep the order of the</span>
+                    <span class="c1"># existing list and add the new people at the end</span>
+                    <span class="n">existing</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+                    <span class="n">selected</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="n">key</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">function</span>
+                        <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_people_and_function</span><span class="p">()</span>
+                    <span class="p">}</span>
+
+                    <span class="n">old_people</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+                    <span class="n">new_people</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+                    <span class="k">for</span> <span class="nb">id</span><span class="p">,</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">previous_people</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">selected</span><span class="p">:</span>
+                            <span class="n">old_people</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="nb">id</span><span class="p">,</span> <span class="n">function</span><span class="p">))</span>
+                            <span class="n">existing</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+
+                    <span class="k">for</span> <span class="nb">id</span><span class="p">,</span> <span class="n">function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_people_and_function</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="nb">id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">existing</span><span class="p">:</span>
+                            <span class="n">new_people</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="nb">id</span><span class="p">,</span> <span class="n">function</span><span class="p">))</span>
+
+                    <span class="n">model</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;people&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">old_people</span> <span class="o">+</span> <span class="n">new_people</span>
+
+            <span class="k">def</span> <span class="nf">apply_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+                <span class="n">fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_people_fields</span><span class="p">(</span><span class="n">with_function</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="n">people</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;people&#39;</span><span class="p">,</span> <span class="p">[]))</span>
+
+                <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span> <span class="ow">in</span> <span class="n">people</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="p">[</span><span class="n">field_id</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="p">[</span><span class="n">field_id</span> <span class="o">+</span> <span class="s1">&#39;_function&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>\
+                            <span class="o">=</span> <span class="n">people</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="p">]</span>
+
+        <span class="n">builder</span> <span class="o">=</span> <span class="n">WTFormsClassBuilder</span><span class="p">(</span><span class="n">PeoplePageForm</span><span class="p">)</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">set_current_fieldset</span><span class="p">(</span><span class="n">fieldset_label</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">person</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_selectable_people</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+            <span class="n">field_id</span> <span class="o">=</span> <span class="n">fieldset_id</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">person</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span>
+
+            <span class="n">builder</span><span class="o">.</span><span class="n">add_field</span><span class="p">(</span>
+                <span class="n">field_class</span><span class="o">=</span><span class="n">BooleanField</span><span class="p">,</span>
+                <span class="n">field_id</span><span class="o">=</span><span class="n">field_id</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+                <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="nb">id</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">builder</span><span class="o">.</span><span class="n">add_field</span><span class="p">(</span>
+                <span class="n">field_class</span><span class="o">=</span><span class="n">StringField</span><span class="p">,</span>
+                <span class="n">field_id</span><span class="o">=</span><span class="n">field_id</span> <span class="o">+</span> <span class="s1">&#39;_function&#39;</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Function&quot;</span><span class="p">)),</span>
+                <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">dependency</span><span class="o">=</span><span class="n">FieldDependency</span><span class="p">(</span><span class="n">field_id</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">builder</span><span class="o">.</span><span class="n">form_class</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

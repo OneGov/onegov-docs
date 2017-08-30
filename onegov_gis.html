@@ -1,0 +1,191 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>OneGov GIS API &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="onegov-gis-api">
+<h1>OneGov GIS API<a class="headerlink" href="#onegov-gis-api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-onegov.gis.models">
+<span id="models"></span><h2>Models<a class="headerlink" href="#module-onegov.gis.models" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.gis.models.Coordinates">
+<em class="property">class </em><code class="descclassname">onegov.gis.models.</code><code class="descname">Coordinates</code><span class="sig-paren">(</span><em>lat=None</em>, <em>lon=None</em>, <em>zoom=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/gis/models/coordinates.html#Coordinates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.gis.models.Coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a pair of coordinates.</p>
+<p>May contain zoom factor and other information like marker icon and
+color. Note that only latitude and longitude really matter, the rest
+may or may not be used.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.gis.models.CoordinatesMixin">
+<em class="property">class </em><code class="descclassname">onegov.gis.models.</code><code class="descname">CoordinatesMixin</code><a class="reference internal" href="_modules/onegov/gis/models/coordinates.html#CoordinatesMixin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.gis.models.CoordinatesMixin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extends any class that has a content dictionary field with a single
+coordinates pair.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.gis.forms">
+<span id="forms"></span><h2>Forms<a class="headerlink" href="#module-onegov.gis.forms" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.gis.forms.CoordinatesField">
+<em class="property">class </em><code class="descclassname">onegov.gis.forms.</code><code class="descname">CoordinatesField</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/gis/forms/fields.html#CoordinatesField"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.gis.forms.CoordinatesField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a single pair of coordinates with optional zoom and
+marker icon/color selection.</p>
+<p>In the browser and during transit the point is stored as a base64 encoded
+json string on a simple input field. For example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">eydsYXQnOiA4LjMwNTc2ODY5MTczODc5LCAnbG</span><span class="o">..</span> <span class="p">(</span><span class="ow">and</span> <span class="n">so</span> <span class="n">on</span><span class="p">)</span>
+
+<span class="o">=&gt;</span>
+
+<span class="p">{</span><span class="s1">&#39;lon&#39;</span><span class="p">:</span> <span class="mf">8.30576869173879</span><span class="p">,</span> <span class="s1">&#39;lat&#39;</span><span class="p">:</span> <span class="mf">47.05183585</span><span class="p">,</span> <span class="s1">&#39;zoom&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>For verification: This points to the Seantis office in Lucerne.</p>
+<p>For convenience, the coordinates are accessible with the
+<code class="xref py py-class docutils literal"><span class="pre">onegov.gis.models.coordinates.Coordinates</span></code> class when ‘data’ is
+used.</p>
+<p>Note that this field doesn’t work with the <code class="docutils literal"><span class="pre">InputRequired</span></code> validator.
+Instead the <code class="docutils literal"><span class="pre">DataRequired</span></code> validator has to be chosen.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.gis.forms.CoordinatesWidget">
+<em class="property">class </em><code class="descclassname">onegov.gis.forms.</code><code class="descname">CoordinatesWidget</code><span class="sig-paren">(</span><em>input_type=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/gis/forms/widgets.html#CoordinatesWidget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.gis.forms.CoordinatesWidget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Widget holding and showing the data behind the
+<code class="xref py py-class docutils literal"><span class="pre">onegov.gis.forms.fields.CoordinatesField</span></code> class.</p>
+<p>Basically a textfield that stores json. Meant to be enhanced on the browser
+using javascript.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.gis.integration">
+<span id="integration"></span><h2>Integration<a class="headerlink" href="#module-onegov.gis.integration" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.gis.integration.MapboxApp">
+<em class="property">class </em><code class="descclassname">onegov.gis.integration.</code><code class="descname">MapboxApp</code><a class="reference internal" href="_modules/onegov/gis/integration.html#MapboxApp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.gis.integration.MapboxApp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides mapbox integration
+<a class="reference internal" href="onegov_core.html#onegov.core.framework.Framework" title="onegov.core.framework.Framework"><code class="xref py py-class docutils literal"><span class="pre">onegov.core.framework.Framework</span></code></a> based applications.</p>
+<p>Doesn’t do much except serve the mapbox public token, so we can store it
+in configuration and not with the source. Not that this token is inherently
+unsafe and must be the <em>public</em> token.</p>
+<p>Do not use private tokens!</p>
+<p>If we wanted to avoid this we would have to use a mapbox proxy server,
+which seems a bit too much. If we detect abuse of the public token we
+just switch to a new one. If it must be we can even automatically rotate
+the token regularly.</p>
+<dl class="method">
+<dt id="onegov.gis.integration.MapboxApp.configure_mapbox">
+<code class="descname">configure_mapbox</code><span class="sig-paren">(</span><em>**cfg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/gis/integration.html#MapboxApp.configure_mapbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.gis.integration.MapboxApp.configure_mapbox" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configures the mapbox.</p>
+<p>The following configuration options are accepted:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Mapbox_token:</th><td class="field-body">The public mapbox token to be used for the mapbox api.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/onegov_gis.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

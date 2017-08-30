@@ -1,0 +1,290 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.search.dsl &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.search.dsl</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">elasticsearch_dsl</span> <span class="k">import</span> <span class="n">Search</span> <span class="k">as</span> <span class="n">BaseSearch</span>
+<span class="kn">from</span> <span class="nn">elasticsearch_dsl.response</span> <span class="k">import</span> <span class="n">Hit</span> <span class="k">as</span> <span class="n">BaseHit</span>
+<span class="kn">from</span> <span class="nn">elasticsearch_dsl.response</span> <span class="k">import</span> <span class="n">Response</span> <span class="k">as</span> <span class="n">BaseResponse</span>
+
+
+<div class="viewcode-block" id="Search"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.dsl.Search">[docs]</a><span class="k">class</span> <span class="nc">Search</span><span class="p">(</span><span class="n">BaseSearch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends elastichsearch_dsl&#39;s search object with ORM integration.</span>
+
+<span class="sd">    Works exactly the same as the original, but the results it returns offer</span>
+<span class="sd">    additional methods to query the SQLAlchemy models behind the results (if</span>
+<span class="sd">    any).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="c1"># get the session and mapping if possilbe (not provided during cloning)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;session&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mappings</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;mappings&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_doc_type_map</span>
+
+        <span class="c1"># use the mappings to build the doc type map which elasticsearch_dsl</span>
+        <span class="c1"># uses for their own models - since we don&#39;t use them, we can hijack</span>
+        <span class="c1"># that map. When cloning, this map will be cloned as well.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mappings</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">mapping</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mappings</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">mapping</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">mapping</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_doc_type_map</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_doc_type_map</span><span class="p">[</span><span class="n">mapping</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Hit</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+                        <span class="n">mapping</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># bind responses to the orm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_response_class</span> <span class="o">=</span> <span class="n">Response</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mappings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">explain</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">explain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;explain&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_clone</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">search</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_clone</span><span class="p">()</span>
+        <span class="n">search</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span>
+        <span class="n">search</span><span class="o">.</span><span class="n">mappings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mappings</span>
+
+        <span class="k">return</span> <span class="n">search</span></div>
+
+
+<div class="viewcode-block" id="Response"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.dsl.Response">[docs]</a><span class="k">class</span> <span class="nc">Response</span><span class="p">(</span><span class="n">BaseResponse</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends the default response (list of results) with additional</span>
+<span class="sd">    methods to query the SQLAlchemy models behind the results.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">bind</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">mappings</span><span class="p">,</span> <span class="n">explain</span><span class="p">):</span>
+
+        <span class="k">class</span> <span class="nc">BoundResponse</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+        <span class="n">BoundResponse</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">session</span>
+        <span class="n">BoundResponse</span><span class="o">.</span><span class="n">mappings</span> <span class="o">=</span> <span class="n">mappings</span>
+        <span class="n">BoundResponse</span><span class="o">.</span><span class="n">explain</span> <span class="o">=</span> <span class="n">explain</span>
+
+        <span class="k">return</span> <span class="n">BoundResponse</span>
+
+    <span class="k">def</span> <span class="nf">hits_by_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hits</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">hit</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">doc_type</span> <span class="o">==</span> <span class="nb">type</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">hit</span>
+
+<div class="viewcode-block" id="Response.query"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.dsl.Response.query">[docs]</a>    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns an SQLAlchemy query for the given type. You must provide</span>
+<span class="sd">        a type, because a query can&#39;t consist of multiple unrelated tables.</span>
+
+<span class="sd">        If no results match the type, None is returned.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hits</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hits_by_type</span><span class="p">(</span><span class="nb">type</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">hits</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mappings</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span><span class="o">.</span><span class="n">model</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+        <span class="n">model_ids</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">es_id</span><span class="p">)</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">model_ids</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">query</span></div>
+
+<div class="viewcode-block" id="Response.load"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.dsl.Response.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Loads all results by querying the SQLAlchemy session in the order</span>
+<span class="sd">        they were returned by elasticsearch.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">positions</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="c1"># put the types into buckets and store the original position...</span>
+        <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">hit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hits</span><span class="p">):</span>
+            <span class="nb">type</span> <span class="o">=</span> <span class="n">hit</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">doc_type</span>
+            <span class="n">positions</span><span class="p">[(</span><span class="nb">type</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">hit</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">id</span><span class="p">))]</span> <span class="o">=</span> <span class="n">ix</span>
+            <span class="n">types</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">type</span><span class="p">)</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+
+        <span class="c1"># ...so we can query the database once per type and not once per result</span>
+        <span class="c1"># this has the potential of resulting in fewer queries</span>
+        <span class="k">for</span> <span class="nb">type</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="nb">type</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="n">object_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">es_id</span><span class="p">))</span>
+                <span class="n">ix</span> <span class="o">=</span> <span class="n">positions</span><span class="p">[(</span><span class="nb">type</span><span class="p">,</span> <span class="n">object_id</span><span class="p">)]</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">explain</span><span class="p">:</span>
+
+                    <span class="n">ex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hits</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">explanation</span>
+
+                    <span class="n">result</span><span class="o">.</span><span class="n">explanation</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;raw&#39;</span><span class="p">:</span> <span class="n">ex</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span>
+                        <span class="s1">&#39;score&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">hits</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">score</span><span class="p">,</span>
+                        <span class="s1">&#39;term-frequency&#39;</span><span class="p">:</span> <span class="n">explanation_value</span><span class="p">(</span>
+                            <span class="n">ex</span><span class="p">,</span> <span class="s1">&#39;termFreq&#39;</span>
+                        <span class="p">),</span>
+                        <span class="s1">&#39;inverse-document-frequency&#39;</span><span class="p">:</span> <span class="n">explanation_value</span><span class="p">(</span>
+                            <span class="n">ex</span><span class="p">,</span> <span class="s1">&#39;idf&#39;</span>
+                        <span class="p">),</span>
+                        <span class="s1">&#39;field-norm&#39;</span><span class="p">:</span> <span class="n">explanation_value</span><span class="p">(</span>
+                            <span class="n">ex</span><span class="p">,</span> <span class="s1">&#39;fieldNorm&#39;</span>
+                        <span class="p">)</span>
+                    <span class="p">}</span>
+
+                <span class="n">results</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+
+        <span class="k">return</span> <span class="n">results</span></div></div>
+
+
+<div class="viewcode-block" id="explanation_value"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.dsl.explanation_value">[docs]</a><span class="k">def</span> <span class="nf">explanation_value</span><span class="p">(</span><span class="n">explanation</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Gets the value from the explanation for descriptions starting with</span>
+<span class="sd">    the given text.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">explanation</span><span class="o">.</span><span class="n">description</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;description&#39;</span><span class="p">:</span> <span class="n">explanation</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+            <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">explanation</span><span class="o">.</span><span class="n">value</span>
+        <span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">detail</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">explanation</span><span class="p">,</span> <span class="s1">&#39;details&#39;</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">explanation_value</span><span class="p">(</span><span class="n">detail</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="Hit"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.dsl.Hit">[docs]</a><span class="k">class</span> <span class="nc">Hit</span><span class="p">(</span><span class="n">BaseHit</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends a single result with additional methods to query the SQLAlchemy</span>
+<span class="sd">    models behind the results.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">bind</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
+
+        <span class="k">class</span> <span class="nc">BoundHit</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+        <span class="n">BoundHit</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="n">BoundHit</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">session</span>
+
+        <span class="k">return</span> <span class="n">BoundHit</span>
+
+<div class="viewcode-block" id="Hit.query"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.dsl.Hit.query">[docs]</a>    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the SQLAlchemy query for this result. &quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+        <span class="n">model_id</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">es_id</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">model_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">query</span></div>
+
+<div class="viewcode-block" id="Hit.load"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.dsl.Hit.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Loads this result from the SQLAlchemy session. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">()</span><span class="o">.</span><span class="n">one</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

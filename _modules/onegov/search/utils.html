@@ -1,0 +1,206 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.search.utils &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.search.utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">find_models</span>
+
+
+<div class="viewcode-block" id="searchable_sqlalchemy_models"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.utils.searchable_sqlalchemy_models">[docs]</a><span class="k">def</span> <span class="nf">searchable_sqlalchemy_models</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Searches through the given SQLAlchemy base and returns the classes</span>
+<span class="sd">    of all SQLAlchemy models found which inherit from the</span>
+<span class="sd">    :class:`onegov.search.mixins.Searchable` interface.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># XXX circular imports</span>
+    <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">Searchable</span>
+
+    <span class="k">yield from</span> <span class="n">find_models</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="k">lambda</span> <span class="bp">cls</span><span class="p">:</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">Searchable</span><span class="p">))</span></div>
+
+
+<span class="n">_invalid_index_characters</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[</span><span class="se">\\</span><span class="s1">/?&quot;&lt;&gt;|\s,A-Z:]+&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="is_valid_index_name"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.utils.is_valid_index_name">[docs]</a><span class="k">def</span> <span class="nf">is_valid_index_name</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Checks if the given name is a valid elasticsearch index name.</span>
+<span class="sd">    Elasticsearch does it&#39;s own checks, but we can do it earlier and we are</span>
+<span class="sd">    a bit stricter.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">_invalid_index_characters</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="s1">&#39;*&#39;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<span class="k">def</span> <span class="nf">is_valid_type_name</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="c1"># the type name may be part of the index name, so we use the same check</span>
+    <span class="k">return</span> <span class="n">is_valid_index_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">normalize_index_segment</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">allow_wildcards</span><span class="p">):</span>
+    <span class="n">valid</span> <span class="o">=</span> <span class="n">_invalid_index_characters</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="n">segment</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">allow_wildcards</span><span class="p">:</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="n">valid</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">valid</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">hash_mapping</span><span class="p">(</span><span class="n">mapping</span><span class="p">):</span>
+    <span class="n">dump</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">(</span><span class="n">dump</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">classproperty</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="o">=</span> <span class="n">f</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="p">(</span><span class="n">owner</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">iter_subclasses</span><span class="p">(</span><span class="n">baseclass</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">subclass</span> <span class="ow">in</span> <span class="n">baseclass</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">():</span>
+        <span class="k">yield</span> <span class="n">subclass</span>
+
+        <span class="k">for</span> <span class="n">subclass</span> <span class="ow">in</span> <span class="n">subclass</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">():</span>
+            <span class="k">yield</span> <span class="n">subclass</span>
+
+
+<div class="viewcode-block" id="related_types"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.utils.related_types">[docs]</a><span class="k">def</span> <span class="nf">related_types</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Gathers all related es type names from the given model. A type is</span>
+<span class="sd">    counted as related a model is part of a polymorphic setup.</span>
+
+<span class="sd">    If no polymorphic identity is found, the result is simply a set with the</span>
+<span class="sd">    model&#39;s type itself.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;es_type_name&#39;</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="n">model</span><span class="o">.</span><span class="n">es_type_name</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;__mapper_args__&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;polymorphic_on&#39;</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">__mapper_args__</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">subclass</span> <span class="ow">in</span> <span class="n">iter_subclasses</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">subclass</span><span class="p">,</span> <span class="s1">&#39;es_type_name&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">subclass</span><span class="o">.</span><span class="n">es_type_name</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="s1">&#39;polymorphic_identity&#39;</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">__mapper_args__</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">parentclass</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="vm">__mro__</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">parentclass</span><span class="p">,</span> <span class="s1">&#39;__mapper_args__&#39;</span><span class="p">):</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="s1">&#39;polymorphic_on&#39;</span> <span class="ow">in</span> <span class="n">parentclass</span><span class="o">.</span><span class="n">__mapper_args__</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">related_types</span><span class="p">(</span><span class="n">parentclass</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

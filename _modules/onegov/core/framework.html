@@ -1,0 +1,1119 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.core.framework &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.core.framework</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; The Framework provides a base Morepath application that offers certain</span>
+<span class="sd">features for applications deriving from it:</span>
+
+<span class="sd"> * Virtual hosting in conjunction with :mod:`onegov.server`.</span>
+<span class="sd"> * Access to an SQLAlchemy session bound to a specific Postgres schema.</span>
+<span class="sd"> * A cache backed by memcached, shared by multiple processes.</span>
+<span class="sd"> * An identity policy with basic rules, permissions and role.</span>
+<span class="sd"> * The ability to serve static files and css/js assets.</span>
+
+<span class="sd">Using the framework does not really differ from using Morepath::</span>
+
+<span class="sd">    from onegov.core.framework import Framework</span>
+
+<span class="sd">    class MyApplication(Framework):</span>
+<span class="sd">        pass</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">dectate</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">morepath</span>
+<span class="kn">import</span> <span class="nn">pylru</span>
+
+<span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">dectate</span> <span class="k">import</span> <span class="n">directive</span>
+<span class="kn">from</span> <span class="nn">email.utils</span> <span class="k">import</span> <span class="n">parseaddr</span><span class="p">,</span> <span class="n">formataddr</span>
+<span class="kn">from</span> <span class="nn">itsdangerous</span> <span class="k">import</span> <span class="n">BadSignature</span><span class="p">,</span> <span class="n">Signer</span>
+<span class="kn">from</span> <span class="nn">mailthon.middleware</span> <span class="k">import</span> <span class="n">TLS</span><span class="p">,</span> <span class="n">Auth</span>
+<span class="kn">from</span> <span class="nn">morepath.publish</span> <span class="k">import</span> <span class="n">resolve_model</span><span class="p">,</span> <span class="n">get_view_name</span>
+<span class="kn">from</span> <span class="nn">more.transaction</span> <span class="k">import</span> <span class="n">TransactionApp</span>
+<span class="kn">from</span> <span class="nn">more.transaction.main</span> <span class="k">import</span> <span class="n">transaction_tween_factory</span>
+<span class="kn">from</span> <span class="nn">more.webassets</span> <span class="k">import</span> <span class="n">WebassetsApp</span>
+<span class="kn">from</span> <span class="nn">more.webassets.core</span> <span class="k">import</span> <span class="n">webassets_injector_tween</span>
+<span class="kn">from</span> <span class="nn">more.webassets.tweens</span> <span class="k">import</span> <span class="n">METHODS</span><span class="p">,</span> <span class="n">CONTENT_TYPES</span>
+<span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">cache</span><span class="p">,</span> <span class="n">log</span><span class="p">,</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">directives</span>
+<span class="kn">from</span> <span class="nn">onegov.core.datamanager</span> <span class="k">import</span> <span class="n">MailDataManager</span>
+<span class="kn">from</span> <span class="nn">onegov.core.mail</span> <span class="k">import</span> <span class="n">email</span><span class="p">,</span> <span class="n">Postman</span><span class="p">,</span> <span class="n">MaildirPostman</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">SessionManager</span><span class="p">,</span> <span class="n">debug</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.cache</span> <span class="k">import</span> <span class="n">OrmCacheApp</span>
+<span class="kn">from</span> <span class="nn">onegov.core.request</span> <span class="k">import</span> <span class="n">CoreRequest</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">PostThread</span>
+<span class="kn">from</span> <span class="nn">onegov.server</span> <span class="k">import</span> <span class="n">Application</span> <span class="k">as</span> <span class="n">ServerApplication</span>
+<span class="kn">from</span> <span class="nn">onegov.server.utils</span> <span class="k">import</span> <span class="n">load_class</span>
+<span class="kn">from</span> <span class="nn">psycopg2.extensions</span> <span class="k">import</span> <span class="n">TransactionRollbackError</span>
+<span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.exc</span> <span class="k">import</span> <span class="n">OperationalError</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span> <span class="k">as</span> <span class="n">new_uuid</span>
+<span class="kn">from</span> <span class="nn">webob.exc</span> <span class="k">import</span> <span class="n">HTTPConflict</span>
+
+
+<div class="viewcode-block" id="Framework"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework">[docs]</a><span class="k">class</span> <span class="nc">Framework</span><span class="p">(</span><span class="n">TransactionApp</span><span class="p">,</span> <span class="n">WebassetsApp</span><span class="p">,</span> <span class="n">OrmCacheApp</span><span class="p">,</span> <span class="n">ServerApplication</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Baseclass for Morepath OneGov applications. &quot;&quot;&quot;</span>
+
+    <span class="n">request_class</span> <span class="o">=</span> <span class="n">CoreRequest</span>
+
+    <span class="c1">#: holds the database connection string, *if* there is a database connected</span>
+    <span class="n">dsn</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">#: holdes the current schema associated with the database connection, set</span>
+    <span class="c1">#: by and derived from :meth:`set_application_id`.</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">#: framework directives</span>
+    <span class="n">form</span> <span class="o">=</span> <span class="n">directive</span><span class="p">(</span><span class="n">directives</span><span class="o">.</span><span class="n">HtmlHandleFormAction</span><span class="p">)</span>
+    <span class="n">cronjob</span> <span class="o">=</span> <span class="n">directive</span><span class="p">(</span><span class="n">directives</span><span class="o">.</span><span class="n">CronjobAction</span><span class="p">)</span>
+    <span class="n">static_directory</span> <span class="o">=</span> <span class="n">directive</span><span class="p">(</span><span class="n">directives</span><span class="o">.</span><span class="n">StaticDirectoryAction</span><span class="p">)</span>
+    <span class="n">template_variables</span> <span class="o">=</span> <span class="n">directive</span><span class="p">(</span><span class="n">directives</span><span class="o">.</span><span class="n">TemplateVariablesAction</span><span class="p">)</span>
+
+    <span class="c1">#: the request cache is initialised/emptied before each request</span>
+    <span class="n">request_cache</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@morepath</span><span class="o">.</span><span class="n">reify</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Intercept all wsgi calls so we can attach debug tools. &quot;&quot;&quot;</span>
+
+        <span class="n">fn</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__call__</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_request_cache</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;sql_query_report&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_query_report</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;profile&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_profiler</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fn</span>
+
+    <span class="k">def</span> <span class="nf">with_query_report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">with_query_report_wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">debug</span><span class="o">.</span><span class="n">analyze_sql_queries</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sql_query_report</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">with_query_report_wrapper</span>
+
+    <span class="k">def</span> <span class="nf">with_profiler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">with_profiler_wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;{:%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S}.profile&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span>
+
+            <span class="k">with</span> <span class="n">utils</span><span class="o">.</span><span class="n">profile</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">with_profiler_wrapper</span>
+
+    <span class="k">def</span> <span class="nf">with_request_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">with_request_cache_wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clear_request_cache</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">with_request_cache_wrapper</span>
+
+    <span class="k">def</span> <span class="nf">clear_request_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">request_cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">modules</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Provides access to modules used by the Framework class. Those</span>
+<span class="sd">        modules cannot be included at the top because they themselves usually</span>
+<span class="sd">        include the Framework.</span>
+
+<span class="sd">        Admittelty a bit of a code smell.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">browser_session</span>
+        <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">cronjobs</span>
+        <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">filestorage</span>
+        <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">i18n</span>
+        <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">security</span>
+        <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">theme</span>
+        <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">rules</span>
+
+        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">Bunch</span><span class="p">(</span>
+            <span class="n">browser_session</span><span class="o">=</span><span class="n">browser_session</span><span class="p">,</span>
+            <span class="n">cronjobs</span><span class="o">=</span><span class="n">cronjobs</span><span class="p">,</span>
+            <span class="n">filestorage</span><span class="o">=</span><span class="n">filestorage</span><span class="p">,</span>
+            <span class="n">i18n</span><span class="o">=</span><span class="n">i18n</span><span class="p">,</span>
+            <span class="n">security</span><span class="o">=</span><span class="n">security</span><span class="p">,</span>
+            <span class="n">rules</span><span class="o">=</span><span class="n">rules</span><span class="p">,</span>
+            <span class="n">theme</span><span class="o">=</span><span class="n">theme</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_database_connection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; onegov.core has good integration for Postgres using SQLAlchemy, but</span>
+<span class="sd">        it doesn&#39;t require a connection.</span>
+
+<span class="sd">        It&#39;s possible to have Onegov applications using a different database</span>
+<span class="sd">        or not using one at all.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dsn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_filestorage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns true if :attr:`fs` is available. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_file_storage</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Framework.configure_application"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.configure_application">[docs]</a>    <span class="k">def</span> <span class="nf">configure_application</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Configures the application. This function calls all methods on</span>
+<span class="sd">        the current class which start with ``configure_``, passing the</span>
+<span class="sd">        configuration as keyword arguments.</span>
+
+<span class="sd">        The core itself supports the following parameters. Additional</span>
+<span class="sd">        parameters are made available by extra ``configure_`` methods.</span>
+
+<span class="sd">        :dsn:</span>
+<span class="sd">            The database connection to use. May be None.</span>
+
+<span class="sd">            See :meth:`onegov.core.orm.session_manager.setup`</span>
+
+<span class="sd">        :base:</span>
+<span class="sd">            The declarative base class used. By default,</span>
+<span class="sd">            :attr:`onegov.core.orm.Base` is used.</span>
+
+<span class="sd">        :identity_secure:</span>
+<span class="sd">            True if the identity cookie is only transmitted over https. Only</span>
+<span class="sd">            set this to False during development!</span>
+
+<span class="sd">        :identity_secret:</span>
+<span class="sd">            A random string used to sign the identity. By default a random</span>
+<span class="sd">            string is generated. The drawback of this is the fact that</span>
+<span class="sd">            users will be logged out every time the application restarts.</span>
+
+<span class="sd">            So provide your own if you don&#39;t want that, but be sure to have</span>
+<span class="sd">            a really long, really random key that you will never share</span>
+<span class="sd">            with anyone!</span>
+
+<span class="sd">        :memcached_url:</span>
+<span class="sd">            The memcached url (default is 127.0.0.1:11211). If memcached</span>
+<span class="sd">            isn&#39;t running the cache will not be used, though the memcached</span>
+<span class="sd">            server can be started at any time at which point the application</span>
+<span class="sd">            will connect to it again.</span>
+
+<span class="sd">        :cache_connections:</span>
+<span class="sd">            The maximum number of connections to the cache that are available.</span>
+<span class="sd">            Defaults to 100. This is mostly relevant for memcached, though</span>
+<span class="sd">            it works for all kinds of caches.</span>
+
+<span class="sd">            This limit prevents a sophisticated attacker from starting a denial</span>
+<span class="sd">            of service attack should he figure out a way to spawn lots of</span>
+<span class="sd">            applications.</span>
+
+<span class="sd">            Normally you want the combined memcached connection limit of all</span>
+<span class="sd">            configured applications to be lower than the actual connection</span>
+<span class="sd">            limit configured on memcached.</span>
+
+<span class="sd">        :disable_memcached:</span>
+<span class="sd">            If True, memcache will not be used. The cache will be entirely in</span>
+<span class="sd">            the memory of the current process (so no sharing between multiple</span>
+<span class="sd">            processes).</span>
+
+<span class="sd">        :file_storage:</span>
+<span class="sd">            The file_storage module to use. See</span>
+<span class="sd">            `&lt;http://docs.pyfilesystem.org/en/latest/filesystems.html&gt;`_</span>
+
+<span class="sd">        :file_storage_options:</span>
+<span class="sd">            A dictionary of options passed to the ``__init__`` method of the</span>
+<span class="sd">            file_storage class.</span>
+
+<span class="sd">            The file storage is expected to work as is. For example, if</span>
+<span class="sd">            ``fs.osfs.OSFS`` is used, the root_path is expected exist.</span>
+
+<span class="sd">            The file storage can be shared between different onegov.core</span>
+<span class="sd">            applications. Each application automatically gets its own</span>
+<span class="sd">            namespace inside this space.</span>
+
+<span class="sd">        :always_compile_theme:</span>
+<span class="sd">            If true, the theme is always compiled - no caching is employed.</span>
+
+<span class="sd">        :allow_shift_f5_comple:</span>
+<span class="sd">            If true, the theme is recompiled if shift+f5 is done on the</span>
+<span class="sd">            browser (or shift + reload button click).</span>
+
+<span class="sd">        :csrf_secret:</span>
+<span class="sd">            A random string used to sign the csrf token. Make sure this differs</span>
+<span class="sd">            from ``identity_secret``! The algorithms behind identity_secret and</span>
+<span class="sd">            the csrf protection differ. If the same secret is used we might</span>
+<span class="sd">            leak information about said secret.</span>
+
+<span class="sd">            By default a random string is generated. The drawback of this is</span>
+<span class="sd">            the fact that users won&#39;t be able to submit their forms if the</span>
+<span class="sd">            app is restarted in the background.</span>
+
+<span class="sd">            So provide your own, but be sure to have a really long, really</span>
+<span class="sd">            random string that you will never share with anyone!</span>
+
+<span class="sd">        :csrf_time_limit:</span>
+<span class="sd">            The csrf time limit in seconds. Basically the amount of time a</span>
+<span class="sd">            user has to submit a form, from the time it&#39;s rendered.</span>
+
+<span class="sd">            Defaults to 1&#39;200s (20 minutes).</span>
+
+<span class="sd">        :mail_host:</span>
+<span class="sd">            The mail server to send e-mails from.</span>
+
+<span class="sd">        :mail_port:</span>
+<span class="sd">            The port used for the mail server.</span>
+
+<span class="sd">        :mail_force_tls:</span>
+<span class="sd">            True if TLS should be forced when connecting to the mail server.</span>
+<span class="sd">            Defaults to ``True``.</span>
+
+<span class="sd">        :mail_username:</span>
+<span class="sd">            The username used for mail server authentication.</span>
+
+<span class="sd">        :mail_password:</span>
+<span class="sd">            The password used for mail server authentication.</span>
+
+<span class="sd">        :mail_sender:</span>
+<span class="sd">            The sender e-mail address.</span>
+
+<span class="sd">        :mail_use_directory:</span>
+<span class="sd">            If true, mails are stored in the maildir defined through</span>
+<span class="sd">            ``mail_directory``. There, some other process is supposed to</span>
+<span class="sd">            pick up the e-mails and send them.</span>
+
+<span class="sd">        :mail_directory:</span>
+<span class="sd">            The directory (maildir) where mails are stored if if</span>
+<span class="sd">            ``mail_use_directory`` is set to True.</span>
+
+<span class="sd">        :sql_query_report:</span>
+<span class="sd">            Prints out a report sql queries for each request, unless False.</span>
+<span class="sd">            Valid values are:</span>
+
+<span class="sd">            * &#39;summary&#39; (only show the number of queries)</span>
+<span class="sd">            * &#39;redundant&#39; (show summary and the actual redundant queries)</span>
+<span class="sd">            * &#39;all&#39; (show summary and all executed queries)</span>
+
+<span class="sd">            Do not use in production!</span>
+
+<span class="sd">        :profile:</span>
+<span class="sd">            If true, profiles the request and stores the result in the profiles</span>
+<span class="sd">            folder with the following format: ``YYYY-MM-DD hh:mm:ss.profile``</span>
+
+<span class="sd">            Do not use in production!</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">configure_application</span><span class="p">(</span><span class="o">**</span><span class="n">cfg</span><span class="p">)</span>
+
+        <span class="n">members</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">callable</span><span class="p">),</span>
+            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">members</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;configure_&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">!=</span> <span class="s1">&#39;configure_application&#39;</span><span class="p">:</span>
+                <span class="n">method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">configure_dsn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+        <span class="c1"># certain namespaces are reserved for internal use:</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;global&#39;</span><span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dsn</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dsn&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dsn</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span> <span class="o">=</span> <span class="n">SessionManager</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dsn</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;base&#39;</span><span class="p">,</span> <span class="n">Base</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">configure_memcached</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">memcached_url</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;memcached_url&#39;</span><span class="p">,</span> <span class="s1">&#39;127.0.0.1:11211&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_connections</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;cache_connections&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">on_cache_ejected</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;disconnect_all&#39;</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">)()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_caches</span> <span class="o">=</span> <span class="n">pylru</span><span class="o">.</span><span class="n">lrucache</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_connections</span><span class="p">,</span> <span class="n">on_cache_ejected</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;disable_memcached&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache_backend</span> <span class="o">=</span> <span class="s1">&#39;onegov.core.memory&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache_backend_arguments</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache_backend</span> <span class="o">=</span> <span class="s1">&#39;onegov.core.memcached&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache_backend_arguments</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">memcached_url</span><span class="p">,</span>
+            <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">configure_secrets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">identity_secure</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;identity_secure&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># the identity secret is shared between tennants, so we name it</span>
+        <span class="c1"># accordingly - use self.identity_secret to get a secret limited to</span>
+        <span class="c1"># the current tennant</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unsafe_identity_secret</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;identity_secret&#39;</span><span class="p">,</span> <span class="n">new_uuid</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
+
+        <span class="c1"># same goes for the csrf_secret</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unsafe_csrf_secret</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;csrf_secret&#39;</span><span class="p">,</span> <span class="n">new_uuid</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">csrf_time_limit</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;csrf_time_limit&#39;</span><span class="p">,</span> <span class="mi">1200</span><span class="p">))</span>
+
+        <span class="c1"># you don&#39;t want these keys to be the same, see docstring above</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsafe_identity_secret</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsafe_csrf_secret</span>
+
+        <span class="c1"># you don&#39;t want to use the keys given in the example file</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsafe_identity_secret</span> <span class="o">!=</span> <span class="s1">&#39;very-secret-key&#39;</span>
+
+        <span class="c1"># you don&#39;t want to use the keys given in the example file</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsafe_csrf_secret</span> <span class="o">!=</span> <span class="s1">&#39;another-very-secret-key&#39;</span>
+
+    <span class="k">def</span> <span class="nf">configure_yubikey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yubikey_client_id</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;yubikey_client_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yubikey_secret_key</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;yubikey_secret_key&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">configure_filestorage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="s1">&#39;filestorage_object&#39;</span> <span class="ow">in</span> <span class="n">cfg</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_file_storage</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;filestorage_object&#39;</span><span class="p">]</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="s1">&#39;filestorage&#39;</span> <span class="ow">in</span> <span class="n">cfg</span><span class="p">:</span>
+            <span class="n">filestorage_class</span> <span class="o">=</span> <span class="n">load_class</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;filestorage&#39;</span><span class="p">))</span>
+            <span class="n">filestorage_options</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;filestorage_options&#39;</span><span class="p">,</span> <span class="p">{})</span>
+
+            <span class="c1"># legacy support for pyfilesystem 1.x parameters</span>
+            <span class="k">if</span> <span class="s1">&#39;dir_mode&#39;</span> <span class="ow">in</span> <span class="n">filestorage_options</span><span class="p">:</span>
+                <span class="n">filestorage_options</span><span class="p">[</span><span class="s1">&#39;create_mode&#39;</span><span class="p">]</span> \
+                    <span class="o">=</span> <span class="n">filestorage_options</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;dir_mode&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">filestorage_class</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">filestorage_class</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_file_storage</span> <span class="o">=</span> <span class="n">filestorage_class</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">filestorage_options</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_file_storage</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">configure_debug</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">always_compile_theme</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;always_compile_theme&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">allow_shift_f5_compile</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;allow_shift_f5_compile&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sql_query_report</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sql_query_report&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">profile</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;profile&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">configure_mail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mail_host</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_host&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mail_port</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_port&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mail_force_tls</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_force_tls&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mail_username</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_username&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mail_password</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_password&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mail_sender</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_sender&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mail_use_directory</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_use_directory&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mail_directory</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_directory&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">configure_hipchat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_token</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hipchat_token&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_room_id</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hipchat_room_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Framework.set_application_id"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.set_application_id">[docs]</a>    <span class="k">def</span> <span class="nf">set_application_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">application_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Set before the request is handled. Gets the schema from the</span>
+<span class="sd">        application id and makes sure it exists, *if* a database connection</span>
+<span class="sd">        is present.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_application_id</span><span class="p">(</span><span class="n">application_id</span><span class="p">)</span>
+
+        <span class="c1"># replace the dashes in the id with underlines since the schema</span>
+        <span class="c1"># should not include double dashes and IDNA leads to those</span>
+        <span class="c1">#</span>
+        <span class="c1"># then, replace the &#39;/&#39; with a &#39;-&#39; so the only dash left will be</span>
+        <span class="c1"># the dash between namespace and id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">application_id</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_database_connection</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">set_current_schema</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_orm_cache_setup</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">setup_orm_cache</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Framework.get_cache"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.get_cache">[docs]</a>    <span class="k">def</span> <span class="nf">get_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">expiration_time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">backend_args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Creates a new cache backend for this application or reuses an</span>
+<span class="sd">        existing one. Each backend is bound to a namespace and has its own</span>
+<span class="sd">        expiration time (ttl).</span>
+
+<span class="sd">        Once the `cache_connections` limit defined in</span>
+<span class="sd">        :meth:`configure_application` is reached, the backends are removed,</span>
+<span class="sd">        with the least recently used one being discarded first.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">namespace</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_caches</span><span class="p">:</span>
+            <span class="n">backend</span> <span class="o">=</span> <span class="n">backend</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_backend</span>
+            <span class="n">backend_args</span> <span class="o">=</span> <span class="n">backend_args</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_backend_arguments</span>
+
+            <span class="k">if</span> <span class="n">backend</span> <span class="o">==</span> <span class="s1">&#39;dogpile.cache.memory&#39;</span><span class="p">:</span>
+                <span class="n">expiration_time</span> <span class="o">=</span> <span class="n">backend_args</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_caches</span><span class="p">[</span><span class="n">namespace</span><span class="p">]</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">create_backend</span><span class="p">(</span>
+                <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
+                <span class="n">expiration_time</span><span class="o">=</span><span class="n">expiration_time</span><span class="p">,</span>
+                <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">,</span>
+                <span class="n">arguments</span><span class="o">=</span><span class="n">backend_args</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_caches</span><span class="p">[</span><span class="n">namespace</span><span class="p">]</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">session_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; A cache that is kept for as long as possible. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cache</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">application_id</span> <span class="o">+</span> <span class="s1">&#39;:s&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; A cache that might be invalidated frequently. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cache</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">application_id</span> <span class="o">+</span> <span class="s1">&#39;:x&#39;</span><span class="p">,</span> <span class="n">expiration_time</span><span class="o">=</span><span class="mi">3600</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">settings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">setting_registry</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">application_id_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The application_id as hash, use this if the applicaiton_id can</span>
+<span class="sd">        be read by the user -&gt; this obfuscates things slightly.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># sha-1 should be enough, because even if somebody was able to get</span>
+        <span class="c1"># the cleartext value I honestly couldn&#39;t tell you what it could be</span>
+        <span class="c1"># used for...</span>
+        <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Framework.object_by_path"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.object_by_path">[docs]</a>    <span class="k">def</span> <span class="nf">object_by_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">with_view_name</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Takes a path and returns the object associated with it. If a</span>
+<span class="sd">        scheme or a host is passed it is ignored.</span>
+
+<span class="sd">        Be careful if you use this function with user provided urls, we load</span>
+<span class="sd">        objects here, not views. Therefore no security restrictions apply.</span>
+
+<span class="sd">        The first use case of this function is to provide a generic copy/paste</span>
+<span class="sd">        functionality. There, we only allow urls to be copied which have been</span>
+<span class="sd">        previously signed by the server.</span>
+
+<span class="sd">        *Safeguards like this are necessary if the user has the ability to</span>
+<span class="sd">        somehow influence the path*!</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># strip host and scheme</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">URL</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">path</span><span class="p">()</span>
+
+        <span class="n">request</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_class</span><span class="p">(</span><span class="n">environ</span><span class="o">=</span><span class="p">{</span>
+            <span class="s1">&#39;PATH_INFO&#39;</span><span class="p">:</span> <span class="n">URL</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">path</span><span class="p">(),</span>
+            <span class="s1">&#39;SERVER_NAME&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;SERVER_PORT&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;SERVER_PROTOCOL&#39;</span><span class="p">:</span> <span class="s1">&#39;https&#39;</span>
+        <span class="p">},</span> <span class="n">app</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">resolve_model</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="c1"># if there is more than one token unconsumed, this can&#39;t be a view</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">unconsumed</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">if</span> <span class="n">with_view_name</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">with_view_name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">obj</span><span class="p">,</span> <span class="n">get_view_name</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">unconsumed</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">obj</span></div>
+
+<div class="viewcode-block" id="Framework.permission_by_view"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.permission_by_view">[docs]</a>    <span class="k">def</span> <span class="nf">permission_by_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">view_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the permission required for the given model and view_name.</span>
+
+<span class="sd">        The model may be an instance or a class.</span>
+
+<span class="sd">        If the view cannot be evaluated, a KeyError is raised.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="n">model</span> <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">model</span><span class="p">)</span> <span class="k">else</span> <span class="n">model</span><span class="o">.</span><span class="vm">__class__</span>
+        <span class="n">predicates</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">view_name</span><span class="p">}</span> <span class="k">if</span> <span class="n">view_name</span> <span class="k">else</span> <span class="p">{}</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="n">dectate</span><span class="o">.</span><span class="n">Query</span><span class="p">(</span><span class="s1">&#39;view&#39;</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">predicates</span><span class="o">=</span><span class="n">predicates</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">action</span><span class="p">,</span> <span class="n">handler</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">query</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">))</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">StopIteration</span><span class="p">,</span> <span class="ne">RuntimeError</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{!r}</span><span class="s2"> has no view named </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">view_name</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">action</span><span class="o">.</span><span class="n">permission</span></div>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">session</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Alias for self.session_manager.session. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">session</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">postman</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a Mailthon postman configured with the mail settings in</span>
+<span class="sd">        the settings view. See `&lt;http://mailthon.readthedocs.org/&gt;`_ for</span>
+<span class="sd">        more information.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_use_directory</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_directory</span>
+
+            <span class="k">return</span> <span class="n">MaildirPostman</span><span class="p">(</span>
+                <span class="n">host</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">port</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">options</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">maildir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mail_directory</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_host</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_port</span>
+
+            <span class="n">middlewares</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_force_tls</span><span class="p">:</span>
+                <span class="n">middlewares</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TLS</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_username</span><span class="p">:</span>
+                <span class="n">middlewares</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">Auth</span><span class="p">(</span>
+                        <span class="n">username</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mail_username</span><span class="p">,</span>
+                        <span class="n">password</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mail_password</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">Postman</span><span class="p">(</span>
+                <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mail_host</span><span class="p">,</span>
+                <span class="n">port</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mail_port</span><span class="p">,</span>
+                <span class="n">middlewares</span><span class="o">=</span><span class="n">middlewares</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="Framework.send_email"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.send_email">[docs]</a>    <span class="k">def</span> <span class="nf">send_email</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reply_to</span><span class="p">,</span> <span class="n">receivers</span><span class="o">=</span><span class="p">(),</span> <span class="n">cc</span><span class="o">=</span><span class="p">(),</span> <span class="n">bcc</span><span class="o">=</span><span class="p">(),</span>
+                   <span class="n">subject</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span>
+                   <span class="n">attachments</span><span class="o">=</span><span class="p">()):</span>
+        <span class="sd">&quot;&quot;&quot; Sends a plain-text e-mail using :attr:`postman` to the given</span>
+<span class="sd">        recipients. A reply to address is used to enable people to answer</span>
+<span class="sd">        to the e-mail which is usually sent by a noreply kind of e-mail</span>
+<span class="sd">        address.</span>
+
+<span class="sd">        E-mails sent through this method are bound to the current transaction.</span>
+<span class="sd">        If that transaction is aborted or not commited, the e-mail is not sent.</span>
+
+<span class="sd">        Usually you&#39;ll use this method inside a request, where transactions</span>
+<span class="sd">        are automatically commited at the end.</span>
+
+<span class="sd">        For more complex use cases have a look at</span>
+<span class="sd">        `&lt;http://mailthon.readthedocs.org/&gt;`_.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_sender</span>
+
+        <span class="c1"># if the reply to address has a name part (Name &lt;address@host&gt;), use</span>
+        <span class="c1"># the name part for the sender address as well to somewhat hide the</span>
+        <span class="c1"># fact that we&#39;re using a noreply email</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">address</span> <span class="o">=</span> <span class="n">parseaddr</span><span class="p">(</span><span class="n">reply_to</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">parseaddr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mail_sender</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">mail_sender</span> <span class="o">=</span> <span class="n">formataddr</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_sender</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mail_sender</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_sender</span>
+
+        <span class="n">envelope</span> <span class="o">=</span> <span class="n">email</span><span class="p">(</span>
+            <span class="n">sender</span><span class="o">=</span><span class="n">mail_sender</span><span class="p">,</span>
+            <span class="n">receivers</span><span class="o">=</span><span class="n">receivers</span><span class="p">,</span>
+            <span class="n">cc</span><span class="o">=</span><span class="n">cc</span><span class="p">,</span>
+            <span class="n">bcc</span><span class="o">=</span><span class="n">bcc</span><span class="p">,</span>
+            <span class="n">subject</span><span class="o">=</span><span class="n">subject</span><span class="p">,</span>
+            <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
+            <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">,</span>
+            <span class="n">attachments</span><span class="o">=</span><span class="n">attachments</span>
+        <span class="p">)</span>
+
+        <span class="n">envelope</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Sender&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mail_sender</span>
+        <span class="n">envelope</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Reply-To&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">formataddr</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">address</span><span class="p">))</span>
+
+        <span class="c1"># send e-mails through the transaction machinery</span>
+        <span class="n">MailDataManager</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">postman</span><span class="p">,</span> <span class="n">envelope</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Framework.send_hipchat"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.send_hipchat">[docs]</a>    <span class="k">def</span> <span class="nf">send_hipchat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message_from</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">message_format</span><span class="o">=</span><span class="s1">&#39;html&#39;</span><span class="p">,</span>
+                     <span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="n">notify</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sends a hipchat message asynchronously.</span>
+
+<span class="sd">        We are using the room notification method of the hipchat API V2:</span>
+<span class="sd">        `&lt;https://www.hipchat.com/docs/apiv2/method/send_room_notification/&gt;`_</span>
+
+<span class="sd">        Make sure to generate a token for the room (Scope: Send Notifications)</span>
+<span class="sd">        and define it in the configuration.</span>
+
+<span class="sd">        Returns the thread object to allow waiting by calling join.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_token</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_room_id</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+                <span class="s1">&#39;from&#39;</span><span class="p">:</span> <span class="n">message_from</span><span class="p">,</span>
+                <span class="s1">&#39;message&#39;</span><span class="p">:</span> <span class="n">message</span><span class="p">,</span>
+                <span class="s1">&#39;message_format&#39;</span><span class="p">:</span> <span class="n">message_format</span><span class="p">,</span>
+                <span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="n">color</span><span class="p">,</span>
+                <span class="s1">&#39;notify&#39;</span><span class="p">:</span> <span class="n">notify</span>
+            <span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+            <span class="n">headers</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="s1">&#39;Authorization&#39;</span><span class="p">,</span> <span class="s1">&#39;Bearer </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hipchat_token</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span> <span class="s1">&#39;application/json; charset=utf-8&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;Content-Length&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)),</span>
+            <span class="p">)</span>
+
+            <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;https://api.hipchat.com/v2/room/</span><span class="si">{}</span><span class="s1">/notification&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_room_id</span>
+            <span class="p">)</span>
+
+            <span class="n">thread</span> <span class="o">=</span> <span class="n">PostThread</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+            <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+            <span class="k">return</span> <span class="n">thread</span></div>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">static_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; A list of static_files paths registered through the</span>
+<span class="sd">        :class:`onegov.core.directive.StaticDirectoryAction` directive.</span>
+
+<span class="sd">        To register a static files path::</span>
+
+<span class="sd">            @App.static_directory()</span>
+<span class="sd">            def get_static_directory():</span>
+<span class="sd">                return &#39;static&#39;</span>
+
+<span class="sd">        For this to work, ``server_static_files`` has to be set to true.</span>
+
+<span class="sd">        When a child application registers a directory, the directory will</span>
+<span class="sd">        be considered first, before falling back to the parent&#39;s static</span>
+<span class="sd">        directory.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">staticdirectory_registry</span><span class="p">,</span> <span class="s1">&#39;paths&#39;</span><span class="p">,</span> <span class="p">[])[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">serve_static_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns True if ``/static`` files should be served. Needs to be</span>
+<span class="sd">        enabled manually.</span>
+
+<span class="sd">        Note that even if the static files are not served, ``/static`` path</span>
+<span class="sd">        is still served, it just won&#39;t return anything but a 404.</span>
+
+<span class="sd">        Note also that static files are served **publicly**. You can override</span>
+<span class="sd">        this in your application, but doing that and testing for it is on you!</span>
+
+<span class="sd">        See also: :mod:`onegov.core.static`. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="Framework.application_bound_identity"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.application_bound_identity">[docs]</a>    <span class="k">def</span> <span class="nf">application_bound_identity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userid</span><span class="p">,</span> <span class="n">role</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a new morepath identity for the given userid and role,</span>
+<span class="sd">        bound to this application.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">authentication</span><span class="o">.</span><span class="n">Identity</span><span class="p">(</span>
+            <span class="n">userid</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="n">application_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">application_id_hash</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">filestorage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a filestorage object bound to the current application.</span>
+<span class="sd">        Based on this nifty module:</span>
+
+<span class="sd">        `&lt;http://docs.pyfilesystem.org/en/latest/&gt;`_</span>
+
+<span class="sd">        The file storage returned is guaranteed to be independent of other</span>
+<span class="sd">        applications (the scope is the application_id, not just the class).</span>
+
+<span class="sd">        There is no guarantee as to what file storage backend is actually used.</span>
+<span class="sd">        It&#39;s quite possible that the file storage will be somewhere online</span>
+<span class="sd">        in the future (e.g. S3).</span>
+
+<span class="sd">        Therefore, the urls for the file storage should always be acquired</span>
+<span class="sd">        through :meth:`onegov.core.request.CoreRequest.filestorage_link`.</span>
+
+<span class="sd">        The backend is configured through :meth:`configure_application`.</span>
+
+<span class="sd">        For a list of methods available on the resulting object, consult this</span>
+<span class="sd">        list: `&lt;http://docs.pyfilesystem.org/en/latest/interface.html&gt;`_.</span>
+
+<span class="sd">        If no filestorage is available, this returns None.</span>
+<span class="sd">        See :attr:`self.has_filestorage`.</span>
+
+<span class="sd">        WARNING: Files stored in the filestorage are available publicly! All</span>
+<span class="sd">        someone has to do is to *guess* the filename. To get an unguessable</span>
+<span class="sd">        filename use :meth:`onegov.core.filestorage.random_filename`.</span>
+
+<span class="sd">        The reason for this is the fact that filestorage may be something</span>
+<span class="sd">        external in the future.</span>
+
+<span class="sd">        This should not deter you from using this for user uploads, though</span>
+<span class="sd">        you should be careful. If you want to be sure that your application</span>
+<span class="sd">        stores files locally, use some other ways of storing those files.</span>
+
+<span class="sd">        Example::</span>
+
+<span class="sd">            from onegov.core import filestorage</span>
+
+<span class="sd">            filename = filestorage.random_filename()</span>
+<span class="sd">            app.filestorage.settext(filename, &#39;Lorem Ipsum&#39;)</span>
+
+<span class="sd">            # returns either an url like &#39;/files/4ec56cc005c594880a...&#39;</span>
+<span class="sd">            # or maybe &#39;https://amazonaws.com/onegov-cloud/32746/220592/q...&#39;</span>
+<span class="sd">            request.filestorage_link(filename)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_file_storage</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">makeopendir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_file_storage</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">themestorage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a storage object meant for themes, shared by all</span>
+<span class="sd">        applications.</span>
+
+<span class="sd">        Only use this for theming, nothing else!</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_file_storage</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">makeopendir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_file_storage</span><span class="p">,</span> <span class="s1">&#39;global-theme&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">theme_options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the application-bound theme options. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">translations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns all available translations keyed by langauge. &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">i18n</span><span class="o">.</span><span class="n">localedirs</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">{}</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="o">.</span><span class="n">i18n</span><span class="o">.</span><span class="n">get_translations</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">i18n</span><span class="o">.</span><span class="n">localedirs</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">chameleon_translations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns all available translations for chameleon. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="o">.</span><span class="n">i18n</span><span class="o">.</span><span class="n">wrap_translations_for_chameleon</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">translations</span>
+        <span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">locales</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns all available locales in a set. &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">i18n</span><span class="o">.</span><span class="n">locales</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">i18n</span><span class="o">.</span><span class="n">locales</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">translations</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">identity_secret</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The identity secret, guaranteed to only be valid for the current</span>
+<span class="sd">        application id.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsafe_identity_secret</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">application_id_hash</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">csrf_secret</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The identity secret, guaranteed to only be valid for the current</span>
+<span class="sd">        application id.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsafe_csrf_secret</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">application_id_hash</span>
+
+<div class="viewcode-block" id="Framework.sign"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.sign">[docs]</a>    <span class="k">def</span> <span class="nf">sign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Signs a text with the identity secret.</span>
+
+<span class="sd">        The text is signed together with the application id, so if one</span>
+<span class="sd">        application signs a text another won&#39;t be able to unsign it.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">signer</span> <span class="o">=</span> <span class="n">Signer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">identity_secret</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="s1">&#39;generic-signer&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">signer</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Framework.unsign"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.unsign">[docs]</a>    <span class="k">def</span> <span class="nf">unsign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Unsigns a signed text, returning None if unsuccessful. &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">signer</span> <span class="o">=</span> <span class="n">Signer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">identity_secret</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="s1">&#39;generic-signer&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">signer</span><span class="o">.</span><span class="n">unsign</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">BadSignature</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="get_webasset_url"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.get_webasset_url">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">webasset_url</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">get_webasset_url</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; The webassets url needs to be unique so we can fix it before</span>
+<span class="sd">        returning the generated html. See :func:`fix_webassets_url_factory`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s1">&#39;7da9c72a3b5f9e060b898ef7cd714b8a&#39;</span>  <span class="c1"># do *not* change this hash!</span></div>
+
+
+<span class="nd">@Framework</span><span class="o">.</span><span class="n">webasset_filter</span><span class="p">(</span><span class="s1">&#39;js&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_js_filter</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s1">&#39;rjsmin&#39;</span>
+
+
+<span class="nd">@Framework</span><span class="o">.</span><span class="n">webasset_filter</span><span class="p">(</span><span class="s1">&#39;css&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_css_filter</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s1">&#39;custom-rcssmin&#39;</span>
+
+
+<span class="nd">@Framework</span><span class="o">.</span><span class="n">webasset_filter</span><span class="p">(</span><span class="s1">&#39;jsx&#39;</span><span class="p">,</span> <span class="n">produces</span><span class="o">=</span><span class="s1">&#39;js&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_jsx_filter</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s1">&#39;jsx&#39;</span>
+
+
+<span class="nd">@Framework</span><span class="o">.</span><span class="n">tween_factory</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="n">webassets_injector_tween</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">fix_webassets_url_factory</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">fix_webassets_url</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; more.webassets is not aware of our virtual hosting situation</span>
+<span class="sd">        introduced by onegov.server - therefore it doesn&#39;t produce the right</span>
+<span class="sd">        urls. This is something Morepath would have to fix.</span>
+
+<span class="sd">        This is why we fix the html here, after it has been created, changing</span>
+<span class="sd">        the url to the fixed version. We do this by examining the unique</span>
+<span class="sd">        assets url.</span>
+
+<span class="sd">        This means that someone could theoretically have something replaced</span>
+<span class="sd">        that is not meant to be replaced, but that would be incredibly</span>
+<span class="sd">        unlikely.</span>
+
+<span class="sd">        If someone intentionally does we would at best have some broken urls</span>
+<span class="sd">        on the site.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">handler</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">response</span><span class="o">.</span><span class="n">content_type</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span>
+
+        <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">METHODS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span>
+
+        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">content_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">CONTENT_TYPES</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span>
+
+        <span class="n">original_url</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">webasset_registry</span><span class="o">.</span><span class="n">url</span>
+        <span class="n">adjusted_url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">script_name</span> <span class="o">+</span> <span class="n">original_url</span><span class="p">)</span>
+
+        <span class="n">response</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="n">original_url</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span>
+            <span class="n">adjusted_url</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">response</span>
+
+    <span class="k">return</span> <span class="n">fix_webassets_url</span>
+
+
+<span class="nd">@Framework</span><span class="o">.</span><span class="n">setting</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s1">&#39;transaction&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;attempts&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_retry_attempts</span><span class="p">():</span>
+    <span class="k">return</span> <span class="mi">2</span>
+
+
+<div class="viewcode-block" id="get_cronjobs_enabled"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.get_cronjobs_enabled">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">setting</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s1">&#39;cronjobs&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;enabled&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_cronjobs_enabled</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; If this value is set to False, all cronjobs are disabled. Only use</span>
+<span class="sd">    this during testing. Cronjobs have no impact on your application, unless</span>
+<span class="sd">    there are defined cronjobs, in which case they are there for a reason.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<span class="nd">@Framework</span><span class="o">.</span><span class="n">tween_factory</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="n">transaction_tween_factory</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">http_conflict_tween_factory</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">http_conflict_tween</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; When two transactions conflict, postgres raises an error which</span>
+<span class="sd">        more.transaction handles by retrying the transaction for the configured</span>
+<span class="sd">        amount of time. See :func:`get_retry_attempts`.</span>
+
+<span class="sd">        Once it exhausts all retries, it reraises the exception. Since that</span>
+<span class="sd">        doesn&#39;t give the user any information, we turn this general error into</span>
+<span class="sd">        a 409 Conflict code so we can show a custom error page on the server.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">handler</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">OperationalError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s1">&#39;orig&#39;</span><span class="p">):</span>
+                <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="n">TransactionRollbackError</span><span class="p">):</span>
+                <span class="k">raise</span>
+
+            <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;A transaction failed because there was a conflict&quot;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">HTTPConflict</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">http_conflict_tween</span>
+
+
+<span class="nd">@Framework</span><span class="o">.</span><span class="n">tween_factory</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="n">http_conflict_tween_factory</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">current_language_tween_factory</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">current_language_tween</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Set the current language on the session manager for each request,</span>
+<span class="sd">        for translatable database columns.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">has_database_connection</span><span class="p">:</span>
+            <span class="n">app</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">set_locale</span><span class="p">(</span>
+                <span class="n">default_locale</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">default_locale</span><span class="p">,</span>
+                <span class="n">current_locale</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">handler</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">current_language_tween</span>
+
+
+<span class="nd">@Framework</span><span class="o">.</span><span class="n">tween_factory</span><span class="p">(</span><span class="n">under</span><span class="o">=</span><span class="n">current_language_tween_factory</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">spawn_cronjob_thread_tween_factory</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+
+    <span class="kn">from</span> <span class="nn">onegov.core.cronjobs</span> <span class="k">import</span> <span class="n">ApplicationBoundCronjobs</span>
+    <span class="n">registry</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">cronjob_registry</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">registry</span><span class="p">,</span> <span class="s1">&#39;cronjobs&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">handler</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">app</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">cronjobs</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">handler</span>
+
+    <span class="k">assert</span> <span class="n">app</span><span class="o">.</span><span class="n">has_database_connection</span><span class="p">,</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        Cronjobs require a database connection for inter-process locking.</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">spawn_cronjob_thread_tween</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">application_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">registry</span><span class="o">.</span><span class="n">cronjob_threads</span><span class="p">:</span>
+            <span class="n">thread</span> <span class="o">=</span> <span class="n">ApplicationBoundCronjobs</span><span class="p">(</span>
+                <span class="n">request</span><span class="p">,</span> <span class="n">registry</span><span class="o">.</span><span class="n">cronjobs</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">app</span><span class="o">.</span><span class="n">session_manager</span>
+            <span class="p">)</span>
+
+            <span class="n">registry</span><span class="o">.</span><span class="n">cronjob_threads</span><span class="p">[</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">application_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">thread</span>
+
+            <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">handler</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">spawn_cronjob_thread_tween</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
