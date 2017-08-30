@@ -17,7 +17,7 @@ import sys
 import os
 
 # mock modules with c extensions
-from mock import MagicMock as Mock
+from unittest.mock import MagicMock as Mock
 
 
 MOCK_MODULES = ['pylibmc', 'magic']
