@@ -39,15 +39,11 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.form.fields</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">gzip</span>
-<span class="kn">import</span> <span class="nn">magic</span>
-
-<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">BytesIO</span>
-<span class="kn">from</span> <span class="nn">onegov.core.html</span> <span class="k">import</span> <span class="n">sanitize_html</span>
+<span></span><span class="kn">from</span> <span class="nn">onegov.core.html</span> <span class="k">import</span> <span class="n">sanitize_html</span>
 <span class="kn">from</span> <span class="nn">onegov.form.widgets</span> <span class="k">import</span> <span class="n">MultiCheckboxWidget</span>
 <span class="kn">from</span> <span class="nn">onegov.form.widgets</span> <span class="k">import</span> <span class="n">OrderedMultiCheckboxWidget</span>
 <span class="kn">from</span> <span class="nn">onegov.form.widgets</span> <span class="k">import</span> <span class="n">UploadWidget</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">binary_to_dictionary</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">FileField</span><span class="p">,</span> <span class="n">SelectMultipleField</span><span class="p">,</span> <span class="n">TextAreaField</span><span class="p">,</span> <span class="n">widgets</span>
 
 
@@ -101,24 +97,10 @@
 
         <span class="k">if</span> <span class="n">fp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">{}</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">fp</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
-        <span class="n">file_data</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
-        <span class="n">mimetype_by_introspection</span> <span class="o">=</span> <span class="n">magic</span><span class="o">.</span><span class="n">from_buffer</span><span class="p">(</span><span class="n">file_data</span><span class="p">,</span> <span class="n">mime</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-        <span class="n">compressed_data</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">()</span>
-        <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">compressed_data</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file_data</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span>
-                <span class="n">compressed_data</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">),</span>
-            <span class="s1">&#39;filename&#39;</span><span class="p">:</span> <span class="n">fs</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span>
-            <span class="s1">&#39;mimetype&#39;</span><span class="p">:</span> <span class="n">mimetype_by_introspection</span><span class="p">,</span>
-            <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_data</span><span class="p">)</span>
-        <span class="p">}</span></div>
+        <span class="k">return</span> <span class="n">binary_to_dictionary</span><span class="p">(</span><span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">fs</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="HtmlField"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.fields.HtmlField">[docs]</a><span class="k">class</span> <span class="nc">HtmlField</span><span class="p">(</span><span class="n">TextAreaField</span><span class="p">):</span>

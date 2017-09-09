@@ -39,7 +39,9 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.core.utils</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">bleach</span>
+<span></span><span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">import</span> <span class="nn">bleach</span>
+<span class="kn">import</span> <span class="nn">gzip</span>
 <span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">importlib</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
@@ -52,6 +54,7 @@
 <span class="kn">import</span> <span class="nn">sqlalchemy</span>
 <span class="kn">import</span> <span class="nn">urllib.request</span>
 
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">BytesIO</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Iterable</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">cProfile</span> <span class="k">import</span> <span class="n">Profile</span>
@@ -541,6 +544,42 @@
         <span class="k">return</span> <span class="n">collection</span> <span class="o">-</span> <span class="p">{</span><span class="n">item</span><span class="p">}</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">collection</span> <span class="o">|</span> <span class="p">{</span><span class="n">item</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="binary_to_dictionary"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.utils.binary_to_dictionary">[docs]</a><span class="k">def</span> <span class="nf">binary_to_dictionary</span><span class="p">(</span><span class="n">binary</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes raw binary filedata and stores it in a dictionary together</span>
+<span class="sd">    with metadata information.</span>
+
+<span class="sd">    The data is compressed before it is stored int he dictionary. Use</span>
+<span class="sd">    :func:`dictionary_to_binary` to get the original binary data back.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">binary</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span>
+
+    <span class="n">mimetype</span> <span class="o">=</span> <span class="n">magic</span><span class="o">.</span><span class="n">from_buffer</span><span class="p">(</span><span class="n">binary</span><span class="p">,</span> <span class="n">mime</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">gzipdata</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">gzipdata</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">gzipdata</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;filename&#39;</span><span class="p">:</span> <span class="n">filename</span><span class="p">,</span>
+        <span class="s1">&#39;mimetype&#39;</span><span class="p">:</span> <span class="n">mimetype</span><span class="p">,</span>
+        <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="dictionary_to_binary"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.utils.dictionary_to_binary">[docs]</a><span class="k">def</span> <span class="nf">dictionary_to_binary</span><span class="p">(</span><span class="n">dictionary</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a dictionary created by :func:`binary_to_dictionary` and returns</span>
+<span class="sd">    the original binary data.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">dictionary</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+
+    <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span></div>
 </pre></div>
 
           </div>
