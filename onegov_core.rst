@@ -46,7 +46,10 @@ ORM
 .. automodule:: onegov.core.orm.debug
     :members:
 
-.. automodule:: onegov.core.orm.abstract
+.. automodule:: onegov.core.orm.abstract.adjacency_list
+    :members:
+
+.. automodule:: onegov.core.orm.abstract.associable
     :members:
 
 .. automodule:: onegov.core.orm.mixins
