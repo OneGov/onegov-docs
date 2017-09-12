@@ -1446,64 +1446,132 @@ levels of information (report argument):</p>
 </div>
 </dd></dl>
 
-<span class="target" id="module-onegov.core.orm.abstract"></span><dl class="class">
-<dt id="onegov.core.orm.abstract.AdjacencyList">
-<em class="property">class </em><code class="descclassname">onegov.core.orm.abstract.</code><code class="descname">AdjacencyList</code><span class="sig-paren">(</span><em>title</em>, <em>parent=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyList" title="Permalink to this definition">¶</a></dt>
+<span class="target" id="module-onegov.core.orm.abstract.adjacency_list"></span><dl class="class">
+<dt id="onegov.core.orm.abstract.adjacency_list.MoveDirection">
+<em class="property">class </em><code class="descclassname">onegov.core.orm.abstract.adjacency_list.</code><code class="descname">MoveDirection</code><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#MoveDirection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.MoveDirection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Describs the possible directions for the
+<a class="reference internal" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.move" title="onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.move"><code class="xref py py-meth docutils literal"><span class="pre">AdjacencyListCollection.move()</span></code></a> method.</p>
+<dl class="attribute">
+<dt id="onegov.core.orm.abstract.adjacency_list.MoveDirection.above">
+<code class="descname">above</code><em class="property"> = 1</em><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.MoveDirection.above" title="Permalink to this definition">¶</a></dt>
+<dd><p>Moves the subject above the target</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.core.orm.abstract.adjacency_list.MoveDirection.below">
+<code class="descname">below</code><em class="property"> = 2</em><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.MoveDirection.below" title="Permalink to this definition">¶</a></dt>
+<dd><p>Moves the subject below the target</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.core.orm.abstract.adjacency_list.sort_siblings">
+<code class="descclassname">onegov.core.orm.abstract.adjacency_list.</code><code class="descname">sort_siblings</code><span class="sig-paren">(</span><em>siblings</em>, <em>key</em>, <em>reverse=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#sort_siblings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.sort_siblings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sorts the siblings by the given key, writing the order to the
+database.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyList">
+<em class="property">class </em><code class="descclassname">onegov.core.orm.abstract.adjacency_list.</code><code class="descname">AdjacencyList</code><span class="sig-paren">(</span><em>title</em>, <em>parent=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList" title="Permalink to this definition">¶</a></dt>
 <dd><p>An abstract AdjacencyList implementation representing a Tree.</p>
 <dl class="attribute">
-<dt id="onegov.core.orm.abstract.AdjacencyList.absorb">
-<code class="descname">absorb</code><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyList.absorb" title="Permalink to this definition">¶</a></dt>
-<dd><p>Alias for <a class="reference internal" href="#onegov.core.orm.abstract.AdjacencyList.path" title="onegov.core.orm.abstract.AdjacencyList.path"><code class="xref py py-attr docutils literal"><span class="pre">path</span></code></a>. This is a convenience feature for Morepath
-if a path is absorbed.</p>
-<p>See <a class="reference external" href="http://morepath.readthedocs.org/en/latest/paths_and_linking.html?highlight=absorb#absorbing">http://morepath.readthedocs.org/en/latest/paths_and_linking.html?highlight=absorb#absorbing</a></p>
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyList.id">
+<code class="descname">id</code><em class="property"> = Column(None, Integer(), table=None, primary_key=True, nullable=False)</em><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>the id fo the db record (only relevant internally)
+do not change this id after creation as that would destroy the tree</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="onegov.core.orm.abstract.AdjacencyList.ancestors">
-<code class="descname">ancestors</code><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyList.ancestors" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns all ancestors of this item.</p>
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyList.name">
+<code class="descname">name</code><em class="property"> = Column(None, Text(), table=None, nullable=False)</em><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>the name of the item - think of this as the id or better yet
+the url segment e.g. <code class="docutils literal"><span class="pre">parent-item/child-item</span></code></p>
+<p>automatically generated from the title if not provided</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="onegov.core.orm.abstract.AdjacencyList.path">
-<code class="descname">path</code><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyList.path" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the path of this item.</p>
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyList.type">
+<code class="descname">type</code><em class="property"> = Column(None, Text(), table=None)</em><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>the type of the item, this can be used to create custom polymorphic
+subclasses of this class. See
+<a class="reference external" href="http://docs.sqlalchemy.org/en/improve_toc/ orm/extensions/declarative/inheritance.html">http://docs.sqlalchemy.org/en/improve_toc/ orm/extensions/declarative/inheritance.html</a>.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="onegov.core.orm.abstract.AdjacencyList.root">
-<code class="descname">root</code><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyList.root" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyList.order">
+<code class="descname">order</code><em class="property"> = Column(None, Integer(), table=None, default=ColumnDefault(65536))</em><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList.order" title="Permalink to this definition">¶</a></dt>
+<dd><p>the order of the items - items are added at the end by default</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyList.sort_key">
+<code class="descname">sort_key</code><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList.sort_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>The sort key used for sorting the siblings if the title changes.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyList.title">
+<code class="descname">title</code><em class="property"> = Column(None, Text(), table=None, nullable=False)</em><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList.title" title="Permalink to this definition">¶</a></dt>
+<dd><p>the human readable title of the item</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyList.root">
+<code class="descname">root</code><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList.root" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the root of this item.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="onegov.core.orm.abstract.AdjacencyList.siblings">
-<code class="descname">siblings</code><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyList.siblings" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyList.ancestors">
+<code class="descname">ancestors</code><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList.ancestors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all ancestors of this item.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyList.siblings">
+<code class="descname">siblings</code><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList.siblings" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a query that includes all siblings, including the item
 itself.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="onegov.core.orm.abstract.AdjacencyList.sort_key">
-<code class="descname">sort_key</code><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyList.sort_key" title="Permalink to this definition">¶</a></dt>
-<dd><p>The sort key used for sorting the siblings if the title changes.</p>
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyList.path">
+<code class="descname">path</code><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList.path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the path of this item.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyList.absorb">
+<code class="descname">absorb</code><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList.absorb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for <a class="reference internal" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList.path" title="onegov.core.orm.abstract.adjacency_list.AdjacencyList.path"><code class="xref py py-attr docutils literal"><span class="pre">path</span></code></a>. This is a convenience feature for Morepath
+if a path is absorbed.</p>
+<p>See <a class="reference external" href="http://morepath.readthedocs.org/en/latest/paths_and_linking.html?highlight=absorb#absorbing">http://morepath.readthedocs.org/en/latest/paths_and_linking.html?highlight=absorb#absorbing</a></p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="onegov.core.orm.abstract.AdjacencyListCollection">
-<em class="property">class </em><code class="descclassname">onegov.core.orm.abstract.</code><code class="descname">AdjacencyListCollection</code><span class="sig-paren">(</span><em>session</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyListCollection" title="Permalink to this definition">¶</a></dt>
-<dd><p>A base class for collections working with <a class="reference internal" href="#onegov.core.orm.abstract.AdjacencyList" title="onegov.core.orm.abstract.AdjacencyList"><code class="xref py py-class docutils literal"><span class="pre">AdjacencyList</span></code></a>.</p>
-<dl class="method">
-<dt id="onegov.core.orm.abstract.AdjacencyListCollection.add">
-<code class="descname">add</code><span class="sig-paren">(</span><em>parent</em>, <em>title</em>, <em>name=None</em>, <em>type=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyListCollection.add" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds a page to the given parent.</p>
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection">
+<em class="property">class </em><code class="descclassname">onegov.core.orm.abstract.adjacency_list.</code><code class="descname">AdjacencyListCollection</code><span class="sig-paren">(</span><em>session</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>A base class for collections working with <a class="reference internal" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyList" title="onegov.core.orm.abstract.adjacency_list.AdjacencyList"><code class="xref py py-class docutils literal"><span class="pre">AdjacencyList</span></code></a>.</p>
+<dl class="staticmethod">
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.sort_key">
+<em class="property">static </em><code class="descname">sort_key</code><span class="sig-paren">(</span><em>item</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.sort_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.sort_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>The sort key with which the items are sorted into their siblings.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="onegov.core.orm.abstract.AdjacencyListCollection.by_id">
-<code class="descname">by_id</code><span class="sig-paren">(</span><em>item_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.by_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyListCollection.by_id" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.query">
+<code class="descname">query</code><span class="sig-paren">(</span><em>ordered=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a query using
+<code class="xref py py-attr docutils literal"><span class="pre">AdjacencyListCollection.__listclass__</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.by_id">
+<code class="descname">by_id</code><span class="sig-paren">(</span><em>item_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.by_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.by_id" title="Permalink to this definition">¶</a></dt>
 <dd><p>Takes the given page id and returns the page. Try to keep this
 id away from the public. It’s not a security problem if it leaks, but
 it’s not something the public can necessarly count on.</p>
@@ -1511,8 +1579,8 @@ it’s not something the public can necessarly count on.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="onegov.core.orm.abstract.AdjacencyListCollection.by_path">
-<code class="descname">by_path</code><span class="sig-paren">(</span><em>path</em>, <em>ensure_type=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.by_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyListCollection.by_path" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.by_path">
+<code class="descname">by_path</code><span class="sig-paren">(</span><em>path</em>, <em>ensure_type=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.by_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.by_path" title="Permalink to this definition">¶</a></dt>
 <dd><p>Takes a path and returns the page associated with it.</p>
 <p>For example, given this hierarchy:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Page</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;documents&#39;</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">parent_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
@@ -1542,14 +1610,8 @@ changes.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="onegov.core.orm.abstract.AdjacencyListCollection.delete">
-<code class="descname">delete</code><span class="sig-paren">(</span><em>page</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyListCollection.delete" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deletes the given page and <em>all</em> it’s desecendants!.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="onegov.core.orm.abstract.AdjacencyListCollection.get_unique_child_name">
-<code class="descname">get_unique_child_name</code><span class="sig-paren">(</span><em>name</em>, <em>parent</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.get_unique_child_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyListCollection.get_unique_child_name" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.get_unique_child_name">
+<code class="descname">get_unique_child_name</code><span class="sig-paren">(</span><em>name</em>, <em>parent</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.get_unique_child_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.get_unique_child_name" title="Permalink to this definition">¶</a></dt>
 <dd><p>Takes the given name or title, normalizes it and makes sure
 that it’s unique among the siblings of the item.</p>
 <p>This is achieved by adding numbers at the end if there are overlaps.</p>
@@ -1558,8 +1620,20 @@ if <code class="docutils literal"><span class="pre">root-1</span></code> exists 
 </dd></dl>
 
 <dl class="method">
-<dt id="onegov.core.orm.abstract.AdjacencyListCollection.move">
-<code class="descname">move</code><span class="sig-paren">(</span><em>subject</em>, <em>target</em>, <em>direction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.move"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyListCollection.move" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>parent</em>, <em>title</em>, <em>name=None</em>, <em>type=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a page to the given parent.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.delete">
+<code class="descname">delete</code><span class="sig-paren">(</span><em>page</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the given page and <em>all</em> it’s desecendants!.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.move">
+<code class="descname">move</code><span class="sig-paren">(</span><em>subject</em>, <em>target</em>, <em>direction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.move"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.move" title="Permalink to this definition">¶</a></dt>
 <dd><p>Takes the given subject and moves it somehwere in relation to the
 target.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1571,41 +1645,135 @@ target.</p>
 <tr class="field-even field"><th class="field-name">Target:</th><td class="field-body">The item above which or below which the subject is moved.</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Direction:</th><td class="field-body">The direction relative to the target. Either
-<code class="xref py py-attr docutils literal"><span class="pre">MoveDirection.above</span></code> if the subject should be moved
-above the target, or <code class="xref py py-attr docutils literal"><span class="pre">MoveDirection.below</span></code> if the subject
+<a class="reference internal" href="#onegov.core.orm.abstract.adjacency_list.MoveDirection.above" title="onegov.core.orm.abstract.adjacency_list.MoveDirection.above"><code class="xref py py-attr docutils literal"><span class="pre">MoveDirection.above</span></code></a> if the subject should be moved
+above the target, or <a class="reference internal" href="#onegov.core.orm.abstract.adjacency_list.MoveDirection.below" title="onegov.core.orm.abstract.adjacency_list.MoveDirection.below"><code class="xref py py-attr docutils literal"><span class="pre">MoveDirection.below</span></code></a> if the subject
 should be moved below the target.</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
-<dl class="method">
-<dt id="onegov.core.orm.abstract.AdjacencyListCollection.query">
-<code class="descname">query</code><span class="sig-paren">(</span><em>ordered=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyListCollection.query" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a query using
-<code class="xref py py-attr docutils literal"><span class="pre">AdjacencyListCollection.__listclass__</span></code>.</p>
 </dd></dl>
 
-<dl class="staticmethod">
-<dt id="onegov.core.orm.abstract.AdjacencyListCollection.sort_key">
-<em class="property">static </em><code class="descname">sort_key</code><span class="sig-paren">(</span><em>item</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.sort_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.AdjacencyListCollection.sort_key" title="Permalink to this definition">¶</a></dt>
-<dd><p>The sort key with which the items are sorted into their siblings.</p>
-</dd></dl>
+<span class="target" id="module-onegov.core.orm.abstract.associable"></span><p>Generic associations are an interesting SQLAlchemy design pattern
+that allow for collections of records to be attached to other models by
+mere inheritance.</p>
+<p>Generic associations are useful in situations where a model should be
+attachable to a number of third-party models. For example, we might say that
+a comment model should be attacheable to any other model (say a page or a
+ticket). In such an instance generic associations offer the benefit of
+being simple to integrate on the third-party model.</p>
+<p>Additionally we can define generic methods that work on all third-party
+models that inherit from the associated model (in our example imagine a
+“Commentable” class that leads to the automatic attachment of comments to
+Page/Ticket models).</p>
+<p>See also:
+<a class="reference external" href="https://github.com/zzzeek/sqlalchemy/blob/master/examples/">https://github.com/zzzeek/sqlalchemy/blob/master/examples/</a>
+generic_associations/table_per_association.py</p>
+<p>Note that you do not want to use these associations in lieue of simple
+relationships between two models. The standard way of doing this leads to a
+strong relationship on the database and is easier to change and reason about.</p>
+<p>Generic associations are meant for generic usecases. These currently include
+payments (any model may be payable) and files (any model may have files
+attached). Other generic associations should be introduced along these
+lines.</p>
+<p>A single model may be associated to any number of other models. For example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>                        ┌─────────────┐
+                  ┌─────│ Reservation │
+┌────────────┐    │     └─────────────┘
+│  Payment   │◀───┤
+└────────────┘    │     ┌─────────────┐
+                  └─────│    Form     │
+                        └─────────────┘
+</pre></div>
+</div>
+<p>Here, <code class="docutils literal"><span class="pre">Payment</span></code> is associable (through the <code class="docutils literal"><span class="pre">Payable</span></code> mixin).
+<code class="docutils literal"><span class="pre">Reservation</span></code> and <code class="docutils literal"><span class="pre">Form</span></code> in turn inherit from <code class="docutils literal"><span class="pre">Payable</span></code>.</p>
+<p>This all is probably best understood in an example:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>class Payment(Base, Associable):</dt>
+<dd>__tablename__ == ‘payments’</dd>
+<dt>class Payable(object):</dt>
+<dd>payment = associated(Address, ‘address’, ‘one-to-one’)</dd>
+<dt>class Product(Base, Payable):</dt>
+<dd>__tablename__ == ‘products’</dd>
+</dl>
+</div></blockquote>
+<p>This results in a product model which has a payment attribute attached to it.
+The payments are stored in the <code class="docutils literal"><span class="pre">payments</span></code> table, products in the <code class="docutils literal"><span class="pre">products</span></code>
+table. The link between the two is established in the automatically created
+<code class="docutils literal"><span class="pre">payments_for_products</span></code> table.</p>
+<dl class="function">
+<dt id="onegov.core.orm.abstract.associable.associated">
+<code class="descclassname">onegov.core.orm.abstract.associable.</code><code class="descname">associated</code><span class="sig-paren">(</span><em>associated_cls</em>, <em>attribute_name</em>, <em>cardinality='one-to-many'</em>, <em>uselist='auto'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/associable.html#associated"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.associable.associated" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an associated attribute. This attribute is supposed to be
+defined on the mixin class that will establish the generic association
+if inherited by a model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>associated_cls</strong> – The class which the model will be associated with.</li>
+<li><strong>attribute_name</strong> – The name of the attribute used on the mixin class.</li>
+<li><strong>cardinality</strong> – May be ‘one-to-one’, ‘one-to-many’ or ‘many-to-many’. Cascades are
+used automatically, unless ‘many-to-many’ is used, in which case
+cascades are disabled.</li>
+<li><strong>uselist</strong> – True if the attribute on the inheriting model is a list. Use ‘auto’
+if this should be automatically decided depending on the cardinality.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Adress</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">Associable</span><span class="p">):</span>
+    <span class="k">pass</span>
 
+<span class="k">class</span> <span class="nc">Addressable</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">address</span> <span class="o">=</span> <span class="n">associated</span><span class="p">(</span><span class="n">Address</span><span class="p">,</span> <span class="s1">&#39;address&#39;</span><span class="p">,</span> <span class="s1">&#39;one-to-one&#39;</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">Company</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">Addressable</span><span class="p">):</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="class">
-<dt id="onegov.core.orm.abstract.MoveDirection">
-<em class="property">class </em><code class="descclassname">onegov.core.orm.abstract.</code><code class="descname">MoveDirection</code><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#MoveDirection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.MoveDirection" title="Permalink to this definition">¶</a></dt>
-<dd><p>Describs the possible directions for the
-<a class="reference internal" href="#onegov.core.orm.abstract.AdjacencyListCollection.move" title="onegov.core.orm.abstract.AdjacencyListCollection.move"><code class="xref py py-meth docutils literal"><span class="pre">AdjacencyListCollection.move()</span></code></a> method.</p>
+<dt id="onegov.core.orm.abstract.associable.Associable">
+<em class="property">class </em><code class="descclassname">onegov.core.orm.abstract.associable.</code><code class="descname">Associable</code><a class="reference internal" href="_modules/onegov/core/orm/abstract/associable.html#Associable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.associable.Associable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mixin to enable associations on a model. Only models which are
+associable may be targeted by <a href="#id3"><span class="problematic" id="id4">:func:`associated`_</span></a></p>
+<dl class="classmethod">
+<dt id="onegov.core.orm.abstract.associable.Associable.association_base">
+<em class="property">classmethod </em><code class="descname">association_base</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/associable.html#Associable.association_base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.associable.Associable.association_base" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the model which directly inherits from Associable.</p>
 </dd></dl>
 
-<dl class="function">
-<dt id="onegov.core.orm.abstract.sort_siblings">
-<code class="descclassname">onegov.core.orm.abstract.</code><code class="descname">sort_siblings</code><span class="sig-paren">(</span><em>siblings</em>, <em>key</em>, <em>reverse=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#sort_siblings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.sort_siblings" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sorts the siblings by the given key, writing the order to the
-database.</p>
+<dl class="classmethod">
+<dt id="onegov.core.orm.abstract.associable.Associable.register_link">
+<em class="property">classmethod </em><code class="descname">register_link</code><span class="sig-paren">(</span><em>link_name</em>, <em>linked_class</em>, <em>table</em>, <em>key</em>, <em>attribute</em>, <em>cardinality</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/associable.html#Associable.register_link"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.associable.Associable.register_link" title="Permalink to this definition">¶</a></dt>
+<dd><p>All associated classes are registered through this method. This
+yields the following benefits:</p>
+<ol class="arabic simple">
+<li>We gain the ability to query all the linked records in one query.
+This is hard otherwise as each <code class="docutils literal"><span class="pre">Payable</span></code> class leads to its own
+association table which needs to be queried separately.</li>
+<li>We are able to reset all created backreferences. This is necessary
+during tests. SQLAlchemy keeps these references around and won’t
+let us re-register the same model multiple times (which outside
+of tests is completely reasonable).</li>
+</ol>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.core.orm.abstract.associable.Associable.links">
+<code class="descname">links</code><a class="headerlink" href="#onegov.core.orm.abstract.associable.Associable.links" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a query chain with all records of all models which attach
+to the associable model.</p>
+</dd></dl>
+
 </dd></dl>
 
 <span class="target" id="module-onegov.core.orm.mixins"></span><dl class="function">
@@ -2671,7 +2839,7 @@ values to the batch which are then not loaded by the whole query).</p>
 <div class="section" id="module-onegov.core.cli.core">
 <span id="cli-commands"></span><h2>Cli Commands<a class="headerlink" href="#module-onegov.core.cli.core" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="core-commands">
-<span id="id3"></span><h3>Core Commands<a class="headerlink" href="#core-commands" title="Permalink to this headline">¶</a></h3>
+<span id="id5"></span><h3>Core Commands<a class="headerlink" href="#core-commands" title="Permalink to this headline">¶</a></h3>
 <p>Provides a framework for cli commands run against one ore more onegov
 cloud applications.</p>
 <p>OneGov cli commands are usually ran against a onegov.yml config file, which

@@ -59,7 +59,7 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
 
 
-<div class="viewcode-block" id="MoveDirection"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.MoveDirection">[docs]</a><span class="k">class</span> <span class="nc">MoveDirection</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<div class="viewcode-block" id="MoveDirection"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.adjacency_list.MoveDirection">[docs]</a><span class="k">class</span> <span class="nc">MoveDirection</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Describs the possible directions for the</span>
 <span class="sd">    :meth:`AdjacencyListCollection.move` method.</span>
 
@@ -72,7 +72,7 @@
     <span class="n">below</span> <span class="o">=</span> <span class="mi">2</span></div>
 
 
-<div class="viewcode-block" id="sort_siblings"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.sort_siblings">[docs]</a><span class="k">def</span> <span class="nf">sort_siblings</span><span class="p">(</span><span class="n">siblings</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="sort_siblings"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.adjacency_list.sort_siblings">[docs]</a><span class="k">def</span> <span class="nf">sort_siblings</span><span class="p">(</span><span class="n">siblings</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Sorts the siblings by the given key, writing the order to the</span>
 <span class="sd">    database.</span>
 
@@ -83,7 +83,7 @@
         <span class="n">sibling</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="n">ix</span></div>
 
 
-<div class="viewcode-block" id="AdjacencyList"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.AdjacencyList">[docs]</a><span class="k">class</span> <span class="nc">AdjacencyList</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+<div class="viewcode-block" id="AdjacencyList"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.adjacency_list.AdjacencyList">[docs]</a><span class="k">class</span> <span class="nc">AdjacencyList</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; An abstract AdjacencyList implementation representing a Tree. &quot;&quot;&quot;</span>
 
     <span class="n">__abstract__</span> <span class="o">=</span> <span class="kc">True</span>
@@ -284,7 +284,7 @@
         <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="AdjacencyListCollection"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.AdjacencyListCollection">[docs]</a><span class="k">class</span> <span class="nc">AdjacencyListCollection</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="AdjacencyListCollection"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection">[docs]</a><span class="k">class</span> <span class="nc">AdjacencyListCollection</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; A base class for collections working with :class:`AdjacencyList`. &quot;&quot;&quot;</span>
 
     <span class="nd">@property</span>
@@ -298,14 +298,14 @@
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">session</span>
 
-<div class="viewcode-block" id="AdjacencyListCollection.sort_key"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.AdjacencyListCollection.sort_key">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="AdjacencyListCollection.sort_key"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.sort_key">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">sort_key</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; The sort key with which the items are sorted into their siblings.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">normalize_for_url</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">title</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="AdjacencyListCollection.query"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.AdjacencyListCollection.query">[docs]</a>    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="AdjacencyListCollection.query"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.query">[docs]</a>    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns a query using</span>
 <span class="sd">        :attr:`AdjacencyListCollection.__listclass__`.</span>
 
@@ -315,7 +315,7 @@
 
         <span class="k">return</span> <span class="n">query</span></div>
 
-<div class="viewcode-block" id="AdjacencyListCollection.by_id"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.AdjacencyListCollection.by_id">[docs]</a>    <span class="k">def</span> <span class="nf">by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_id</span><span class="p">):</span>
+<div class="viewcode-block" id="AdjacencyListCollection.by_id"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.by_id">[docs]</a>    <span class="k">def</span> <span class="nf">by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes the given page id and returns the page. Try to keep this</span>
 <span class="sd">        id away from the public. It&#39;s not a security problem if it leaks, but</span>
 <span class="sd">        it&#39;s not something the public can necessarly count on.</span>
@@ -328,7 +328,7 @@
 
         <span class="k">return</span> <span class="n">query</span></div>
 
-<div class="viewcode-block" id="AdjacencyListCollection.by_path"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.AdjacencyListCollection.by_path">[docs]</a>    <span class="k">def</span> <span class="nf">by_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">ensure_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AdjacencyListCollection.by_path"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.by_path">[docs]</a>    <span class="k">def</span> <span class="nf">by_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">ensure_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes a path and returns the page associated with it.</span>
 
 <span class="sd">        For example, given this hierarchy::</span>
@@ -381,7 +381,7 @@
         <span class="k">if</span> <span class="n">ensure_type</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">item</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">item</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ensure_type</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">item</span></div>
 
-<div class="viewcode-block" id="AdjacencyListCollection.get_unique_child_name"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.AdjacencyListCollection.get_unique_child_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_unique_child_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+<div class="viewcode-block" id="AdjacencyListCollection.get_unique_child_name"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.get_unique_child_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_unique_child_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes the given name or title, normalizes it and makes sure</span>
 <span class="sd">        that it&#39;s unique among the siblings of the item.</span>
 
@@ -406,7 +406,7 @@
 
         <span class="k">return</span> <span class="n">name</span></div>
 
-<div class="viewcode-block" id="AdjacencyListCollection.add"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.AdjacencyListCollection.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="AdjacencyListCollection.add"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Adds a page to the given parent. &quot;&quot;&quot;</span>
 
         <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_unique_child_name</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">parent</span><span class="p">)</span>
@@ -453,7 +453,7 @@
     <span class="k">def</span> <span class="nf">add_or_get_root</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_or_get</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-<div class="viewcode-block" id="AdjacencyListCollection.delete"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.AdjacencyListCollection.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">page</span><span class="p">):</span>
+<div class="viewcode-block" id="AdjacencyListCollection.delete"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">page</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Deletes the given page and *all* it&#39;s desecendants!. &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">page</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
@@ -464,7 +464,7 @@
     <span class="k">def</span> <span class="nf">move_below</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">subject</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">MoveDirection</span><span class="o">.</span><span class="n">below</span><span class="p">)</span>
 
-<div class="viewcode-block" id="AdjacencyListCollection.move"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.AdjacencyListCollection.move">[docs]</a>    <span class="k">def</span> <span class="nf">move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">direction</span><span class="p">):</span>
+<div class="viewcode-block" id="AdjacencyListCollection.move"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.move">[docs]</a>    <span class="k">def</span> <span class="nf">move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">direction</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes the given subject and moves it somehwere in relation to the</span>
 <span class="sd">        target.</span>
 
