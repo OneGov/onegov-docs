@@ -47,6 +47,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span><span class="p">,</span> <span class="n">content_property</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">UUID</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UTCDateTime</span>
+<span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">AssociatedFiles</span><span class="p">,</span> <span class="n">File</span>
 <span class="kn">from</span> <span class="nn">onegov.form.display</span> <span class="k">import</span> <span class="n">render_field</span>
 <span class="kn">from</span> <span class="nn">onegov.form.parser</span> <span class="k">import</span> <span class="n">parse_form</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">Payable</span>
@@ -54,11 +55,7 @@
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">,</span> <span class="n">Text</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="p">(</span>
-    <span class="n">deferred</span><span class="p">,</span>
-    <span class="n">object_session</span><span class="p">,</span>
-    <span class="n">relationship</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span><span class="p">,</span> <span class="n">relationship</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">TextAreaField</span>
@@ -150,7 +147,7 @@
         <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="ow">and</span> <span class="kc">True</span> <span class="ow">or</span> <span class="kc">False</span></div>
 
 
-<div class="viewcode-block" id="FormSubmission"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.models.FormSubmission">[docs]</a><span class="k">class</span> <span class="nc">FormSubmission</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">Payable</span><span class="p">):</span>
+<div class="viewcode-block" id="FormSubmission"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.models.FormSubmission">[docs]</a><span class="k">class</span> <span class="nc">FormSubmission</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">Payable</span><span class="p">,</span> <span class="n">AssociatedFiles</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Defines a submitted form in the database. &quot;&quot;&quot;</span>
 
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;submissions&#39;</span>
@@ -188,13 +185,6 @@
     <span class="n">state</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span>
         <span class="n">Enum</span><span class="p">(</span><span class="s1">&#39;pending&#39;</span><span class="p">,</span> <span class="s1">&#39;complete&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;submission_state&#39;</span><span class="p">),</span>
         <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span>
-    <span class="p">)</span>
-
-    <span class="c1">#: the files belonging to this submission</span>
-    <span class="n">files</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
-        <span class="s2">&quot;FormSubmissionFile&quot;</span><span class="p">,</span>
-        <span class="n">backref</span><span class="o">=</span><span class="s1">&#39;submission&#39;</span><span class="p">,</span>
-        <span class="n">cascade</span><span class="o">=</span><span class="s2">&quot;all, delete-orphan&quot;</span>
     <span class="p">)</span>
 
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
@@ -284,46 +274,8 @@
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;complete&#39;</span><span class="p">}</span>
 
 
-<div class="viewcode-block" id="FormSubmissionFile"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.models.FormSubmissionFile">[docs]</a><span class="k">class</span> <span class="nc">FormSubmissionFile</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Holds files uploaded in form submissions.</span>
-
-<span class="sd">    This ensures that forms can be loaded without having to load the files</span>
-<span class="sd">    into memory. But it&#39;s still not super efficient. The thinking is that</span>
-<span class="sd">    most forms won&#39;t have file uploads and if they do it won&#39;t be large.</span>
-
-<span class="sd">    Don&#39;t store big files here, or files which need to be served often.</span>
-<span class="sd">    For that you *have* to use some kind of filesystem storage.</span>
-
-<span class="sd">    The basic use case for this table is the odd table which contains some</span>
-<span class="sd">    kind of file which is then viewed by backend personell only.</span>
-
-<span class="sd">    In this case there won&#39;t many file downloads and it&#39;s important</span>
-<span class="sd">    that the file stays with the form and is not accidentally lost.</span>
-
-<span class="sd">    So it fits for that case.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;submission_files&#39;</span>
-
-    <span class="c1">#: id of the file</span>
-    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
-
-    <span class="c1">#: the id of the submission</span>
-    <span class="n">submission_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">FormSubmission</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="c1">#: the id of the field in the submission</span>
-    <span class="n">field_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="c1">#: the actual file data</span>
-    <span class="n">filedata</span> <span class="o">=</span> <span class="n">deferred</span><span class="p">(</span><span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">submission_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns the data stored on the submission, associated with this</span>
-<span class="sd">        submisison file.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">field_id</span><span class="p">)</span></div>
+<span class="k">class</span> <span class="nc">FormFile</span><span class="p">(</span><span class="n">File</span><span class="p">):</span>
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;formfile&#39;</span><span class="p">}</span>
 </pre></div>
 
           </div>

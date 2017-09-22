@@ -42,16 +42,18 @@
 <span></span><span class="kn">import</span> <span class="nn">warnings</span>
 
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">onegov.core.crypto</span> <span class="k">import</span> <span class="n">random_token</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
+<span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">as_fileintent</span>
 <span class="kn">from</span> <span class="nn">onegov.form.errors</span> <span class="k">import</span> <span class="n">UnableToComplete</span>
 <span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">UploadField</span>
 <span class="kn">from</span> <span class="nn">onegov.form.models</span> <span class="k">import</span> <span class="p">(</span>
     <span class="n">FormDefinition</span><span class="p">,</span>
     <span class="n">FormSubmission</span><span class="p">,</span>
-    <span class="n">FormSubmissionFile</span>
+    <span class="n">FormFile</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">replace_timezone</span><span class="p">,</span> <span class="n">utcnow</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">func</span><span class="p">,</span> <span class="n">not_</span><span class="p">,</span> <span class="n">exc</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">func</span><span class="p">,</span> <span class="n">exc</span><span class="p">,</span> <span class="n">inspect</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
 
 
@@ -259,16 +261,14 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">submission</span><span class="o">.</span><span class="n">id</span> <span class="ow">and</span> <span class="n">submission</span><span class="o">.</span><span class="n">state</span>
 
-        <span class="n">exclude</span> <span class="o">=</span> <span class="n">exclude</span> <span class="ow">or</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="c1"># ignore certain fields</span>
+        <span class="n">exclude</span> <span class="o">=</span> <span class="n">exclude</span> <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">exclude</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">exclude</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">csrf_field_name</span><span class="p">)</span>  <span class="c1"># never include the csrf token</span>
 
         <span class="n">submission</span><span class="o">.</span><span class="n">definition</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">_source</span>
         <span class="n">submission</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">form</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude</span>
         <span class="p">}</span>
-
-        <span class="c1"># never include the csrf token</span>
-        <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">csrf</span> <span class="ow">and</span> <span class="n">form</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">csrf_field_name</span> <span class="ow">in</span> <span class="n">submission</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
-            <span class="k">del</span> <span class="n">submission</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">form</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">csrf_field_name</span><span class="p">]</span>
 
         <span class="c1"># move uploaded files to a separate table</span>
         <span class="n">files</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
@@ -291,27 +291,33 @@
 
         <span class="c1"># delete all files which are not part of the updated form</span>
         <span class="c1"># if no files are given, delete all files belonging to the submission</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FormSubmissionFile</span><span class="p">)</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FormSubmissionFile</span><span class="o">.</span><span class="n">submission_id</span> <span class="o">==</span> <span class="n">submission</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">trash</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">submission</span><span class="o">.</span><span class="n">files</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">note</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">files_to_keep</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="n">files_to_keep</span><span class="p">:</span>
-            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">not_</span><span class="p">(</span>
-                <span class="n">FormSubmissionFile</span><span class="o">.</span><span class="n">field_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">files_to_keep</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">trash</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
-        <span class="n">query</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s1">&#39;fetch&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">trash</span> <span class="ow">and</span> <span class="n">inspect</span><span class="p">(</span><span class="n">submission</span><span class="p">)</span><span class="o">.</span><span class="n">persistent</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">submission</span><span class="p">)</span>
 
         <span class="c1"># store the new fields in the separate table</span>
+
         <span class="k">for</span> <span class="n">field_id</span> <span class="ow">in</span> <span class="n">files_to_add</span><span class="p">:</span>
-            <span class="n">f</span> <span class="o">=</span> <span class="n">FormSubmissionFile</span><span class="p">(</span>
-                <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
-                <span class="n">field_id</span><span class="o">=</span><span class="n">field_id</span><span class="p">,</span>
-                <span class="n">submission_id</span><span class="o">=</span><span class="n">submission</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-                <span class="n">filedata</span><span class="o">=</span><span class="n">submission</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">field_id</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">],</span>
+            <span class="n">field</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="n">field_id</span><span class="p">)</span>
+
+            <span class="n">f</span> <span class="o">=</span> <span class="n">FormFile</span><span class="p">(</span>
+                <span class="nb">id</span><span class="o">=</span><span class="n">random_token</span><span class="p">(),</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span>
+                <span class="n">note</span><span class="o">=</span><span class="n">field_id</span><span class="p">,</span>
+                <span class="n">reference</span><span class="o">=</span><span class="n">as_fileintent</span><span class="p">(</span>
+                    <span class="n">content</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">file</span><span class="p">,</span>
+                    <span class="n">filename</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">filename</span>
+                <span class="p">)</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+            <span class="n">submission</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
             <span class="c1"># replace the data in the submission with a reference</span>
-            <span class="n">submission</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">field_id</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;@</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
+            <span class="n">submission</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">field_id</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;@</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
 
             <span class="c1"># we need to mark these changes as only top-level json changes</span>
             <span class="c1"># are automatically propagated</span>
@@ -337,13 +343,8 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">include_external</span><span class="p">:</span>
             <span class="n">submissions</span> <span class="o">=</span> <span class="n">submissions</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FormSubmission</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">)</span>
 
-        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FormSubmissionFile</span><span class="p">)</span>
-        <span class="n">files</span> <span class="o">=</span> <span class="n">files</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FormSubmissionFile</span><span class="o">.</span><span class="n">submission_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
-            <span class="n">submissions</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">FormSubmission</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">subquery</span><span class="p">())</span>
-        <span class="p">)</span>
-
-        <span class="n">files</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s1">&#39;fetch&#39;</span><span class="p">)</span>
-        <span class="n">submissions</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s1">&#39;fetch&#39;</span><span class="p">)</span></div>
+        <span class="k">for</span> <span class="n">submission</span> <span class="ow">in</span> <span class="n">submissions</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">submission</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">by_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FormSubmission</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">state</span><span class="p">)</span>
@@ -369,13 +370,6 @@
         <span class="k">if</span> <span class="n">current_only</span><span class="p">:</span>
             <span class="n">an_hour_ago</span> <span class="o">=</span> <span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FormSubmission</span><span class="o">.</span><span class="n">last_change</span> <span class="o">&gt;=</span> <span class="n">an_hour_ago</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">first</span><span class="p">()</span></div>
-
-<div class="viewcode-block" id="FormSubmissionCollection.file_by_id"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.collection.FormSubmissionCollection.file_by_id">[docs]</a>    <span class="k">def</span> <span class="nf">file_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns the submission file with the given id or None. &quot;&quot;&quot;</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FormSubmissionFile</span><span class="p">)</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FormSubmissionFile</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="nb">id</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">first</span><span class="p">()</span></div>
 
