@@ -49,6 +49,7 @@
 <span class="kn">from</span> <span class="nn">onegov.event</span> <span class="k">import</span> <span class="n">EventCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">FileSetCollection</span><span class="p">,</span> <span class="n">FileCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">Organisation</span>
 <span class="kn">from</span> <span class="nn">onegov.page</span> <span class="k">import</span> <span class="n">PageCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">ResourceCollection</span>
@@ -70,19 +71,31 @@
     <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">create_new_organisation</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">create_files</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span> <span class="ow">or</span> <span class="n">module_path</span><span class="p">(</span><span class="s1">&#39;onegov.org&#39;</span><span class="p">,</span> <span class="s1">&#39;content/de.yaml&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">create_new_organisation</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">create_files</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">locale</span><span class="o">=</span><span class="s1">&#39;de_CH&#39;</span><span class="p">):</span>
+    <span class="n">locales</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;de_CH&#39;</span><span class="p">:</span> <span class="s1">&#39;content/de.yaml&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;fr_CH&#39;</span><span class="p">:</span> <span class="s1">&#39;content/fr.yaml&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span> <span class="ow">or</span> <span class="n">module_path</span><span class="p">(</span><span class="s1">&#39;onegov.org&#39;</span><span class="p">,</span> <span class="n">locales</span><span class="p">[</span><span class="n">locale</span><span class="p">])</span>
     <span class="n">content</span> <span class="o">=</span> <span class="n">load_content</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
     <span class="n">org</span> <span class="o">=</span> <span class="n">Organisation</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;organisation&#39;</span><span class="p">])</span>
+    <span class="n">org</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;locales&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">locale</span>
 
     <span class="n">session</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
     <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">org</span><span class="p">)</span>
 
+    <span class="n">translator</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">translations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">locale</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">translator</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
+
     <span class="n">add_pages</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
-    <span class="n">add_builtin_forms</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
-    <span class="n">add_events</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-    <span class="n">add_resources</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">libres_context</span><span class="p">)</span>
+    <span class="n">add_builtin_forms</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">locale</span><span class="o">=</span><span class="n">locale</span><span class="p">)</span>
+    <span class="n">add_events</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">translate</span><span class="p">)</span>
+    <span class="n">add_resources</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">libres_context</span><span class="p">,</span> <span class="n">translate</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">create_files</span><span class="p">:</span>
         <span class="n">add_filesets</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
@@ -110,9 +123,9 @@
         <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">add_builtin_forms</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">definitions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">add_builtin_forms</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">definitions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">locale</span><span class="o">=</span><span class="s1">&#39;de_CH&#39;</span><span class="p">):</span>
     <span class="n">forms</span> <span class="o">=</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">definitions</span>
-    <span class="n">definitions</span> <span class="o">=</span> <span class="n">definitions</span> <span class="ow">or</span> <span class="n">builtin_form_definitions</span><span class="p">()</span>
+    <span class="n">definitions</span> <span class="o">=</span> <span class="n">definitions</span> <span class="ow">or</span> <span class="n">builtin_form_definitions</span><span class="p">(</span><span class="n">locale</span><span class="o">=</span><span class="n">locale</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">definition</span> <span class="ow">in</span> <span class="n">definitions</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">forms</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
@@ -128,12 +141,17 @@
         <span class="p">)</span>
 
 
-<div class="viewcode-block" id="builtin_form_definitions"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.initial_content.builtin_form_definitions">[docs]</a><span class="k">def</span> <span class="nf">builtin_form_definitions</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="builtin_form_definitions"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.initial_content.builtin_form_definitions">[docs]</a><span class="k">def</span> <span class="nf">builtin_form_definitions</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">locale</span><span class="o">=</span><span class="s1">&#39;de_CH&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Yields the name, title and the form definition of all form definitions</span>
 <span class="sd">    in the given or the default path.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span> <span class="ow">or</span> <span class="n">module_path</span><span class="p">(</span><span class="s1">&#39;onegov.org&#39;</span><span class="p">,</span> <span class="s1">&#39;forms/builtin&#39;</span><span class="p">)</span>
+    <span class="n">locales</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;de_CH&#39;</span><span class="p">:</span> <span class="s1">&#39;forms/builtin/de&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;fr_CH&#39;</span><span class="p">:</span> <span class="s1">&#39;forms/builtin/fr&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span> <span class="ow">or</span> <span class="n">module_path</span><span class="p">(</span><span class="s1">&#39;onegov.org&#39;</span><span class="p">,</span> <span class="n">locales</span><span class="p">[</span><span class="n">locale</span><span class="p">])</span>
 
     <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.form&#39;</span><span class="p">):</span>
@@ -154,16 +172,16 @@
         <span class="k">return</span> <span class="n">title</span><span class="p">,</span> <span class="n">definition</span></div>
 
 
-<span class="k">def</span> <span class="nf">add_resources</span><span class="p">(</span><span class="n">libres_context</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">add_resources</span><span class="p">(</span><span class="n">libres_context</span><span class="p">,</span> <span class="n">translate</span><span class="p">):</span>
     <span class="n">resource</span> <span class="o">=</span> <span class="n">ResourceCollection</span><span class="p">(</span><span class="n">libres_context</span><span class="p">)</span>
     <span class="n">resource</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
-        <span class="s2">&quot;Tageskarte&quot;</span><span class="p">,</span>
+        <span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Daypass&quot;</span><span class="p">)),</span>
         <span class="s1">&#39;Europe/Zurich&#39;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;daypass&#39;</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tageskarte&#39;</span>
     <span class="p">)</span>
     <span class="n">resource</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
-        <span class="s2">&quot;Konferenzraum&quot;</span><span class="p">,</span>
+        <span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Conference room&quot;</span><span class="p">)),</span>
         <span class="s1">&#39;Europe/Zurich&#39;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;room&#39;</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;konferenzraum&#39;</span>
@@ -199,7 +217,7 @@
                 <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">add_events</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">add_events</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">translate</span><span class="p">):</span>
     <span class="n">start</span> <span class="o">=</span> <span class="n">as_datetime</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">date</span><span class="p">())</span>
 
     <span class="k">while</span> <span class="n">start</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">:</span>
@@ -207,14 +225,16 @@
 
     <span class="n">events</span> <span class="o">=</span> <span class="n">EventCollection</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
     <span class="n">event</span> <span class="o">=</span> <span class="n">events</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
-        <span class="n">title</span><span class="o">=</span><span class="s2">&quot;150 Jahre </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">),</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;150 years </span><span class="si">{organisation}</span><span class="s2">&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">organisation</span><span class="o">=</span><span class="n">name</span>
+        <span class="p">),</span>
         <span class="n">start</span><span class="o">=</span><span class="n">start</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
         <span class="n">end</span><span class="o">=</span><span class="n">start</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
         <span class="n">timezone</span><span class="o">=</span><span class="s2">&quot;Europe/Zurich&quot;</span><span class="p">,</span>
         <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Party&quot;</span><span class="p">],</span>
-        <span class="n">location</span><span class="o">=</span><span class="s2">&quot;Sportanlage&quot;</span><span class="p">,</span>
+        <span class="n">location</span><span class="o">=</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Sports facility&quot;</span><span class="p">)),</span>
         <span class="n">content</span><span class="o">=</span><span class="p">{</span>
-            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Wir feiern das 150 jährige Bestehen.&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;We celebrate our 150th anniversary.&quot;</span><span class="p">)),</span>
             <span class="s2">&quot;organizer&quot;</span><span class="p">:</span> <span class="n">name</span>
         <span class="p">},</span>
         <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;submitter_email&quot;</span><span class="p">:</span> <span class="s2">&quot;info@example.org&quot;</span><span class="p">},</span>
@@ -222,14 +242,14 @@
     <span class="n">event</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
     <span class="n">event</span><span class="o">.</span><span class="n">publish</span><span class="p">()</span>
     <span class="n">event</span> <span class="o">=</span> <span class="n">events</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
-        <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Generalversammlung&quot;</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;General Assembly&quot;</span><span class="p">)),</span>
         <span class="n">start</span><span class="o">=</span><span class="n">start</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">hours</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
         <span class="n">end</span><span class="o">=</span><span class="n">start</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">hours</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">30</span><span class="p">),</span>
         <span class="n">timezone</span><span class="o">=</span><span class="s2">&quot;Europe/Zurich&quot;</span><span class="p">,</span>
         <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Politics&quot;</span><span class="p">],</span>
-        <span class="n">location</span><span class="o">=</span><span class="s2">&quot;Gemeindesaal&quot;</span><span class="p">,</span>
+        <span class="n">location</span><span class="o">=</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Communal hall&quot;</span><span class="p">)),</span>
         <span class="n">content</span><span class="o">=</span><span class="p">{</span>
-            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Alle Jahre wieder.&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;As every year.&quot;</span><span class="p">)),</span>
             <span class="s2">&quot;organizer&quot;</span><span class="p">:</span> <span class="n">name</span>
         <span class="p">},</span>
         <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;submitter_email&quot;</span><span class="p">:</span> <span class="s2">&quot;info@example.org&quot;</span><span class="p">},</span>
@@ -237,7 +257,7 @@
     <span class="n">event</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
     <span class="n">event</span><span class="o">.</span><span class="n">publish</span><span class="p">()</span>
     <span class="n">event</span> <span class="o">=</span> <span class="n">events</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
-        <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Gemeinsames Turnen&quot;</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Community Gymnastics&quot;</span><span class="p">)),</span>
         <span class="n">start</span><span class="o">=</span><span class="n">start</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">hours</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
         <span class="n">end</span><span class="o">=</span><span class="n">start</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">hours</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
         <span class="n">recurrence</span><span class="o">=</span><span class="p">(</span>
@@ -247,25 +267,25 @@
         <span class="p">),</span>
         <span class="n">timezone</span><span class="o">=</span><span class="s2">&quot;Europe/Zurich&quot;</span><span class="p">,</span>
         <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Sports&quot;</span><span class="p">],</span>
-        <span class="n">location</span><span class="o">=</span><span class="s2">&quot;Turnhalle&quot;</span><span class="p">,</span>
+        <span class="n">location</span><span class="o">=</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Gymnasium&quot;</span><span class="p">)),</span>
         <span class="n">content</span><span class="o">=</span><span class="p">{</span>
-            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Gemeinsam fit werden.&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;organizer&quot;</span><span class="p">:</span> <span class="s2">&quot;Frauenverein&quot;</span>
+            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Get fit together.&quot;</span><span class="p">)),</span>
+            <span class="s2">&quot;organizer&quot;</span><span class="p">:</span> <span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Women&#39;s Club&quot;</span><span class="p">))</span>
         <span class="p">},</span>
         <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;submitter_email&quot;</span><span class="p">:</span> <span class="s2">&quot;info@example.org&quot;</span><span class="p">},</span>
     <span class="p">)</span>
     <span class="n">event</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
     <span class="n">event</span><span class="o">.</span><span class="n">publish</span><span class="p">()</span>
     <span class="n">event</span> <span class="o">=</span> <span class="n">events</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
-        <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Grümpelturnier&quot;</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Football Tournament&quot;</span><span class="p">)),</span>
         <span class="n">start</span><span class="o">=</span><span class="n">start</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">hours</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
         <span class="n">end</span><span class="o">=</span><span class="n">start</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">hours</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
         <span class="n">timezone</span><span class="o">=</span><span class="s2">&quot;Europe/Zurich&quot;</span><span class="p">,</span>
         <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Sports&quot;</span><span class="p">],</span>
-        <span class="n">location</span><span class="o">=</span><span class="s2">&quot;Sportanlage&quot;</span><span class="p">,</span>
+        <span class="n">location</span><span class="o">=</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Sports facility&quot;</span><span class="p">)),</span>
         <span class="n">content</span><span class="o">=</span><span class="p">{</span>
-            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Bolzen auf dem Platz.&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;organizer&quot;</span><span class="p">:</span> <span class="s2">&quot;Sportverein&quot;</span>
+            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Amateurs welcome!&quot;</span><span class="p">)),</span>
+            <span class="s2">&quot;organizer&quot;</span><span class="p">:</span> <span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Sports Association&quot;</span><span class="p">))</span>
         <span class="p">},</span>
         <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;submitter_email&quot;</span><span class="p">:</span> <span class="s2">&quot;info@example.org&quot;</span><span class="p">},</span>
     <span class="p">)</span>
