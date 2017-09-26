@@ -40,18 +40,23 @@
             
   <h1>Source code for onegov.search.indexer</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">import</span> <span class="nn">re</span>
 
 <span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span> <span class="nn">elasticsearch.exceptions</span> <span class="k">import</span> <span class="n">NotFoundError</span><span class="p">,</span> <span class="n">TransportError</span>
+<span class="kn">from</span> <span class="nn">langdetect.lang_detect_exception</span> <span class="k">import</span> <span class="n">LangDetectException</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">is_non_string_iterable</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">log</span><span class="p">,</span> <span class="n">Searchable</span><span class="p">,</span> <span class="n">utils</span>
 <span class="kn">from</span> <span class="nn">queue</span> <span class="k">import</span> <span class="n">Queue</span><span class="p">,</span> <span class="n">Empty</span><span class="p">,</span> <span class="n">Full</span>
 
+
 <span class="n">ES_ANALYZER_MAP</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;en&#39;</span><span class="p">:</span> <span class="s1">&#39;english&#39;</span><span class="p">,</span>
     <span class="s1">&#39;de&#39;</span><span class="p">:</span> <span class="s1">&#39;german&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;fr&#39;</span><span class="p">:</span> <span class="s1">&#39;french&#39;</span><span class="p">,</span>
     <span class="s1">&#39;en_html&#39;</span><span class="p">:</span> <span class="s1">&#39;english_html&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;de_html&#39;</span><span class="p">:</span> <span class="s1">&#39;german_html&#39;</span>
+    <span class="s1">&#39;de_html&#39;</span><span class="p">:</span> <span class="s1">&#39;german_html&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;fr_html&#39;</span><span class="p">:</span> <span class="s1">&#39;french_html&#39;</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="n">ANALYSIS_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
@@ -75,6 +80,27 @@
         <span class="s2">&quot;german_stemmer&quot;</span><span class="p">:</span> <span class="p">{</span>
             <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;stemmer&quot;</span><span class="p">,</span>
             <span class="s2">&quot;language&quot;</span><span class="p">:</span> <span class="s2">&quot;light_german&quot;</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;french_elision&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;elision&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;articles_case&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;articles&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">,</span> <span class="s2">&quot;t&quot;</span><span class="p">,</span> <span class="s2">&quot;qu&quot;</span><span class="p">,</span> <span class="s2">&quot;n&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="s2">&quot;jusqu&quot;</span><span class="p">,</span> <span class="s2">&quot;quoiqu&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;lorsqu&quot;</span><span class="p">,</span> <span class="s2">&quot;puisqu&quot;</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;french_stop&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;stop&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;stopwords&quot;</span><span class="p">:</span> <span class="s2">&quot;_french_&quot;</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;french_keywords&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;keyword_marker&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;keywords&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;Exemple&quot;</span><span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;french_stemmer&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;stemmer&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;language&quot;</span><span class="p">:</span> <span class="s2">&quot;light_french&quot;</span>
         <span class="p">}</span>
     <span class="p">},</span>
     <span class="s2">&quot;analyzer&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -100,6 +126,19 @@
                 <span class="s2">&quot;german_stop&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;german_normalization&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;german_stemmer&quot;</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;french_html&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;tokenizer&quot;</span><span class="p">:</span> <span class="s2">&quot;standard&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;char_filter&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;html_strip&quot;</span>
+            <span class="p">],</span>
+            <span class="s2">&quot;filter&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;french_elision&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;lowercase&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;french_stop&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;french_keywords&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;french_stemmer&quot;</span>
             <span class="p">]</span>
         <span class="p">},</span>
         <span class="s2">&quot;autocomplete&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -537,6 +576,50 @@
         <span class="p">))</span></div></div>
 
 
+<span class="k">class</span> <span class="nc">ORMLanguageDetector</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">LanguageDetector</span><span class="p">):</span>
+
+    <span class="n">html_strip_expression</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;[^&lt;]+?&gt;&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">localized_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">definition</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">es_properties</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">definition</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;localized&#39;</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">key</span>
+
+    <span class="k">def</span> <span class="nf">localized_texts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">max_chars</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">chars</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">localized_properties</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="k">yield</span> <span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+            <span class="n">chars</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">max_chars</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_chars</span> <span class="o">&lt;=</span> <span class="n">chars</span><span class="p">:</span>
+                <span class="k">break</span>
+
+    <span class="k">def</span> <span class="nf">detect_object_language</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="n">properties</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">localized_properties</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">properties</span><span class="p">:</span>
+            <span class="c1"># here, the mapping will be the same for all languages</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">supported_languages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">text</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">localized_texts</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">max_chars</span><span class="o">=</span><span class="mi">1024</span><span class="p">))</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">html_strip_expression</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">supported_languages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">detect</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">LangDetectException</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">supported_languages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
 <div class="viewcode-block" id="ORMEventTranslator"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.indexer.ORMEventTranslator">[docs]</a><span class="k">class</span> <span class="nc">ORMEventTranslator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Handles the onegov.core orm events, translates them into indexing</span>
 <span class="sd">    actions and puts the result into a queue for the indexer to consume.</span>
@@ -550,9 +633,12 @@
         <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">dt</span><span class="p">:</span> <span class="n">dt</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
     <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mappings</span><span class="p">,</span> <span class="n">max_queue_size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mappings</span><span class="p">,</span> <span class="n">max_queue_size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="p">(</span>
+        <span class="s1">&#39;de&#39;</span><span class="p">,</span> <span class="s1">&#39;fr&#39;</span><span class="p">,</span> <span class="s1">&#39;en&#39;</span>
+    <span class="p">)):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mappings</span> <span class="o">=</span> <span class="n">mappings</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">queue</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="n">max_queue_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detector</span> <span class="o">=</span> <span class="n">ORMLanguageDetector</span><span class="p">(</span><span class="n">languages</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">on_insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Searchable</span><span class="p">):</span>
@@ -576,16 +662,21 @@
         <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">es_skip</span><span class="p">:</span>
             <span class="k">return</span>
 
+        <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">es_language</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+            <span class="n">language</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="o">.</span><span class="n">detect_object_language</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">language</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">es_language</span>
+
         <span class="n">translation</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;action&#39;</span><span class="p">:</span> <span class="s1">&#39;index&#39;</span><span class="p">,</span>
             <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">es_id</span><span class="p">),</span>
             <span class="s1">&#39;schema&#39;</span><span class="p">:</span> <span class="n">schema</span><span class="p">,</span>
             <span class="s1">&#39;type_name&#39;</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">es_type_name</span><span class="p">,</span>
-            <span class="s1">&#39;language&#39;</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">es_language</span><span class="p">,</span>
+            <span class="s1">&#39;language&#39;</span><span class="p">:</span> <span class="n">language</span><span class="p">,</span>
             <span class="s1">&#39;properties&#39;</span><span class="p">:</span> <span class="p">{}</span>
         <span class="p">}</span>
 
-        <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mappings</span><span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">es_type_name</span><span class="p">]</span><span class="o">.</span><span class="n">for_language</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">es_language</span><span class="p">)</span>
+        <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mappings</span><span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">es_type_name</span><span class="p">]</span><span class="o">.</span><span class="n">for_language</span><span class="p">(</span><span class="n">language</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">prop</span><span class="p">,</span> <span class="n">mapping</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 
@@ -679,7 +770,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>

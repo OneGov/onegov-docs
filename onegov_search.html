@@ -89,9 +89,21 @@ queue is filling up if the elasticsearch cluster cannot be reached.</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name" colspan="2">Elasticsearch_verify_certs:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first last">If true, the elasticsearch client verifies the certificates of
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">If true, the elasticsearch client verifies the certificates of
 the ssl connection. Defaults to true. Do not disable, unless you
 are in testing!</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Elasticsearch_languages:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><dl class="first last docutils">
+<dt>The languages supported by onegov.search. Defaults to:</dt>
+<dd><ul class="first last simple">
+<li>en</li>
+<li>de</li>
+<li>fr</li>
+</ul>
+</dd>
+</dl>
 </td>
 </tr>
 </tbody>
@@ -107,7 +119,7 @@ given languages, types and private documents excluded by default.</p>
 
 <dl class="method">
 <dt id="onegov.search.integration.ElasticsearchApp.es_search_by_request">
-<code class="descname">es_search_by_request</code><span class="sig-paren">(</span><em>request</em>, <em>types='*'</em>, <em>explain=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/search/integration.html#ElasticsearchApp.es_search_by_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.search.integration.ElasticsearchApp.es_search_by_request" title="Permalink to this definition">¶</a></dt>
+<code class="descname">es_search_by_request</code><span class="sig-paren">(</span><em>request</em>, <em>types='*'</em>, <em>explain=False</em>, <em>limit_to_request_language=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/search/integration.html#ElasticsearchApp.es_search_by_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.search.integration.ElasticsearchApp.es_search_by_request" title="Permalink to this definition">¶</a></dt>
 <dd><p>Takes the current <a class="reference internal" href="onegov_core.html#onegov.core.request.CoreRequest" title="onegov.core.request.CoreRequest"><code class="xref py py-class docutils literal"><span class="pre">CoreRequest</span></code></a> and
 returns an elastic search scoped to the current application, the
 requests language and it’s access rights.</p>
@@ -121,7 +133,7 @@ requests language and it’s access rights.</p>
 
 <dl class="method">
 <dt id="onegov.search.integration.ElasticsearchApp.es_suggestions_by_request">
-<code class="descname">es_suggestions_by_request</code><span class="sig-paren">(</span><em>request</em>, <em>query</em>, <em>types='*'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/search/integration.html#ElasticsearchApp.es_suggestions_by_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.search.integration.ElasticsearchApp.es_suggestions_by_request" title="Permalink to this definition">¶</a></dt>
+<code class="descname">es_suggestions_by_request</code><span class="sig-paren">(</span><em>request</em>, <em>query</em>, <em>types='*'</em>, <em>limit_to_request_language=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/search/integration.html#ElasticsearchApp.es_suggestions_by_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.search.integration.ElasticsearchApp.es_suggestions_by_request" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns suggestions for the given query, scoped to the language
 and the login status of the given requst.</p>
 </dd></dl>
@@ -274,7 +286,7 @@ targeting multiple indices.</p>
 
 <dl class="class">
 <dt id="onegov.search.indexer.ORMEventTranslator">
-<em class="property">class </em><code class="descclassname">onegov.search.indexer.</code><code class="descname">ORMEventTranslator</code><span class="sig-paren">(</span><em>mappings</em>, <em>max_queue_size=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/search/indexer.html#ORMEventTranslator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.search.indexer.ORMEventTranslator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">onegov.search.indexer.</code><code class="descname">ORMEventTranslator</code><span class="sig-paren">(</span><em>mappings</em>, <em>max_queue_size=0</em>, <em>languages=('de'</em>, <em>'fr'</em>, <em>'en')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/search/indexer.html#ORMEventTranslator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.search.indexer.ORMEventTranslator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Handles the onegov.core orm events, translates them into indexing
 actions and puts the result into a queue for the indexer to consume.</p>
 <p>The queue may be limited. Once the limit is reached, new events are no
@@ -319,13 +331,13 @@ identity is a completely different model.</p>
 <dl class="attribute">
 <dt id="onegov.search.mixins.Searchable.es_language">
 <code class="descname">es_language</code><a class="headerlink" href="#onegov.search.mixins.Searchable.es_language" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the ISO 639-1 language code of the content. Note that
-the object’s id may not be the same over differing languages.</p>
-<p>That is to say, this is not valid:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Object</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="s1">&#39;de&#39;</span><span class="p">)</span>
-<span class="n">Object</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="s1">&#39;en&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
+<dd><p>Defines the language of the object. By default ‘auto’ is used,
+which triggers automatic language detection. Automatic language
+detection is reasonably accurate if provided with enough text. Short
+texts are not detected easily.</p>
+<p>When ‘auto’ is used, expect some content to be misclassified. You
+should then search over all languages, not just the epxected one.</p>
+<p>This property can be used to manually set the language.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -452,6 +464,15 @@ counted as related a model is part of a polymorphic setup.</p>
 model’s type itself.</p>
 </dd></dl>
 
+<dl class="class">
+<dt id="onegov.search.utils.LanguageDetector">
+<em class="property">class </em><code class="descclassname">onegov.search.utils.</code><code class="descname">LanguageDetector</code><span class="sig-paren">(</span><em>supported_languages</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/search/utils.html#LanguageDetector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.search.utils.LanguageDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detects languages with the help of langdetect.</p>
+<p>Unlike langdetect this detector may be limited to a subset of all
+supported languages, which may improve accuracy if the subset is known and
+saves some memory.</p>
+</dd></dl>
+
 </div>
 </div>
 
@@ -503,7 +524,7 @@ model’s type itself.</p>
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |

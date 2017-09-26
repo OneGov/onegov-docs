@@ -88,15 +88,11 @@
 <span class="sd">        a ``to_dict`` method.</span>
 
 <span class="sd">        Internally, onegov.search stores differing languages in different</span>
-<span class="sd">        indices. For this reason you should mark all fields which are</span>
-<span class="sd">        specific to :attr:`es_language` like this::</span>
+<span class="sd">        indices. It does this automatically through langauge detection, or</span>
+<span class="sd">        by manually specifying a language.</span>
 
-<span class="sd">            @property</span>
-<span class="sd">            def es_properties(self):</span>
-
-<span class="sd">                return {</span>
-<span class="sd">                    &#39;title&#39;: { &#39;type&#39;: &#39;localized&#39; }</span>
-<span class="sd">                }</span>
+<span class="sd">        Note that objects with multiple languages are not supported</span>
+<span class="sd">        (each object is supposed to have exactly one language).</span>
 
 <span class="sd">        Onegov.search will automatically insert the right analyzer for</span>
 <span class="sd">        types like these.</span>
@@ -125,16 +121,18 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">es_language</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns the ISO 639-1 language code of the content. Note that</span>
-<span class="sd">        the object&#39;s id may not be the same over differing languages.</span>
+        <span class="sd">&quot;&quot;&quot; Defines the language of the object. By default &#39;auto&#39; is used,</span>
+<span class="sd">        which triggers automatic language detection. Automatic language</span>
+<span class="sd">        detection is reasonably accurate if provided with enough text. Short</span>
+<span class="sd">        texts are not detected easily.</span>
 
-<span class="sd">        That is to say, this is not valid::</span>
+<span class="sd">        When &#39;auto&#39; is used, expect some content to be misclassified. You</span>
+<span class="sd">        should then search over all languages, not just the epxected one.</span>
 
-<span class="sd">            Object(id=1, language=&#39;de&#39;)</span>
-<span class="sd">            Object(id=2, language=&#39;en&#39;)</span>
+<span class="sd">        This property can be used to manually set the language.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+        <span class="k">return</span> <span class="s1">&#39;auto&#39;</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">es_public</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -229,7 +227,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>
