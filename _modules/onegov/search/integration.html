@@ -45,11 +45,10 @@
 <span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="k">import</span> <span class="n">Elasticsearch</span>
 <span class="kn">from</span> <span class="nn">more.transaction.main</span> <span class="k">import</span> <span class="n">transaction_tween_factory</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">Search</span>
-<span class="kn">from</span> <span class="nn">onegov.search.indexer</span> <span class="k">import</span> <span class="p">(</span>
-    <span class="n">Indexer</span><span class="p">,</span>
-    <span class="n">ORMEventTranslator</span><span class="p">,</span>
-    <span class="n">TypeMappingRegistry</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">onegov.search.indexer</span> <span class="k">import</span> <span class="n">Indexer</span>
+<span class="kn">from</span> <span class="nn">onegov.search.indexer</span> <span class="k">import</span> <span class="n">ORMEventTranslator</span>
+<span class="kn">from</span> <span class="nn">onegov.search.indexer</span> <span class="k">import</span> <span class="n">TypeMappingRegistry</span>
+<span class="kn">from</span> <span class="nn">onegov.search.utils</span> <span class="k">import</span> <span class="n">searchable_sqlalchemy_models</span>
 
 
 <div class="viewcode-block" id="ElasticsearchApp"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.ElasticsearchApp">[docs]</a><span class="k">class</span> <span class="nc">ElasticsearchApp</span><span class="p">(</span><span class="n">morepath</span><span class="o">.</span><span class="n">App</span><span class="p">):</span>
@@ -270,7 +269,29 @@
 <span class="sd">        This method may be overwritten if this is not desired.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">is_logged_in</span></div></div>
+        <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">is_logged_in</span></div>
+
+<div class="viewcode-block" id="ElasticsearchApp.es_perform_reindex"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.ElasticsearchApp.es_perform_reindex">[docs]</a>    <span class="k">def</span> <span class="nf">es_perform_reindex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Reindexes all content.</span>
+
+<span class="sd">        This is a heavy operation and should be run with consideration.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">es_indexer</span><span class="o">.</span><span class="n">ixmgr</span><span class="o">.</span><span class="n">created_indices</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="c1"># delete all existing indices for this town</span>
+        <span class="n">ixs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">es_indexer</span><span class="o">.</span><span class="n">ixmgr</span><span class="o">.</span><span class="n">get_managed_indices_wildcard</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">es_client</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">ixs</span><span class="p">)</span>
+
+        <span class="c1"># load all database objects and index them</span>
+        <span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">bases</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">searchable_sqlalchemy_models</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">es_orm_events</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">es_indexer</span><span class="o">.</span><span class="n">process</span><span class="p">()</span></div></div>
 
 
 <span class="nd">@ElasticsearchApp</span><span class="o">.</span><span class="n">tween_factory</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="n">transaction_tween_factory</span><span class="p">)</span>
