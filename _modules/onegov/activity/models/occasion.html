@@ -47,6 +47,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
 <span class="kn">from</span> <span class="nn">psycopg2.extras</span> <span class="k">import</span> <span class="n">NumericRange</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">case</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">column</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">ForeignKey</span>
@@ -205,7 +206,18 @@
 
     <span class="nd">@hybrid_property</span>
     <span class="k">def</span> <span class="nf">available_spots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cancelled</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spots</span><span class="o">.</span><span class="n">upper</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">attendee_count</span>
+
+    <span class="nd">@available_spots</span><span class="o">.</span><span class="n">expression</span>
+    <span class="k">def</span> <span class="nf">available_spots</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">case</span><span class="p">((</span>
+            <span class="p">(</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">cancelled</span> <span class="o">==</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="n">func</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">spots</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">cls</span><span class="o">.</span><span class="n">attendee_count</span>
+            <span class="p">),</span>
+        <span class="p">),</span> <span class="n">else_</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">max_spots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
