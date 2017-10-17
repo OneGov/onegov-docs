@@ -40,10 +40,11 @@
             
   <h1>Source code for onegov.form.fields</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">onegov.core.html</span> <span class="k">import</span> <span class="n">sanitize_html</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">binary_to_dictionary</span>
+<span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">IMAGE_MIME_TYPES_AND_SVG</span>
 <span class="kn">from</span> <span class="nn">onegov.form.widgets</span> <span class="k">import</span> <span class="n">MultiCheckboxWidget</span>
 <span class="kn">from</span> <span class="nn">onegov.form.widgets</span> <span class="k">import</span> <span class="n">OrderedMultiCheckboxWidget</span>
 <span class="kn">from</span> <span class="nn">onegov.form.widgets</span> <span class="k">import</span> <span class="n">UploadWidget</span>
-<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">binary_to_dictionary</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">FileField</span><span class="p">,</span> <span class="n">SelectMultipleField</span><span class="p">,</span> <span class="n">TextAreaField</span><span class="p">,</span> <span class="n">widgets</span>
 
 
@@ -68,6 +69,11 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">widget</span> <span class="o">=</span> <span class="n">UploadWidget</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_image</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span>\
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mimetype&#39;</span><span class="p">)</span> <span class="ow">in</span> <span class="n">IMAGE_MIME_TYPES_AND_SVG</span>
 
     <span class="k">def</span> <span class="nf">process_formdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">valuelist</span><span class="p">):</span>
         <span class="c1"># the upload widget optionally includes an action with the request,</span>
