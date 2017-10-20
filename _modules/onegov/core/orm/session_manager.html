@@ -39,13 +39,13 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.core.orm.session_manager</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">functools</span>
-<span class="kn">import</span> <span class="nn">threading</span>
+<span></span><span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">weakref</span>
 <span class="kn">import</span> <span class="nn">zope.sqlalchemy</span>
 
 <span class="kn">from</span> <span class="nn">blinker</span> <span class="k">import</span> <span class="n">Signal</span>
+<span class="kn">from</span> <span class="nn">onegov.core.cache</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">create_engine</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">scoped_session</span><span class="p">,</span> <span class="n">sessionmaker</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.pool</span> <span class="k">import</span> <span class="n">QueuePool</span>
@@ -313,7 +313,7 @@
         <span class="c1"># happen by accident (it&#39;ll lead to hard to debug errors)</span>
         <span class="n">cache_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">aggregates_manager</span><span class="o">.</span><span class="n">generator_registry</span><span class="p">),</span> <span class="mi">32</span><span class="p">)</span>
 
-        <span class="nd">@functools</span><span class="o">.</span><span class="n">lru_cache</span><span class="p">(</span><span class="n">cache_size</span><span class="p">)</span>
+        <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">cache_size</span><span class="p">)</span>
         <span class="k">def</span> <span class="nf">prevent_bulk_changes_on_aggregate_modules</span><span class="p">(</span><span class="n">module_class</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">registered</span> <span class="ow">in</span> <span class="n">aggregates_manager</span><span class="o">.</span><span class="n">generator_registry</span><span class="p">:</span>
                 <span class="k">assert</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">module_class</span><span class="p">,</span> <span class="n">registered</span><span class="p">),</span> <span class="s2">&quot;&quot;&quot;</span>
