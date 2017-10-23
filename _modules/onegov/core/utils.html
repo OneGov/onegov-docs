@@ -54,7 +54,7 @@
 <span class="kn">import</span> <span class="nn">sqlalchemy</span>
 <span class="kn">import</span> <span class="nn">urllib.request</span>
 
-<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">BytesIO</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">BytesIO</span><span class="p">,</span> <span class="n">StringIO</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Iterable</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">cProfile</span> <span class="k">import</span> <span class="n">Profile</span>
@@ -221,7 +221,7 @@
     <span class="sd">&quot;&quot;&quot; Touches the file on the given path. &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">utime</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="k">except</span><span class="p">:</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
 
@@ -580,6 +580,109 @@
 
     <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="safe_format"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.utils.safe_format">[docs]</a><span class="k">def</span> <span class="nf">safe_format</span><span class="p">(</span><span class="nb">format</span><span class="p">,</span> <span class="n">dictionary</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="p">{</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">},</span> <span class="n">adapt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">raise_on_missing</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a user-supplied string with format blocks and returns a string</span>
+<span class="sd">    where those blocks are replaced by values in a dictionary.</span>
+
+<span class="sd">    For example::</span>
+
+<span class="sd">        &gt;&gt;&gt; safe_format(&#39;[user] has logged in&#39;, {&#39;user&#39;: &#39;admin&#39;})</span>
+<span class="sd">        &#39;admin has logged in&#39;</span>
+
+<span class="sd">    :param format:</span>
+<span class="sd">        The format to use. Square brackets denote dictionary keys. To</span>
+<span class="sd">        literally print square bracktes, mask them by doubling (&#39;[[&#39; -&gt; &#39;[&#39;)</span>
+
+<span class="sd">    :param dictionary:</span>
+<span class="sd">        The dictionary holding the variables to use. If the key is not found</span>
+<span class="sd">        in the dictionary, the bracket is replaced with an empty string.</span>
+
+<span class="sd">    :param types:</span>
+<span class="sd">        A set of types supported by the dictionary. Limiting this to safe</span>
+<span class="sd">        types like builtins (str, int, float) ensure that no values are</span>
+<span class="sd">        accidentally leaked through faulty __str__ representations.</span>
+
+<span class="sd">        Note that inheritance is ignored. Supported types need to be</span>
+<span class="sd">        whitelisted explicitly.</span>
+
+<span class="sd">    :param adapt:</span>
+<span class="sd">        An optional callable that receives the key before it is used. Returns</span>
+<span class="sd">        the same key or an altered version.</span>
+
+<span class="sd">    :param raise_on_missing:</span>
+<span class="sd">        True if missing keys should result in a runtime error (defaults to</span>
+<span class="sd">        False).</span>
+
+<span class="sd">    This is strictly meant for formats provided by users. Python&#39;s string</span>
+<span class="sd">    formatting options are clearly superior to this, however it is less</span>
+<span class="sd">    secure!</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">output</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+    <span class="n">buffer</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+    <span class="n">opened</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">char</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">format</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">char</span> <span class="o">==</span> <span class="s1">&#39;[&#39;</span><span class="p">:</span>
+            <span class="n">opened</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">char</span> <span class="o">==</span> <span class="s1">&#39;]&#39;</span><span class="p">:</span>
+            <span class="n">opened</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">opened</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">char</span> <span class="o">!=</span> <span class="s1">&#39;[&#39;</span> <span class="ow">and</span> <span class="n">char</span> <span class="o">!=</span> <span class="s1">&#39;]&#39;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">buffer</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">opened</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">opened</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">buffer</span><span class="o">.</span><span class="n">tell</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Unexpected bracket inside bracket found&quot;</span><span class="p">)</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">output</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">opened</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">buffer</span><span class="o">.</span><span class="n">tell</span><span class="p">():</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">adapt</span><span class="p">(</span><span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span> <span class="k">if</span> <span class="n">adapt</span> <span class="k">else</span> <span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">raise_on_missing</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dictionary</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Key &#39;</span><span class="si">{}</span><span class="s2">&#39; is unknown&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+
+            <span class="n">v</span> <span class="o">=</span> <span class="n">dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">t</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Invalid type for &#39;</span><span class="si">{}</span><span class="s2">&#39;: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">t</span><span class="p">))</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">output</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">buffer</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">char</span> <span class="o">!=</span> <span class="s1">&#39;[&#39;</span> <span class="ow">and</span> <span class="n">char</span> <span class="o">!=</span> <span class="s1">&#39;]&#39;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">output</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">opened</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Uneven number of brackets in &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">format</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">output</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="safe_format_keys"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.utils.safe_format_keys">[docs]</a><span class="k">def</span> <span class="nf">safe_format_keys</span><span class="p">(</span><span class="nb">format</span><span class="p">,</span> <span class="n">adapt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a :func:`safe_format` string and returns the found keys. &quot;&quot;&quot;</span>
+
+    <span class="n">keys</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">adapt_and_record</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">adapt</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">if</span> <span class="n">adapt</span> <span class="k">else</span> <span class="n">key</span>
+        <span class="n">keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">key</span>
+
+    <span class="n">safe_format</span><span class="p">(</span><span class="nb">format</span><span class="p">,</span> <span class="p">{},</span> <span class="n">adapt</span><span class="o">=</span><span class="n">adapt_and_record</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">keys</span></div>
 </pre></div>
 
           </div>
@@ -629,7 +732,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>

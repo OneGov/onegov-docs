@@ -3580,6 +3580,51 @@ with metadata information.</p>
 the original binary data.</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="onegov.core.utils.safe_format">
+<code class="descclassname">onegov.core.utils.</code><code class="descname">safe_format</code><span class="sig-paren">(</span><em>format</em>, <em>dictionary</em>, <em>types={&lt;class 'int'&gt;</em>, <em>&lt;class 'float'&gt;</em>, <em>&lt;class 'str'&gt;}</em>, <em>adapt=None</em>, <em>raise_on_missing=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/utils.html#safe_format"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.utils.safe_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a user-supplied string with format blocks and returns a string
+where those blocks are replaced by values in a dictionary.</p>
+<p>For example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">safe_format</span><span class="p">(</span><span class="s1">&#39;[user] has logged in&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="s1">&#39;admin&#39;</span><span class="p">})</span>
+<span class="go">&#39;admin has logged in&#39;</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>format</strong> – The format to use. Square brackets denote dictionary keys. To
+literally print square bracktes, mask them by doubling (‘[[‘ -&gt; ‘[‘)</li>
+<li><strong>dictionary</strong> – The dictionary holding the variables to use. If the key is not found
+in the dictionary, the bracket is replaced with an empty string.</li>
+<li><strong>types</strong> – <p>A set of types supported by the dictionary. Limiting this to safe
+types like builtins (str, int, float) ensure that no values are
+accidentally leaked through faulty __str__ representations.</p>
+<p>Note that inheritance is ignored. Supported types need to be
+whitelisted explicitly.</p>
+</li>
+<li><strong>adapt</strong> – An optional callable that receives the key before it is used. Returns
+the same key or an altered version.</li>
+<li><strong>raise_on_missing</strong> – True if missing keys should result in a runtime error (defaults to
+False).</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>This is strictly meant for formats provided by users. Python’s string
+formatting options are clearly superior to this, however it is less
+secure!</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.core.utils.safe_format_keys">
+<code class="descclassname">onegov.core.utils.</code><code class="descname">safe_format_keys</code><span class="sig-paren">(</span><em>format</em>, <em>adapt=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/utils.html#safe_format_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.utils.safe_format_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a <a class="reference internal" href="#onegov.core.utils.safe_format" title="onegov.core.utils.safe_format"><code class="xref py py-func docutils literal"><span class="pre">safe_format()</span></code></a> string and returns the found keys.</p>
+</dd></dl>
+
 </div>
 <div class="section" id="module-onegov.core.custom_json">
 <span id="custom-json"></span><h2>Custom JSON<a class="headerlink" href="#module-onegov.core.custom_json" title="Permalink to this headline">¶</a></h2>
@@ -3914,7 +3959,7 @@ by calculating a sane distance using the input.</p>
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |
