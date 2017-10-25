@@ -40,11 +40,11 @@
             
   <h1>Source code for onegov.foundation.theme</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">sass</span>
 
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">chain</span>
-<span class="kn">from</span> <span class="nn">rcssmin</span> <span class="k">import</span> <span class="n">cssmin</span>
-<span class="kn">from</span> <span class="nn">scss.compiler</span> <span class="k">import</span> <span class="n">Compiler</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">StringIO</span>
 
 
 <div class="viewcode-block" id="BaseTheme"><a class="viewcode-back" href="../../../onegov_foundation.html#onegov.foundation.theme.BaseTheme">[docs]</a><span class="k">class</span> <span class="nc">BaseTheme</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -203,26 +203,24 @@
         <span class="n">_options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_options</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">_options</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">_options</span><span class="p">:</span>
-            <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;@import &#39;foundation/functions&#39;;&quot;</span>
-            <span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="s2">&quot;$</span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_options</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">theme</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;@import &#39;foundation/functions&#39;;&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">theme</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">_options</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">theme</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">imports</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;@import &#39;</span><span class="si">{}</span><span class="s2">&#39;;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">theme</span><span class="p">)</span>
 
         <span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_search_paths</span>
         <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">foundation_path</span><span class="p">)</span>
 
-        <span class="n">compiler</span> <span class="o">=</span> <span class="n">Compiler</span><span class="p">(</span><span class="n">search_path</span><span class="o">=</span><span class="n">paths</span><span class="p">)</span>
-        <span class="n">css</span> <span class="o">=</span> <span class="n">compiler</span><span class="o">.</span><span class="n">compile_string</span><span class="p">(</span>
-            <span class="n">prefix</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;@import &#39;</span><span class="si">{}</span><span class="s2">&#39;;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">imports</span><span class="p">)</span>
-        <span class="p">)</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compress</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">cssmin</span><span class="p">(</span><span class="n">css</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">css</span></div></div>
+        <span class="k">return</span> <span class="n">sass</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+            <span class="n">string</span><span class="o">=</span><span class="n">theme</span><span class="o">.</span><span class="n">getvalue</span><span class="p">(),</span>
+            <span class="n">include_paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span>
+            <span class="n">output_style</span><span class="o">=</span><span class="s1">&#39;compressed&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compress</span> <span class="k">else</span> <span class="s1">&#39;nested&#39;</span>
+        <span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Theme"><a class="viewcode-back" href="../../../onegov_foundation.html#onegov.foundation.theme.Theme">[docs]</a><span class="k">class</span> <span class="nc">Theme</span><span class="p">(</span><span class="n">BaseTheme</span><span class="p">):</span>
