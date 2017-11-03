@@ -349,6 +349,8 @@
 <span class="kn">import</span> <span class="nn">yaml</span>
 
 <span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
+<span class="kn">from</span> <span class="nn">dateutil</span> <span class="k">import</span> <span class="n">parser</span> <span class="k">as</span> <span class="n">dateutil_parser</span>
+<span class="kn">from</span> <span class="nn">decimal</span> <span class="k">import</span> <span class="n">Decimal</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">Bunch</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">errors</span>
 <span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">checkbox</span>
@@ -600,7 +602,10 @@
             <span class="n">required</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">required</span><span class="p">,</span>
             <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
             <span class="n">fieldset</span><span class="o">=</span><span class="n">fieldset</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">value</span></div>
 
 
 <span class="k">class</span> <span class="nc">PasswordField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
@@ -618,13 +623,26 @@
 <span class="k">class</span> <span class="nc">DateField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
     <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;date&#39;</span>
 
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="c1"># the first int in an ambiguous date is assumed to be a day</span>
+        <span class="c1"># (since our software runs in europe first and foremost)</span>
+        <span class="k">return</span> <span class="n">dateutil_parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">dayfirst</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
 
 <span class="k">class</span> <span class="nc">DatetimeField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
     <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;datetime&#39;</span>
 
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="c1"># the first int in an ambiguous date is assumed to be a day</span>
+        <span class="c1"># (since our software runs in europe first and foremost)</span>
+        <span class="k">return</span> <span class="n">dateutil_parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">dayfirst</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
 
 <span class="k">class</span> <span class="nc">TimeField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
     <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;time&#39;</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">time</span><span class="p">(</span><span class="o">*</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)))</span>
 
 
 <span class="k">class</span> <span class="nc">TextField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
@@ -688,9 +706,15 @@
 <span class="k">class</span> <span class="nc">IntegerRangeField</span><span class="p">(</span><span class="n">RangeField</span><span class="p">,</span> <span class="n">Field</span><span class="p">):</span>
     <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;integer_range&#39;</span>
 
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
 
 <span class="k">class</span> <span class="nc">DecimalRangeField</span><span class="p">(</span><span class="n">RangeField</span><span class="p">,</span> <span class="n">Field</span><span class="p">):</span>
     <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;decimal_range&#39;</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">FileinputField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
@@ -730,6 +754,12 @@
             <span class="n">choices</span><span class="o">=</span><span class="n">choices</span><span class="p">,</span>
             <span class="n">pricing</span><span class="o">=</span><span class="n">pricing</span> <span class="ow">or</span> <span class="kc">None</span>
         <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+
+        <span class="k">return</span> <span class="n">value</span>
 
 
 <span class="k">class</span> <span class="nc">RadioField</span><span class="p">(</span><span class="n">OptionsField</span><span class="p">,</span> <span class="n">Field</span><span class="p">):</span>
