@@ -168,7 +168,7 @@
     <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">as_valid_identifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">normalize_header</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">invalid</span> <span class="ow">in</span> <span class="s1">&#39;- .%&#39;</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">invalid</span> <span class="ow">in</span> <span class="s1">&#39;- .%/&#39;</span><span class="p">:</span>
             <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">invalid</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
         <span class="k">while</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="s1">&#39;_0123456789&#39;</span><span class="p">:</span>
             <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
@@ -223,17 +223,24 @@
 
 
 <div class="viewcode-block" id="sniff_dialect"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.csv.sniff_dialect">[docs]</a><span class="k">def</span> <span class="nf">sniff_dialect</span><span class="p">(</span><span class="n">csv</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Takes the given csv string and returns the dialect or None. Works just</span>
-<span class="sd">    like Python&#39;s built in sniffer, just that it is a bit more conservative and</span>
-<span class="sd">    doesn&#39;t just accept any kind of character as csv delimiter.</span>
+    <span class="sd">&quot;&quot;&quot; Takes the given csv string and returns the dialect or raises an error.</span>
+<span class="sd">    Works just like Python&#39;s built in sniffer, just that it is a bit more</span>
+<span class="sd">    conservative and doesn&#39;t just accept any kind of character as csv</span>
+<span class="sd">    delimiter.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">csv</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">EmptyFileError</span><span class="p">()</span>
 
-    <span class="n">dialect</span> <span class="o">=</span> <span class="n">Sniffer</span><span class="p">()</span><span class="o">.</span><span class="n">sniff</span><span class="p">(</span><span class="n">csv</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">dialect</span> <span class="o">=</span> <span class="n">Sniffer</span><span class="p">()</span><span class="o">.</span><span class="n">sniff</span><span class="p">(</span><span class="n">csv</span><span class="p">,</span> <span class="n">VALID_CSV_DELIMITERS</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">CsvError</span><span class="p">:</span>
 
-    <span class="k">if</span> <span class="n">dialect</span><span class="o">.</span><span class="n">delimiter</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALID_CSV_DELIMITERS</span><span class="p">:</span>
+        <span class="c1"># sometimes we can get away with an extra pass just over the first line</span>
+        <span class="c1"># (the header tends to contain fewer special cases)</span>
+        <span class="k">if</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="ow">in</span> <span class="n">csv</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">sniff_dialect</span><span class="p">(</span><span class="n">csv</span><span class="p">[:</span><span class="n">csv</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)])</span>
+
         <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">InvalidFormatError</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">dialect</span></div>
