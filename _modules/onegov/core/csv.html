@@ -107,6 +107,14 @@
 <span class="sd">        a suffix is appended to the column name rather than throwing a</span>
 <span class="sd">        DuplicateColumnNamesError.</span>
 
+<span class="sd">    :param rowtype:</span>
+<span class="sd">        An alternative rowtype for the resulting rows. This should be a</span>
+<span class="sd">        callable that receives a `rownumber` key/value and all the other</span>
+<span class="sd">        keys/values found in the csv. The keys are normalized and are valid</span>
+<span class="sd">        Python identifiers usable as attribute names.</span>
+
+<span class="sd">        Defaults to a namedtuple created using the found headers.</span>
+
 <span class="sd">    Once the csv file is open, the records can be acceessed as follows::</span>
 
 <span class="sd">        with open(path, &#39;rb&#39;) as f:</span>
@@ -118,7 +126,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">csvfile</span><span class="p">,</span> <span class="n">expected_headers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dialect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">encoding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rename_duplicate_column_names</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                 <span class="n">encoding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rename_duplicate_column_names</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">rowtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="c1"># guess the encoding if not already provided</span>
         <span class="n">encoding</span> <span class="o">=</span> <span class="n">encoding</span> <span class="ow">or</span> <span class="n">detect_encoding</span><span class="p">(</span><span class="n">csvfile</span><span class="p">)</span>
@@ -158,7 +167,7 @@
 <span class="s2">            rownumber can&#39;t be used as a header</span>
 <span class="s2">        &quot;&quot;&quot;</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">rowtype</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rowtype</span> <span class="o">=</span> <span class="n">rowtype</span> <span class="ow">or</span> <span class="n">namedtuple</span><span class="p">(</span>
             <span class="s2">&quot;CSVFileRow&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;rownumber&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">as_valid_identifier</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
