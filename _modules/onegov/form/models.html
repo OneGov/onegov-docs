@@ -50,6 +50,7 @@
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">AssociatedFiles</span><span class="p">,</span> <span class="n">File</span>
 <span class="kn">from</span> <span class="nn">onegov.form.display</span> <span class="k">import</span> <span class="n">render_field</span>
 <span class="kn">from</span> <span class="nn">onegov.form.parser</span> <span class="k">import</span> <span class="n">parse_form</span>
+<span class="kn">from</span> <span class="nn">onegov.form.utils</span> <span class="k">import</span> <span class="n">extract_text_from_html</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">Payable</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">process_payment</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
@@ -233,10 +234,10 @@
             <span class="p">)</span>
 
             <span class="k">if</span> <span class="n">title_fields</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">extract_text_from_html</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                     <span class="n">html</span><span class="o">.</span><span class="n">unescape</span><span class="p">(</span><span class="n">render_field</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">_fields</span><span class="p">[</span><span class="nb">id</span><span class="p">]))</span>
                     <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">title_fields</span>
-                <span class="p">)</span>
+                <span class="p">))</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_email_field_data</span><span class="p">(</span><span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span>
 

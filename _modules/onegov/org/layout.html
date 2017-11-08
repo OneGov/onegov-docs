@@ -51,6 +51,8 @@
 <span class="kn">from</span> <span class="nn">onegov.core.layout</span> <span class="k">import</span> <span class="n">ChameleonLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.core.static</span> <span class="k">import</span> <span class="n">StaticFile</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">linkify</span>
+<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryEntryCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.event</span> <span class="k">import</span> <span class="n">OccurrenceCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">File</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormCollection</span><span class="p">,</span> <span class="n">render_field</span>
@@ -317,7 +319,7 @@
 
             <span class="k">return</span> <span class="n">value</span>
 
-        <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39;xlsx&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;xlsx&#39;</span><span class="p">,</span> <span class="s1">&#39;csv&#39;</span><span class="p">):</span>
             <span class="k">def</span> <span class="nf">formatter</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">is_daterange_list</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">)):</span>
                     <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">formatter</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">)</span>
@@ -1733,6 +1735,178 @@
             <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">homepage_url</span><span class="p">),</span>
             <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Timeline&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">)</span>
         <span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">DirectoryCollectionLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_editor</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_code_editor</span><span class="p">()</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">breadcrumbs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">homepage_url</span><span class="p">),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Directories&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">editbar_links</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_admin</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">LinkGroup</span><span class="p">(</span>
+                    <span class="n">title</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Add&quot;</span><span class="p">),</span>
+                    <span class="n">links</span><span class="o">=</span><span class="p">[</span>
+                        <span class="n">Link</span><span class="p">(</span>
+                            <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Directory&quot;</span><span class="p">),</span>
+                            <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                                <span class="n">name</span><span class="o">=</span><span class="s1">&#39;+new&#39;</span>
+                            <span class="p">),</span>
+                            <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;new-directory&#39;</span><span class="p">}</span>
+                        <span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="p">),</span>
+            <span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">DirectoryEntryCollectionLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">breadcrumbs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">homepage_url</span><span class="p">),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Directories&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
+                <span class="n">DirectoryCollection</span>
+            <span class="p">)),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">title</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
+                <span class="n">DirectoryEntryCollection</span><span class="p">,</span> <span class="p">{</span>
+                    <span class="s1">&#39;directory_name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">directory_name</span>
+                <span class="p">}</span>
+            <span class="p">))</span>
+        <span class="p">]</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">editbar_links</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_admin</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">Link</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Configure&quot;</span><span class="p">),</span>
+                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;+edit&#39;</span><span class="p">),</span>
+                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;edit-link&#39;</span><span class="p">}</span>
+                <span class="p">),</span>
+                <span class="n">Link</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Export&quot;</span><span class="p">),</span>
+                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
+                        <span class="n">DirectoryEntryCollection</span><span class="p">,</span> <span class="p">{</span>
+                            <span class="s1">&#39;directory_name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">directory_name</span>
+                        <span class="p">},</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;+export&#39;</span>
+                    <span class="p">),</span>
+                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;export-link&#39;</span><span class="p">}</span>
+                <span class="p">),</span>
+                <span class="n">Link</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Import&quot;</span><span class="p">),</span>
+                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
+                        <span class="n">DirectoryEntryCollection</span><span class="p">,</span> <span class="p">{</span>
+                            <span class="s1">&#39;directory_name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">directory_name</span>
+                        <span class="p">},</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;+import&#39;</span>
+                    <span class="p">),</span>
+                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;import-link&#39;</span><span class="p">}</span>
+                <span class="p">),</span>
+                <span class="n">Link</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete&quot;</span><span class="p">),</span>
+                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+                    <span class="p">),</span>
+                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;delete-link&#39;</span><span class="p">},</span>
+                    <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
+                        <span class="n">Confirm</span><span class="p">(</span>
+                            <span class="n">_</span><span class="p">(</span>
+                                <span class="s1">&#39;Do you really want to delete &quot;$</span><span class="si">{title}</span><span class="s1">&quot;?&#39;</span><span class="p">,</span>
+                                <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+                                    <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">title</span>
+                                <span class="p">}</span>
+                            <span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;All entries will be deleted as well!&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete directory&quot;</span><span class="p">)</span>
+                        <span class="p">),</span>
+                        <span class="n">Intercooler</span><span class="p">(</span>
+                            <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
+                            <span class="n">redirect_after</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
+                                <span class="n">DirectoryCollection</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">LinkGroup</span><span class="p">(</span>
+                    <span class="n">title</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Add&quot;</span><span class="p">),</span>
+                    <span class="n">links</span><span class="o">=</span><span class="p">[</span>
+                        <span class="n">Link</span><span class="p">(</span>
+                            <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Entry&quot;</span><span class="p">),</span>
+                            <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                                <span class="n">name</span><span class="o">=</span><span class="s1">&#39;+new&#39;</span>
+                            <span class="p">),</span>
+                            <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;new-directory-entry&#39;</span><span class="p">}</span>
+                        <span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="p">),</span>
+            <span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">DirectoryEntryLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">breadcrumbs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">homepage_url</span><span class="p">),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Directories&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
+                <span class="n">DirectoryCollection</span>
+            <span class="p">)),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">title</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
+                <span class="n">DirectoryEntryCollection</span><span class="p">,</span> <span class="p">{</span>
+                    <span class="s1">&#39;directory_name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">name</span>
+                <span class="p">}</span>
+            <span class="p">)),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">title</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">))</span>
+        <span class="p">]</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">editbar_links</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_manager</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">Link</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit&quot;</span><span class="p">),</span>
+                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;+edit&#39;</span><span class="p">),</span>
+                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;edit-link&#39;</span><span class="p">}</span>
+                <span class="p">),</span>
+                <span class="n">Link</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete&quot;</span><span class="p">),</span>
+                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+                    <span class="p">),</span>
+                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;delete-link&#39;</span><span class="p">},</span>
+                    <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
+                        <span class="n">Confirm</span><span class="p">(</span>
+                            <span class="n">_</span><span class="p">(</span>
+                                <span class="s1">&#39;Do you really want to delete &quot;$</span><span class="si">{title}</span><span class="s1">&quot;?&#39;</span><span class="p">,</span>
+                                <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+                                    <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">title</span>
+                                <span class="p">}</span>
+                            <span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete entry&quot;</span><span class="p">)</span>
+                        <span class="p">),</span>
+                        <span class="n">Intercooler</span><span class="p">(</span>
+                            <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
+                            <span class="n">redirect_after</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span>
+                                <span class="n">DirectoryEntryCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">directory</span><span class="p">)</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
 </pre></div>
 
           </div>

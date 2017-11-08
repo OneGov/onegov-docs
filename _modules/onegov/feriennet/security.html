@@ -62,6 +62,17 @@
     <span class="k">return</span> <span class="n">username</span> <span class="o">==</span> <span class="n">activity</span><span class="o">.</span><span class="n">username</span></div>
 
 
+<span class="nd">@FeriennetApp</span><span class="o">.</span><span class="n">permission_rule</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">local_has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">):</span>
+
+    <span class="c1"># is_hidden_from_public is stricter in feriennet, only admins see it</span>
+    <span class="k">if</span> <span class="n">identity</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s1">&#39;admin&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;is_hidden_from_public&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="n">has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="has_private_permission_logged_in"><a class="viewcode-back" href="../../../onegov_feriennet.html#onegov.feriennet.security.has_private_permission_logged_in">[docs]</a><span class="nd">@FeriennetApp</span><span class="o">.</span><span class="n">permission_rule</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">has_private_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Take away private permission for editors. For exceptions see</span>
@@ -70,7 +81,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">identity</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s1">&#39;editor&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">local_has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="kc">False</span></div>
 
@@ -80,7 +91,7 @@
     <span class="sd">&quot;&quot;&quot; Give editors the ability to access the site collection. &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">identity</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s1">&#39;editor&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">local_has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="kc">True</span></div>
 
@@ -93,7 +104,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">identity</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s1">&#39;editor&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">local_has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="kc">True</span></div>
 
@@ -108,7 +119,7 @@
 
     <span class="c1"># only overries the editor role</span>
     <span class="k">if</span> <span class="n">identity</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s1">&#39;editor&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">local_has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="kc">True</span></div>
 
@@ -119,7 +130,7 @@
 
     <span class="c1"># only overries the editor role</span>
     <span class="k">if</span> <span class="n">identity</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s1">&#39;editor&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">local_has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">is_owner</span><span class="p">(</span><span class="n">identity</span><span class="o">.</span><span class="n">userid</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span> \
         <span class="ow">and</span> <span class="n">model</span><span class="o">.</span><span class="n">state</span> <span class="ow">in</span> <span class="n">OWNER_EDITABLE_STATES</span></div>
@@ -131,7 +142,7 @@
 
     <span class="c1"># only overries the editor role</span>
     <span class="k">if</span> <span class="n">identity</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s1">&#39;editor&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">local_has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">is_owner</span><span class="p">(</span><span class="n">identity</span><span class="o">.</span><span class="n">userid</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">activity</span><span class="p">)</span> \
         <span class="ow">and</span> <span class="n">model</span><span class="o">.</span><span class="n">activity</span><span class="o">.</span><span class="n">state</span> <span class="ow">in</span> <span class="n">OWNER_EDITABLE_STATES</span></div>
@@ -145,7 +156,7 @@
 
     <span class="c1"># only overries the editor role</span>
     <span class="k">if</span> <span class="n">identity</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s1">&#39;editor&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">local_has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="kc">True</span></div>
 
@@ -156,7 +167,7 @@
 
     <span class="c1"># only overries the editor role</span>
     <span class="k">if</span> <span class="n">identity</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s1">&#39;editor&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">local_has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="kc">True</span></div>
 
@@ -202,7 +213,7 @@
     <span class="k">if</span> <span class="n">identity</span><span class="o">.</span><span class="n">role</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;admin&#39;</span><span class="p">,</span> <span class="s1">&#39;editor&#39;</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">True</span>
 
-    <span class="k">return</span> <span class="n">has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">local_has_permission_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

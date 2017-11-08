@@ -41,9 +41,16 @@
   <h1>Source code for onegov.org.path</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot; Contains the paths to the different models served by onegov.org. &quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">morepath</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
 <span class="kn">from</span> <span class="nn">onegov.chat</span> <span class="k">import</span> <span class="n">MessageCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.core.converters</span> <span class="k">import</span> <span class="n">extended_date_converter</span>
+<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">Directory</span>
+<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryEntryCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryEntry</span>
 <span class="kn">from</span> <span class="nn">onegov.event</span> <span class="k">import</span> <span class="p">(</span>
     <span class="n">Event</span><span class="p">,</span>
     <span class="n">EventCollection</span><span class="p">,</span>
@@ -505,15 +512,91 @@
     <span class="n">model</span><span class="o">=</span><span class="n">MessageCollection</span><span class="p">,</span>
     <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/timeline&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">get_messages</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">channel_id</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span>
-                 <span class="n">newer_than</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">older_than</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">25</span><span class="p">):</span>
+                 <span class="n">newer_than</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">older_than</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
+                 <span class="n">load</span><span class="o">=</span><span class="s1">&#39;older-first&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">MessageCollection</span><span class="p">(</span>
         <span class="n">session</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">,</span>
         <span class="n">channel_id</span><span class="o">=</span><span class="n">channel_id</span><span class="p">,</span>
         <span class="n">newer_than</span><span class="o">=</span><span class="n">newer_than</span><span class="p">,</span>
         <span class="n">older_than</span><span class="o">=</span><span class="n">older_than</span><span class="p">,</span>
-        <span class="n">limit</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="mi">25</span><span class="p">,</span> <span class="n">limit</span><span class="p">)</span>  <span class="c1"># bind the limit to a max of 25</span>
+        <span class="n">limit</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="mi">25</span><span class="p">,</span> <span class="n">limit</span><span class="p">),</span>  <span class="c1"># bind the limit to a max of 25</span>
+        <span class="n">load</span><span class="o">=</span><span class="s1">&#39;newer-first&#39;</span> <span class="k">if</span> <span class="n">load</span> <span class="o">==</span> <span class="s1">&#39;newer-first&#39;</span> <span class="k">else</span> <span class="s1">&#39;older-first&#39;</span>
     <span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">DirectoryCollection</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/directories&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_directories</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">DirectoryCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;extended&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="keywords_decode"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.path.keywords_decode">[docs]</a><span class="k">def</span> <span class="nf">keywords_decode</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Deocdes the directory entry collection keywords. &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">s</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">):</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="keywords_encode"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.path.keywords_encode">[docs]</a><span class="k">def</span> <span class="nf">keywords_encode</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Encodes the directory entry collection keywords. &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">d</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">return</span> <span class="s1">&#39;+&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">d</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">])</span></div>
+
+
+<span class="n">keywords_converter</span> <span class="o">=</span> <span class="n">morepath</span><span class="o">.</span><span class="n">Converter</span><span class="p">(</span>
+    <span class="n">decode</span><span class="o">=</span><span class="n">keywords_decode</span><span class="p">,</span> <span class="n">encode</span><span class="o">=</span><span class="n">keywords_encode</span>
+<span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Directory</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/directory/</span><span class="si">{name}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_directory</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">DirectoryCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">DirectoryEntryCollection</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/directories/</span><span class="si">{directory_name}</span><span class="s1">&#39;</span><span class="p">,</span>
+    <span class="n">converters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="n">keywords_converter</span><span class="p">})</span>
+<span class="k">def</span> <span class="nf">get_directory_entries</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">directory_name</span><span class="p">,</span> <span class="n">keywords</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="n">directory</span> <span class="o">=</span> <span class="n">DirectoryCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">directory_name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="n">collection</span> <span class="o">=</span> <span class="n">DirectoryEntryCollection</span><span class="p">(</span>
+            <span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;extended&#39;</span><span class="p">,</span>
+            <span class="n">keywords</span><span class="o">=</span><span class="n">keywords</span><span class="p">,</span>
+            <span class="n">page</span><span class="o">=</span><span class="n">page</span>
+        <span class="p">)</span>
+
+        <span class="n">collection</span><span class="o">.</span><span class="n">is_hidden_from_public</span> <span class="o">=</span> <span class="n">directory</span><span class="o">.</span><span class="n">is_hidden_from_public</span>
+
+        <span class="k">return</span> <span class="n">collection</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">DirectoryEntry</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/directories/</span><span class="si">{directory_name}</span><span class="s1">/</span><span class="si">{name}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_directory_entry</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">directory_name</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="n">directory</span> <span class="o">=</span> <span class="n">DirectoryCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">directory_name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">DirectoryEntryCollection</span><span class="p">(</span>
+            <span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;extended&#39;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 </pre></div>
 
           </div>
