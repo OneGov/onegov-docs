@@ -554,6 +554,15 @@
             <span class="k">def</span> <span class="nf">get_cronjobs_enabled</span><span class="p">():</span>
                 <span class="k">return</span> <span class="kc">False</span>
 
+            <span class="nd">@CliApplication</span><span class="o">.</span><span class="n">setting_section</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s1">&#39;roles&#39;</span><span class="p">)</span>
+            <span class="k">def</span> <span class="nf">get_roles_setting</span><span class="p">():</span>
+                <span class="c1"># override the security settings -&gt; we need the public</span>
+                <span class="c1"># role to work for anonymous users, even if the base</span>
+                <span class="c1"># application disables that</span>
+                <span class="k">return</span> <span class="p">{</span>
+                    <span class="s1">&#39;anonymous&#39;</span><span class="p">:</span> <span class="p">{</span><span class="n">Public</span><span class="p">},</span>
+                <span class="p">}</span>
+
             <span class="n">scan_morepath_modules</span><span class="p">(</span><span class="n">CliApplication</span><span class="p">)</span>
             <span class="n">CliApplication</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 

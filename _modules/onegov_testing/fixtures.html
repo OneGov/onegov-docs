@@ -51,7 +51,6 @@
 <span class="kn">import</span> <span class="nn">urllib3</span>
 
 <span class="kn">from</span> <span class="nn">_pytest.monkeypatch</span> <span class="k">import</span> <span class="n">MonkeyPatch</span>
-<span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="k">import</span> <span class="n">Elasticsearch</span>
 <span class="kn">from</span> <span class="nn">fs.tempfs</span> <span class="k">import</span> <span class="n">TempFS</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">mirakuru</span> <span class="k">import</span> <span class="n">HTTPExecutor</span> <span class="k">as</span> <span class="n">HTTPExecutorBase</span>
@@ -66,6 +65,12 @@
 <span class="kn">from</span> <span class="nn">testing.postgresql</span> <span class="k">import</span> <span class="n">Postgresql</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
 <span class="kn">from</span> <span class="nn">webdriver_manager.chrome</span> <span class="k">import</span> <span class="n">ChromeDriverManager</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="k">import</span> <span class="n">Elasticsearch</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">Elasticsearch</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Elasticsearch is not installed&quot;</span>
 
 
 <span class="k">class</span> <span class="nc">HTTPExecutor</span><span class="p">(</span><span class="n">HTTPExecutorBase</span><span class="p">):</span>
@@ -93,7 +98,7 @@
     <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__del__</span><span class="p">()</span>
-        <span class="k">except</span><span class="p">:</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="k">pass</span>
 
 

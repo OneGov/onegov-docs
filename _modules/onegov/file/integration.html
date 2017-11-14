@@ -39,7 +39,8 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.file.integration</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">morepath</span>
+<span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">morepath</span>
 <span class="kn">import</span> <span class="nn">os.path</span>
 
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">contextmanager</span>
@@ -188,7 +189,12 @@
 <span class="k">def</span> <span class="nf">respond_with_alt_text</span><span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
     <span class="k">def</span> <span class="nf">include_alt_text</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
-        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-File-Note&#39;</span><span class="p">,</span> <span class="n">reference</span><span class="o">.</span><span class="n">note</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="c1"># HTTP headers are limited to ASCII, so we encode our result in</span>
+        <span class="c1"># JSON before showing it</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-File-Note&#39;</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+            <span class="p">{</span><span class="s1">&#39;note&#39;</span><span class="p">:</span> <span class="n">reference</span><span class="o">.</span><span class="n">note</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">},</span>
+            <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">)</span>
+        <span class="p">))</span>
 
 
 <span class="nd">@DepotApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/storage/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">)</span>

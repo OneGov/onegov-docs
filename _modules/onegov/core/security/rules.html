@@ -39,7 +39,10 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.core.security.rules</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">onegov.core.framework</span> <span class="k">import</span> <span class="n">Framework</span>
+<span></span><span class="kn">from</span> <span class="nn">onegov.core.cronjobs</span> <span class="k">import</span> <span class="n">Job</span>
+<span class="kn">from</span> <span class="nn">onegov.core.framework</span> <span class="k">import</span> <span class="n">Framework</span>
+<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
+<span class="kn">from</span> <span class="nn">webob.exc</span> <span class="k">import</span> <span class="n">HTTPException</span>
 
 
 <div class="viewcode-block" id="has_permission_not_logged_in"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.security.rules.has_permission_not_logged_in">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">permission_rule</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span> <span class="n">identity</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
@@ -77,6 +80,33 @@
             <span class="k">return</span> <span class="kc">False</span>
 
     <span class="k">return</span> <span class="n">permission</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">roles</span><span class="p">,</span> <span class="n">identity</span><span class="o">.</span><span class="n">role</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="may_view_http_errors_not_logged_in"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.security.rules.may_view_http_errors_not_logged_in">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">permission_rule</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">HTTPException</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">,</span>
+    <span class="n">identity</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">may_view_http_errors_not_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; HTTP errors may be viewed by anyone, regardeless of settings.</span>
+
+<span class="sd">    This is important, otherwise the HTTPForbidden/HTTPNotFound views</span>
+<span class="sd">    will lead to an exception if the user does not have the ``Public``</span>
+<span class="sd">    permission.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="may_view_cronjobs_not_logged_in"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.security.rules.may_view_cronjobs_not_logged_in">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">permission_rule</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Job</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">,</span>
+    <span class="n">identity</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">may_view_cronjobs_not_logged_in</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">identity</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">permission</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Cronjobs are run anonymously from a thread and need to be excluded</span>
+<span class="sd">    from the permission rules as a result.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
 </pre></div>
 
           </div>
