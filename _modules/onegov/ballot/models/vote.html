@@ -331,6 +331,15 @@
 
         <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">last_changes</span><span class="p">)</span>
 
+<div class="viewcode-block" id="Vote.clear_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.clear_results">[docs]</a>    <span class="k">def</span> <span class="nf">clear_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Clear all the results. &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">:</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">ballot</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="Vote.export"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.export">[docs]</a>    <span class="k">def</span> <span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns all data connected to this vote as list with dicts.</span>
 
@@ -553,7 +562,14 @@
 
             <span class="n">result</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span>
 
-        <span class="k">return</span> <span class="n">result</span></div></div>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="Ballot.clear_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Ballot.clear_results">[docs]</a>    <span class="k">def</span> <span class="nf">clear_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Clear all the results. &quot;&quot;&quot;</span>
+
+        <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">:</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="BallotResult"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.BallotResult">[docs]</a><span class="k">class</span> <span class="nc">BallotResult</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">DerivedAttributes</span><span class="p">,</span>

@@ -40,17 +40,11 @@
             
   <h1>Source code for onegov.election_day.utils</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">sha256</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span><span class="p">,</span> <span class="n">Vote</span><span class="p">,</span> <span class="n">Ballot</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Ballot</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Vote</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.models</span> <span class="k">import</span> <span class="n">ArchivedResult</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
-
-
-<span class="k">def</span> <span class="nf">handle_headerless_params</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-    <span class="k">if</span> <span class="s1">&#39;headerless&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="p">:</span>
-        <span class="n">request</span><span class="o">.</span><span class="n">browser_session</span><span class="p">[</span><span class="s1">&#39;headerless&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">if</span> <span class="s1">&#39;headerful&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">browser_session</span><span class="o">.</span><span class="n">has</span><span class="p">(</span><span class="s1">&#39;headerless&#39;</span><span class="p">):</span>
-            <span class="k">del</span> <span class="n">request</span><span class="o">.</span><span class="n">browser_session</span><span class="p">[</span><span class="s1">&#39;headerless&#39;</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="add_last_modified_header"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.add_last_modified_header">[docs]</a><span class="k">def</span> <span class="nf">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">last_modified</span><span class="p">):</span>

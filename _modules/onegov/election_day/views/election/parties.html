@@ -46,7 +46,6 @@
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.layout</span> <span class="k">import</span> <span class="n">DefaultLayout</span><span class="p">,</span> <span class="n">ElectionsLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">add_last_modified_header</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">handle_headerless_params</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 
 
@@ -189,14 +188,14 @@
 <span class="k">def</span> <span class="nf">view_election_parties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;&quot; The main view. &quot;&quot;&quot;</span>
 
-    <span class="n">handle_headerless_params</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionsLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;parties&#39;</span><span class="p">)</span>
 
     <span class="n">years</span><span class="p">,</span> <span class="n">parties</span> <span class="o">=</span> <span class="n">get_party_results</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
     <span class="n">deltas</span><span class="p">,</span> <span class="n">results</span> <span class="o">=</span> <span class="n">get_party_deltas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">parties</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;election&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
-        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">ElectionsLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;parties&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
         <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="n">results</span><span class="p">,</span>
         <span class="s1">&#39;years&#39;</span><span class="p">:</span> <span class="n">years</span><span class="p">,</span>
         <span class="s1">&#39;deltas&#39;</span><span class="p">:</span> <span class="n">deltas</span>

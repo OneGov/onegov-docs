@@ -47,18 +47,17 @@
 <span class="kn">from</span> <span class="nn">onegov.election_day.layout</span> <span class="k">import</span> <span class="n">VotesLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">add_last_modified_header</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">get_vote_summary</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">handle_headerless_params</span>
 
 
 <div class="viewcode-block" id="view_vote_proposal"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.vote.main.view_vote_proposal">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Vote</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;vote/ballot.pt&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">view_vote_proposal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;&quot; The main view. &quot;&quot;&quot;</span>
 
-    <span class="n">handle_headerless_params</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">VotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;vote&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
-        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">VotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">),</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
         <span class="s1">&#39;show_map&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">is_year_available</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
     <span class="p">}</span></div>
 
@@ -68,11 +67,11 @@
 <span class="k">def</span> <span class="nf">view_vote_counter_proposal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;&quot; The main view. &quot;&quot;&quot;</span>
 
-    <span class="n">handle_headerless_params</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">VotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;counter-proposal&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;vote&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
-        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">VotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;counter-proposal&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
         <span class="s1">&#39;show_map&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">is_year_available</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
     <span class="p">}</span></div>
 
@@ -82,11 +81,11 @@
 <span class="k">def</span> <span class="nf">view_vote_tie_breaker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;&quot; The main view. &quot;&quot;&quot;</span>
 
-    <span class="n">handle_headerless_params</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">VotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;tie-breaker&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;vote&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
-        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">VotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;tie-breaker&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
         <span class="s1">&#39;show_map&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">is_year_available</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
     <span class="p">}</span></div>
 
