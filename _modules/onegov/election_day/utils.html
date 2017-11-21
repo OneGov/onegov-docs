@@ -44,7 +44,6 @@
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Vote</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.models</span> <span class="k">import</span> <span class="n">ArchivedResult</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 
 
 <div class="viewcode-block" id="add_last_modified_header"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.add_last_modified_header">[docs]</a><span class="k">def</span> <span class="nf">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">last_modified</span><span class="p">):</span>
@@ -262,44 +261,6 @@
         <span class="n">ts</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">last_result_change</span><span class="o">.</span><span class="n">timestamp</span><span class="p">())</span>
 
     <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.svg&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">hash</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="n">locale</span> <span class="ow">or</span> <span class="s1">&#39;any&#39;</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="clear_election"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.clear_election">[docs]</a><span class="k">def</span> <span class="nf">clear_election</span><span class="p">(</span><span class="n">election</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Clear the election of all of its results. &quot;&quot;&quot;</span>
-
-    <span class="n">election</span><span class="o">.</span><span class="n">counted_entities</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">election</span><span class="o">.</span><span class="n">total_entities</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">election</span><span class="o">.</span><span class="n">absolute_majority</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">election</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="n">election</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">connection</span> <span class="ow">in</span> <span class="n">election</span><span class="o">.</span><span class="n">list_connections</span><span class="p">:</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">connection</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">list_</span> <span class="ow">in</span> <span class="n">election</span><span class="o">.</span><span class="n">lists</span><span class="p">:</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">list_</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">election</span><span class="o">.</span><span class="n">candidates</span><span class="p">:</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">election</span><span class="o">.</span><span class="n">results</span><span class="p">:</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">election</span><span class="o">.</span><span class="n">party_results</span><span class="p">:</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="clear_vote"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.clear_vote">[docs]</a><span class="k">def</span> <span class="nf">clear_vote</span><span class="p">(</span><span class="n">vote</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Clear the vote of all of its ballots. &quot;&quot;&quot;</span>
-
-    <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="n">vote</span><span class="p">)</span>
-    <span class="n">vote</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="n">vote</span><span class="o">.</span><span class="n">ballots</span><span class="p">:</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">ballot</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="clear_ballot"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.clear_ballot">[docs]</a><span class="k">def</span> <span class="nf">clear_ballot</span><span class="p">(</span><span class="n">ballot</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Clear the ballot of all of its results. &quot;&quot;&quot;</span>
-
-    <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="n">ballot</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">ballot</span><span class="o">.</span><span class="n">results</span><span class="p">:</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="guessed_group"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.guessed_group">[docs]</a><span class="k">def</span> <span class="nf">guessed_group</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
