@@ -41,12 +41,14 @@
   <h1>Source code for onegov.ballot.models.election</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot.models.common</span> <span class="k">import</span> <span class="n">DomainOfInfluenceMixin</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot.models.common</span> <span class="k">import</span> <span class="n">MetaMixin</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot.models.common</span> <span class="k">import</span> <span class="n">StatusMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">DomainOfInfluenceMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">StatusMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">summarized_property</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">translation_hybrid</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">ContentMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">HSTORE</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">increment_name</span>
@@ -98,18 +100,9 @@
 
 
 <span class="k">class</span> <span class="nc">Election</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">DerivedAttributes</span><span class="p">,</span>
-               <span class="n">DomainOfInfluenceMixin</span><span class="p">,</span> <span class="n">MetaMixin</span><span class="p">,</span> <span class="n">StatusMixin</span><span class="p">):</span>
+               <span class="n">DomainOfInfluenceMixin</span><span class="p">,</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">StatusMixin</span><span class="p">):</span>
 
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;elections&#39;</span>
-
-    <span class="n">summarized_properties</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s1">&#39;elegible_voters&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;received_ballots&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;accounted_ballots&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;blank_ballots&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;invalid_ballots&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;accounted_votes&#39;</span>
-    <span class="p">]</span>
 
     <span class="c1">#: Identifies the result, may be used in the url</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -230,6 +223,24 @@
         <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
     <span class="p">)</span>
 
+    <span class="c1">#: The total elegible voters</span>
+    <span class="n">elegible_voters</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;elegible_voters&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: The total recceived ballots</span>
+    <span class="n">received_ballots</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;received_ballots&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: The total accounted ballots</span>
+    <span class="n">accounted_ballots</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;accounted_ballots&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: The total blank ballots</span>
+    <span class="n">blank_ballots</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;blank_ballots&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: The total invalid ballots</span>
+    <span class="n">invalid_ballots</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;invalid_ballots&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: The total accounted votes</span>
+    <span class="n">accounted_votes</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;accounted_votes&#39;</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>
 
@@ -319,6 +330,9 @@
 
         <span class="k">return</span> <span class="n">results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
+    <span class="c1">#: may be used to store a link related to this election</span>
+    <span class="n">related_link</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;related_link&#39;</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">clear_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Clears all the results. &quot;&quot;&quot;</span>
 
@@ -348,116 +362,6 @@
 <span class="sd">        candidate result for each political entity. Party results are not</span>
 <span class="sd">        included in the export (since they are not really connected with the</span>
 <span class="sd">        lists).</span>
-
-<span class="sd">        Each entry in the list (row) has the following format:</span>
-
-<span class="sd">        * ``election_title``:</span>
-<span class="sd">            Title of the election.</span>
-
-<span class="sd">        * ``election_date``:</span>
-<span class="sd">            The date of the election (an ISO 8601 date string).</span>
-
-<span class="sd">        * ``election_domain``:</span>
-<span class="sd">            ``federation`` for federal, ``canton`` for cantonal,</span>
-<span class="sd">            ``municipality`` for communal votes.</span>
-
-<span class="sd">        * ``election_type``:</span>
-<span class="sd">            ``proporz`` for proportional, ``majorz`` for majority system.</span>
-
-<span class="sd">        * ``election_mandates``:</span>
-<span class="sd">            The number of mandates.</span>
-
-<span class="sd">        * ``election_absolute_majority``:</span>
-<span class="sd">            The absolute majority.  Only relevant for elections based on</span>
-<span class="sd">            majority system.</span>
-
-<span class="sd">        * ``election_status``:</span>
-<span class="sd">            The status of the election: ``unknown``, ``interim`` or ``final``.</span>
-
-<span class="sd">        * ``election_counted_entities``:</span>
-<span class="sd">            The number of already counted entities.</span>
-
-<span class="sd">        * ``election_total_entities``:</span>
-<span class="sd">            The total number of entities.</span>
-
-<span class="sd">        * ``entity_name``:</span>
-<span class="sd">            The name of the entity.</span>
-
-<span class="sd">        * ``entity_bfs_number``:</span>
-<span class="sd">            The id of the entity (e.g. the BFS number).</span>
-
-<span class="sd">        * ``entity_elegible_voters``:</span>
-<span class="sd">            The number of people eligible to vote in this entity.</span>
-
-<span class="sd">        * ``entity_received_ballots``:</span>
-<span class="sd">            The number of received ballots in this entity.</span>
-
-<span class="sd">        * ``entity_blank_ballots``:</span>
-<span class="sd">            The number of blank ballots in this entity.</span>
-
-<span class="sd">        * ``entity_invalid_ballots``:</span>
-<span class="sd">            The number of invalid ballots in this entity.</span>
-
-<span class="sd">        * ``entity_unaccounted_ballots``:</span>
-<span class="sd">            The number of unaccounted ballots in this entity.</span>
-
-<span class="sd">        * ``entity_accounted_ballots``:</span>
-<span class="sd">            The number of accounted ballots in this entity.</span>
-
-<span class="sd">        * ``entity_blank_votes``:</span>
-<span class="sd">            The number of blank votes in this entity.</span>
-
-<span class="sd">        * ``entity_invalid_votes``:</span>
-<span class="sd">            The number of invalid votes in this entity. Is zero for</span>
-<span class="sd">            elections based on proportional representation.</span>
-
-<span class="sd">        * ``entity_accounted_votes``:</span>
-<span class="sd">            The number of accounted votes in this entity.</span>
-
-<span class="sd">        * ``list_name``:</span>
-<span class="sd">            The name of the list this candidate appears on. Only relevant for</span>
-<span class="sd">            elections based on proportional representation.</span>
-
-<span class="sd">        * ``list_id``:</span>
-<span class="sd">            The id of the list this candidate appears on. Only relevant for</span>
-<span class="sd">            elections based on proportional representation.</span>
-
-<span class="sd">        * ``list_number_of_mandates``:</span>
-<span class="sd">            The number of mandates this list has got. Only relevant for</span>
-<span class="sd">            elections based on proportional representation.</span>
-
-<span class="sd">        * ``list_votes``:</span>
-<span class="sd">            The number of votes this list has got in this entity.</span>
-<span class="sd">            Only relevant for elections based on proportional representation.</span>
-
-<span class="sd">        * ``list_connection``:</span>
-<span class="sd">            The ID of the list connection this list is connected to. Only</span>
-<span class="sd">            relevant for elections based on proportional representation.</span>
-
-<span class="sd">        * ``list_connection_parent``:</span>
-<span class="sd">            The ID of the parent list conneciton this list is connected to.</span>
-<span class="sd">            Only relevant for elections based on proportional representation.</span>
-
-<span class="sd">        * ``candidate_family_name``:</span>
-<span class="sd">            The family name of the candidate.</span>
-
-<span class="sd">        * ``candidate_first_name``:</span>
-<span class="sd">            The first name of the candidate.</span>
-
-<span class="sd">        * ``candidate_id``:</span>
-<span class="sd">            The ID of the candidate.</span>
-
-<span class="sd">        * ``candidate_elected``:</span>
-<span class="sd">            True if the candidate has been elected.</span>
-
-<span class="sd">        * ``candidate_party``:</span>
-<span class="sd">            The name of the party of this candidate.</span>
-
-<span class="sd">        * ``candidate_votes``:</span>
-<span class="sd">            The number of votes this candidate got.</span>
-
-<span class="sd">        * ``panachage_votes_from_list_XX``:</span>
-<span class="sd">            The number of votes the list got from the given list.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -619,8 +523,6 @@
 
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;list_connections&#39;</span>
 
-    <span class="n">summarized_properties</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;votes&#39;</span><span class="p">,</span> <span class="s1">&#39;number_of_mandates&#39;</span><span class="p">]</span>
-
     <span class="c1">#: internal id of the list</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
 
@@ -665,6 +567,12 @@
             <span class="n">child</span><span class="o">.</span><span class="n">total_number_of_mandates</span> <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
         <span class="p">)</span>
 
+    <span class="c1">#: the total votes</span>
+    <span class="n">votes</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;votes&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: the total number of mandates</span>
+    <span class="n">number_of_mandates</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;number_of_mandates&#39;</span><span class="p">)</span>
+
 <div class="viewcode-block" id="ListConnection.aggregate_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.ListConnection.aggregate_results">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>
 
@@ -687,8 +595,6 @@
     <span class="sd">&quot;&quot;&quot; A list. &quot;&quot;&quot;</span>
 
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;lists&#39;</span>
-
-    <span class="n">summarized_properties</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;votes&#39;</span><span class="p">]</span>
 
     <span class="c1">#: internal id of the list</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
@@ -732,6 +638,9 @@
         <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span>
     <span class="p">)</span>
 
+    <span class="c1">#: the total votes</span>
+    <span class="n">votes</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;votes&#39;</span><span class="p">)</span>
+
 <div class="viewcode-block" id="List.aggregate_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.List.aggregate_results">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>
 
@@ -754,8 +663,6 @@
     <span class="sd">&quot;&quot;&quot; A candidate. &quot;&quot;&quot;</span>
 
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;candidates&#39;</span>
-
-    <span class="n">summarized_properties</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;votes&#39;</span><span class="p">]</span>
 
     <span class="c1">#: the internal id of the candidate</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
@@ -788,6 +695,9 @@
         <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;candidate&#39;</span><span class="p">),</span>
         <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
     <span class="p">)</span>
+
+    <span class="c1">#: the total votes</span>
+    <span class="n">votes</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;votes&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Candidate.aggregate_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.election.Candidate.aggregate_results">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>

@@ -40,11 +40,13 @@
             
   <h1>Source code for onegov.ballot.models.vote</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot.models.common</span> <span class="k">import</span> <span class="n">DomainOfInfluenceMixin</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot.models.common</span> <span class="k">import</span> <span class="n">MetaMixin</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot.models.common</span> <span class="k">import</span> <span class="n">StatusMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">DomainOfInfluenceMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">StatusMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">summarized_property</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">translation_hybrid</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">ContentMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">HSTORE</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
@@ -124,17 +126,13 @@
 
 
 <div class="viewcode-block" id="Vote"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote">[docs]</a><span class="k">class</span> <span class="nc">Vote</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">DerivedBallotsCount</span><span class="p">,</span> <span class="n">DomainOfInfluenceMixin</span><span class="p">,</span>
-           <span class="n">MetaMixin</span><span class="p">,</span> <span class="n">StatusMixin</span><span class="p">):</span>
+           <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">StatusMixin</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; A vote describes the issue being voted on. For example,</span>
 <span class="sd">    &quot;Vote for Net Neutrality&quot; or &quot;Vote for Basic Income&quot;.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;votes&#39;</span>
-
-    <span class="n">summarized_properties</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s1">&#39;yeas&#39;</span><span class="p">,</span> <span class="s1">&#39;nays&#39;</span><span class="p">,</span> <span class="s1">&#39;empty&#39;</span><span class="p">,</span> <span class="s1">&#39;invalid&#39;</span><span class="p">,</span> <span class="s1">&#39;elegible_voters&#39;</span><span class="p">,</span>
-    <span class="p">]</span>
 
     <span class="c1">#: identifies the vote, may be used in the url, generated from the title</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -158,25 +156,34 @@
         <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span>
     <span class="p">)</span>
 
-    <span class="c1">#: a vote contains either one ballot (a proposal), or three ballots (a</span>
-    <span class="c1">#: proposal, a counter proposal and a tie breaker)</span>
+<div class="viewcode-block" id="Vote.ballot"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.ballot">[docs]</a>    <span class="k">def</span> <span class="nf">ballot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ballot_type</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the given ballot if it exists. Optionally creates the</span>
+<span class="sd">        ballot.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Ballot</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ballot_type</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">create</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">Ballot</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">ballot_type</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">proposal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="o">.</span><span class="n">count</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballot</span><span class="p">(</span><span class="s1">&#39;proposal&#39;</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">counter_proposal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="o">.</span><span class="n">count</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballot</span><span class="p">(</span><span class="s1">&#39;counter-proposal&#39;</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">tie_breaker</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="o">.</span><span class="n">count</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-        <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballot</span><span class="p">(</span><span class="s1">&#39;tie-breaker&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: may be used to identify the vote type, e.g. simple or complex.</span>
+    <span class="n">vote_type</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;vote_type&#39;</span><span class="p">)</span>
 
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;title_translations&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">title_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">translations</span><span class="p">):</span>
@@ -281,6 +288,21 @@
             <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">/</span> <span class="n">divider</span><span class="p">)</span>
         <span class="p">)</span>
 
+    <span class="c1">#: the total yeas</span>
+    <span class="n">yeas</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;yeas&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: the total nays</span>
+    <span class="n">nays</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;nays&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: the total empty votes</span>
+    <span class="n">empty</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;empty&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: the total invalid votes</span>
+    <span class="n">invalid</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;invalid&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: the total elegible voters</span>
+    <span class="n">elegible_voters</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;elegible_voters&#39;</span><span class="p">)</span>
+
 <div class="viewcode-block" id="Vote.aggregate_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.aggregate_results">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>
 
@@ -331,14 +353,16 @@
 
         <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">last_changes</span><span class="p">)</span>
 
+    <span class="c1">#: may be used to store a link related to this vote</span>
+    <span class="n">related_link</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;related_link&#39;</span><span class="p">)</span>
+
 <div class="viewcode-block" id="Vote.clear_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.clear_results">[docs]</a>    <span class="k">def</span> <span class="nf">clear_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Clear all the results. &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">:</span>
-            <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">ballot</span><span class="p">)</span></div>
+            <span class="n">ballot</span><span class="o">.</span><span class="n">clear_results</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="Vote.export"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.export">[docs]</a>    <span class="k">def</span> <span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns all data connected to this vote as list with dicts.</span>
@@ -348,65 +372,18 @@
 <span class="sd">        the nesting of values. Each record in the resulting list is a single</span>
 <span class="sd">        ballot result.</span>
 
-<span class="sd">        Each entry in the list (row) has the following format:</span>
-
-<span class="sd">        * ``title``:</span>
-<span class="sd">            Title of the vote.</span>
-
-<span class="sd">        * ``date``:</span>
-<span class="sd">            The date of the vote (an ISO 8601 date string).</span>
-
-<span class="sd">        * ``shortcode``:</span>
-<span class="sd">            Internal shortcode (defines the ordering of votes on the same day).</span>
-
-<span class="sd">        * ``domain``:</span>
-<span class="sd">            ``federation`` for federal, ``canton`` for cantonal,</span>
-<span class="sd">            ``municipality`` for communal votes.</span>
-
-<span class="sd">        * ``status``:</span>
-<span class="sd">            The status of the vote: ``unknown``, ``interim`` or ``final``.</span>
-
-<span class="sd">        * ``type``:</span>
-<span class="sd">            ``proposal`` (Vorschlag), ``counter-proposal`` (Gegenvorschlag) or</span>
-<span class="sd">            ``tie-breaker`` (Stichfrage).</span>
-
-<span class="sd">        * ``group``: The designation of the result. May be the district and</span>
-<span class="sd">            the town&#39;s name divided by a slash, the city&#39;s name and the</span>
-<span class="sd">            city&#39;s district divided by a slash or simply the town&#39;s name. This</span>
-<span class="sd">            depends entirely on the canton.</span>
-
-<span class="sd">        * ``entity_id``: The id of the political entity. The</span>
-<span class="sd">            &quot;BFS Nummer&quot; for example.</span>
-
-<span class="sd">        * ``counted``: True if the result was counted, False if the result is</span>
-<span class="sd">            not known yet (the voting counts are not final yet).</span>
-
-<span class="sd">        * ``yeas``:</span>
-<span class="sd">            The number of yes votes.</span>
-
-<span class="sd">        * ``nays``:</span>
-<span class="sd">            The number of no votes.</span>
-
-<span class="sd">        * ``invalid``:</span>
-<span class="sd">            The number of invalid votes.</span>
-
-<span class="sd">        * ``empty``:</span>
-<span class="sd">            The number of empty votes.</span>
-
-<span class="sd">        * ``elegible_voters``:</span>
-<span class="sd">            The number of people elegible to vote.</span>
-
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">ballot</span><span class="o">.</span><span class="n">results</span><span class="p">:</span>
-                <span class="c1"># have the dict ordered so it works directly with onegov.core&#39;s</span>
-                <span class="c1"># :func:`onegov.core.csv.convert_list_of_dicts_to_csv`</span>
                 <span class="n">row</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
 
-                <span class="k">for</span> <span class="n">locale</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title_translations</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">titles</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">ballot</span><span class="o">.</span><span class="n">title_translations</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">title_translations</span> <span class="ow">or</span> <span class="p">{}</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">locale</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="n">titles</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                     <span class="n">row</span><span class="p">[</span><span class="s1">&#39;title_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">locale</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">title</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
                 <span class="n">row</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
                 <span class="n">row</span><span class="p">[</span><span class="s1">&#39;shortcode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shortcode</span>
@@ -444,10 +421,6 @@
 
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;ballots&#39;</span>
 
-    <span class="n">summarized_properties</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s1">&#39;yeas&#39;</span><span class="p">,</span> <span class="s1">&#39;nays&#39;</span><span class="p">,</span> <span class="s1">&#39;empty&#39;</span><span class="p">,</span> <span class="s1">&#39;invalid&#39;</span><span class="p">,</span> <span class="s1">&#39;elegible_voters&#39;</span>
-    <span class="p">]</span>
-
     <span class="c1">#: identifies the ballot, maybe used in the url</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
 
@@ -467,6 +440,10 @@
 
     <span class="c1">#: identifies the vote this ballot result belongs to</span>
     <span class="n">vote_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">Vote</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: title of the ballot</span>
+    <span class="n">title_translations</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">HSTORE</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="n">translation_hybrid</span><span class="p">(</span><span class="n">title_translations</span><span class="p">)</span>
 
     <span class="c1">#: a ballot contains n results</span>
     <span class="n">results</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
@@ -508,6 +485,21 @@
         <span class="n">results</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
 
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+
+    <span class="c1">#: the total yeas</span>
+    <span class="n">yeas</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;yeas&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: the total nays</span>
+    <span class="n">nays</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;nays&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: the total empty votes</span>
+    <span class="n">empty</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;empty&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: the total invalid votes</span>
+    <span class="n">invalid</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;invalid&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: the total elegible voters</span>
+    <span class="n">elegible_voters</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;elegible_voters&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Ballot.aggregate_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Ballot.aggregate_results">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>
