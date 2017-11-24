@@ -5,12 +5,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>onegov.ballot.models.vote &#8212; OneGov Docs 0.0.1 documentation</title>
-    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
-    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <title>onegov.ballot.models.vote.vote &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../../../',
+        URL_ROOT:    '../../../../../',
         VERSION:     '0.0.1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -18,13 +18,13 @@
         SOURCELINK_SUFFIX: '.txt'
       };
     </script>
-    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
-    <link rel="index" title="Index" href="../../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../../search.html" />
+    <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
    
-  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
   
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
@@ -38,8 +38,11 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <h1>Source code for onegov.ballot.models.vote</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+  <h1>Source code for onegov.ballot.models.vote.vote</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.ballot_result</span> <span class="k">import</span> <span class="n">BallotResult</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.ballot</span> <span class="k">import</span> <span class="n">Ballot</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.mixins</span> <span class="k">import</span> <span class="n">DerivedBallotsCountMixin</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">DomainOfInfluenceMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">StatusMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">summarized_property</span>
@@ -49,84 +52,22 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">HSTORE</span>
-<span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">increment_name</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">case</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Date</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">desc</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Enum</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">ForeignKey</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">func</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Integer</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">select</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.ext.hybrid</span> <span class="k">import</span> <span class="n">hybrid_property</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">backref</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
-<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
 
 
-<div class="viewcode-block" id="DerivedAttributes"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.DerivedAttributes">[docs]</a><span class="k">class</span> <span class="nc">DerivedAttributes</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-
-    <span class="sd">&quot;&quot;&quot; A simple mixin to add commonly used functions to ballots and their</span>
-<span class="sd">    results. &quot;&quot;&quot;</span>
-
-    <span class="nd">@hybrid_property</span>
-    <span class="k">def</span> <span class="nf">yeas_percentage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; The percentage of yeas (discounts empty/invalid ballots). &quot;&quot;&quot;</span>
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">yeas</span> <span class="o">/</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">yeas</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nays</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
-
-    <span class="nd">@yeas_percentage</span><span class="o">.</span><span class="n">expression</span>
-    <span class="k">def</span> <span class="nf">yeas_percentage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c1"># coalesce will pick the first non-null result</span>
-        <span class="c1"># nullif will return null if division by zero</span>
-        <span class="c1"># =&gt; when all yeas and nays are zero the yeas percentage is 0%</span>
-        <span class="k">return</span> <span class="mi">100</span> <span class="o">*</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">yeas</span> <span class="o">/</span> <span class="p">(</span>
-                <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
-                    <span class="n">func</span><span class="o">.</span><span class="n">nullif</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">yeas</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nays</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">1</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
-
-    <span class="nd">@hybrid_property</span>
-    <span class="k">def</span> <span class="nf">nays_percentage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; The percentage of nays (discounts empty/invalid ballots). &quot;&quot;&quot;</span>
-
-        <span class="k">return</span> <span class="mi">100</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">yeas_percentage</span>
-
-    <span class="nd">@hybrid_property</span>
-    <span class="k">def</span> <span class="nf">accepted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">yeas</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nays</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">counted</span> <span class="k">else</span> <span class="kc">None</span>
-
-    <span class="nd">@accepted</span><span class="o">.</span><span class="n">expression</span>
-    <span class="k">def</span> <span class="nf">accepted</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">case</span><span class="p">({</span><span class="kc">True</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">yeas</span> <span class="o">&gt;</span> <span class="bp">cls</span><span class="o">.</span><span class="n">nays</span><span class="p">},</span> <span class="bp">cls</span><span class="o">.</span><span class="n">counted</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="DerivedBallotsCount"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.DerivedBallotsCount">[docs]</a><span class="k">class</span> <span class="nc">DerivedBallotsCount</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-
-    <span class="sd">&quot;&quot;&quot; A simple mixin to add commonly used functions to votes, ballots and</span>
-<span class="sd">    their results. &quot;&quot;&quot;</span>
-
-    <span class="nd">@hybrid_property</span>
-    <span class="k">def</span> <span class="nf">cast_ballots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">yeas</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nays</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">empty</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid</span>
-
-    <span class="nd">@hybrid_property</span>
-    <span class="k">def</span> <span class="nf">turnout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cast_ballots</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">elegible_voters</span> <span class="o">*</span> <span class="mi">100</span>\
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">elegible_voters</span> <span class="k">else</span> <span class="mi">0</span></div>
-
-
-<div class="viewcode-block" id="Vote"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote">[docs]</a><span class="k">class</span> <span class="nc">Vote</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">DerivedBallotsCount</span><span class="p">,</span> <span class="n">DomainOfInfluenceMixin</span><span class="p">,</span>
-           <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">StatusMixin</span><span class="p">):</span>
+<div class="viewcode-block" id="Vote"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote">[docs]</a><span class="k">class</span> <span class="nc">Vote</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">DerivedBallotsCountMixin</span><span class="p">,</span>
+           <span class="n">DomainOfInfluenceMixin</span><span class="p">,</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">StatusMixin</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; A vote describes the issue being voted on. For example,</span>
 <span class="sd">    &quot;Vote for Net Neutrality&quot; or &quot;Vote for Basic Income&quot;.</span>
 
@@ -156,7 +97,7 @@
         <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span>
     <span class="p">)</span>
 
-<div class="viewcode-block" id="Vote.ballot"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.ballot">[docs]</a>    <span class="k">def</span> <span class="nf">ballot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ballot_type</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Vote.ballot"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.ballot">[docs]</a>    <span class="k">def</span> <span class="nf">ballot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ballot_type</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns the given ballot if it exists. Optionally creates the</span>
 <span class="sd">        ballot.</span>
 
@@ -303,12 +244,12 @@
     <span class="c1">#: the total elegible voters</span>
     <span class="n">elegible_voters</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;elegible_voters&#39;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Vote.aggregate_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.aggregate_results">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+<div class="viewcode-block" id="Vote.aggregate_results"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.aggregate_results">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>
 
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">ballot</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span> <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Vote.aggregate_results_expression"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.aggregate_results_expression">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Vote.aggregate_results_expression"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.aggregate_results_expression">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">aggregate_results_expression</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results,</span>
 <span class="sd">        as SQL expression.</span>
@@ -356,7 +297,7 @@
     <span class="c1">#: may be used to store a link related to this vote</span>
     <span class="n">related_link</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;related_link&#39;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Vote.clear_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.clear_results">[docs]</a>    <span class="k">def</span> <span class="nf">clear_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Vote.clear_results"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.clear_results">[docs]</a>    <span class="k">def</span> <span class="nf">clear_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Clear all the results. &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="kc">None</span>
@@ -364,7 +305,7 @@
         <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">:</span>
             <span class="n">ballot</span><span class="o">.</span><span class="n">clear_results</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="Vote.export"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.export">[docs]</a>    <span class="k">def</span> <span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Vote.export"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.export">[docs]</a>    <span class="k">def</span> <span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns all data connected to this vote as list with dicts.</span>
 
 <span class="sd">        This is meant as a base for json/csv/excel exports. The result is</span>
@@ -402,213 +343,6 @@
                 <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">rows</span></div></div>
-
-
-<div class="viewcode-block" id="Ballot"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Ballot">[docs]</a><span class="k">class</span> <span class="nc">Ballot</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">DerivedAttributes</span><span class="p">,</span> <span class="n">DerivedBallotsCount</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; A ballot contains a single question asked for a vote.</span>
-
-<span class="sd">    Usually each vote has exactly one ballot, but it&#39;s possible for votes to</span>
-<span class="sd">    have multiple ballots.</span>
-
-<span class="sd">    In the latter case there are usually two options that are mutually</span>
-<span class="sd">    exclusive and a third option that acts as a tie breaker between</span>
-<span class="sd">    the frist two options.</span>
-
-<span class="sd">    The type of the ballot indicates this. Standard ballots only contain</span>
-<span class="sd">    one question, variant ballots contain multiple questions.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;ballots&#39;</span>
-
-    <span class="c1">#: identifies the ballot, maybe used in the url</span>
-    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
-
-    <span class="c1">#: the type of the ballot, &#39;standard&#39; for normal votes, &#39;counter-proposal&#39;</span>
-    <span class="c1">#: if there&#39;s an alternative to the standard ballot. And &#39;tie-breaker&#39;,</span>
-    <span class="c1">#: which must exist if there&#39;s a counter proposal. The tie breaker is</span>
-    <span class="c1">#: only relevant if both standard and counter proposal are accepted.</span>
-    <span class="c1">#: If that&#39;s the case, the accepted tie breaker selects the standard,</span>
-    <span class="c1">#: the rejected tie breaker selects the counter proposal.</span>
-    <span class="nb">type</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span>
-        <span class="n">Enum</span><span class="p">(</span>
-            <span class="s1">&#39;proposal&#39;</span><span class="p">,</span> <span class="s1">&#39;counter-proposal&#39;</span><span class="p">,</span> <span class="s1">&#39;tie-breaker&#39;</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;ballot_result_type&#39;</span>
-        <span class="p">),</span>
-        <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span>
-    <span class="p">)</span>
-
-    <span class="c1">#: identifies the vote this ballot result belongs to</span>
-    <span class="n">vote_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">Vote</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="c1">#: title of the ballot</span>
-    <span class="n">title_translations</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">HSTORE</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">title</span> <span class="o">=</span> <span class="n">translation_hybrid</span><span class="p">(</span><span class="n">title_translations</span><span class="p">)</span>
-
-    <span class="c1">#: a ballot contains n results</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
-        <span class="s1">&#39;BallotResult&#39;</span><span class="p">,</span>
-        <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
-        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;ballot&#39;</span><span class="p">),</span>
-        <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
-        <span class="n">order_by</span><span class="o">=</span><span class="s1">&#39;BallotResult.group&#39;</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="nd">@hybrid_property</span>
-    <span class="k">def</span> <span class="nf">counted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; True if all results have been counted. &quot;&quot;&quot;</span>
-
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">counted</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
-        <span class="p">)</span>
-
-    <span class="nd">@counted</span><span class="o">.</span><span class="n">expression</span>
-    <span class="k">def</span> <span class="nf">counted</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-        <span class="n">expr</span> <span class="o">=</span> <span class="n">select</span><span class="p">([</span><span class="n">func</span><span class="o">.</span><span class="n">bool_and</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">counted</span><span class="p">)])</span>
-        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">ballot_id</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;counted&#39;</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">expr</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">progress</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns a tuple with the first value being the number of counted</span>
-<span class="sd">        ballot result groups and the second value being the number of total</span>
-<span class="sd">        result groups related to this vote.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="n">query</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">BallotResult</span><span class="p">)</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">counted</span><span class="p">)</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">ballot_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-
-        <span class="n">results</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-
-        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-
-    <span class="c1">#: the total yeas</span>
-    <span class="n">yeas</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;yeas&#39;</span><span class="p">)</span>
-
-    <span class="c1">#: the total nays</span>
-    <span class="n">nays</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;nays&#39;</span><span class="p">)</span>
-
-    <span class="c1">#: the total empty votes</span>
-    <span class="n">empty</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;empty&#39;</span><span class="p">)</span>
-
-    <span class="c1">#: the total invalid votes</span>
-    <span class="n">invalid</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;invalid&#39;</span><span class="p">)</span>
-
-    <span class="c1">#: the total elegible voters</span>
-    <span class="n">elegible_voters</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;elegible_voters&#39;</span><span class="p">)</span>
-
-<div class="viewcode-block" id="Ballot.aggregate_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Ballot.aggregate_results">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>
-
-        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="Ballot.aggregate_results_expression"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Ballot.aggregate_results_expression">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">aggregate_results_expression</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results,</span>
-<span class="sd">        as SQL expression.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="n">expr</span> <span class="o">=</span> <span class="n">select</span><span class="p">([</span><span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">BallotResult</span><span class="p">,</span> <span class="n">attribute</span><span class="p">))])</span>
-        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">ballot_id</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">attribute</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">expr</span></div>
-
-<div class="viewcode-block" id="Ballot.percentage_by_entity"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Ballot.percentage_by_entity">[docs]</a>    <span class="k">def</span> <span class="nf">percentage_by_entity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns the yeas/nays percentage grouped and keyed by</span>
-<span class="sd">        entity_id.</span>
-
-<span class="sd">        Uncounted entities are not included.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="n">query</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">BallotResult</span><span class="p">)</span>
-
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
-            <span class="n">BallotResult</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span>
-            <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">yeas</span><span class="p">),</span>
-            <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">nays</span><span class="p">),</span>
-            <span class="n">BallotResult</span><span class="o">.</span><span class="n">counted</span>
-        <span class="p">)</span>
-
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span>
-            <span class="n">BallotResult</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span>
-            <span class="n">BallotResult</span><span class="o">.</span><span class="n">counted</span>
-        <span class="p">)</span>
-
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">ballot_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-
-        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
-
-        <span class="k">for</span> <span class="nb">id</span><span class="p">,</span> <span class="n">yeas</span><span class="p">,</span> <span class="n">nays</span><span class="p">,</span> <span class="n">counted</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-            <span class="n">r</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;counted&#39;</span><span class="p">:</span> <span class="n">counted</span><span class="p">}</span>
-
-            <span class="k">if</span> <span class="n">counted</span><span class="p">:</span>
-                <span class="n">r</span><span class="p">[</span><span class="s1">&#39;yeas_percentage&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">yeas</span> <span class="o">/</span> <span class="p">((</span><span class="n">yeas</span> <span class="o">+</span> <span class="n">nays</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
-                <span class="n">r</span><span class="p">[</span><span class="s1">&#39;nays_percentage&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">-</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;yeas_percentage&#39;</span><span class="p">]</span>
-
-            <span class="n">result</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span>
-
-        <span class="k">return</span> <span class="n">result</span></div>
-
-<div class="viewcode-block" id="Ballot.clear_results"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.Ballot.clear_results">[docs]</a>    <span class="k">def</span> <span class="nf">clear_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Clear all the results. &quot;&quot;&quot;</span>
-
-        <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">:</span>
-            <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div></div>
-
-
-<div class="viewcode-block" id="BallotResult"><a class="viewcode-back" href="../../../../onegov_ballot.html#onegov.ballot.models.vote.BallotResult">[docs]</a><span class="k">class</span> <span class="nc">BallotResult</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">DerivedAttributes</span><span class="p">,</span>
-                   <span class="n">DerivedBallotsCount</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; The result of a specific ballot. Each ballot may have multiple</span>
-<span class="sd">    results. Those results may be aggregated or not.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;ballot_results&#39;</span>
-
-    <span class="c1">#: identifies the result, may be used in the url</span>
-    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
-
-    <span class="c1">#: groups the ballots in whatever structure makes sense. For example:</span>
-    <span class="c1">#: /ZH/Bezirk Zürich/Stadt Zürich/Kreis 1</span>
-    <span class="c1">#: the idea is to have an instrument to group ballot results at various</span>
-    <span class="c1">#: levels. We could use the example, to group by &#39;/ZH&#39; or by</span>
-    <span class="c1">#: &#39;/ZH/Bezirk Zürich/Stadt Zürich&#39;</span>
-    <span class="n">group</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="c1">#: The entity id (e.g. BFS number).</span>
-    <span class="n">entity_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="c1">#: True if the result has been counted and no changes will be made anymore.</span>
-    <span class="c1">#: If the result is definite, all the values below must be specified.</span>
-    <span class="n">counted</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="c1">#: number of yeas, in case of variants, the number of yeas for the first</span>
-    <span class="c1">#: option of the tie breaker</span>
-    <span class="n">yeas</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
-
-    <span class="c1">#: number of nays, in case of variants, the number of nays for the first</span>
-    <span class="c1">#: option of the tie breaker (so a yay for the second option)</span>
-    <span class="n">nays</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
-
-    <span class="c1">#: number of empty votes</span>
-    <span class="n">empty</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
-
-    <span class="c1">#: number of invalid votes</span>
-    <span class="n">invalid</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
-
-    <span class="c1">#: number of elegible voters</span>
-    <span class="n">elegible_voters</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
-
-    <span class="c1">#: the ballot this result belongs to</span>
-    <span class="n">ballot_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">Ballot</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 </pre></div>
 
           </div>
@@ -617,8 +351,8 @@
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <p class="logo">
-  <a href="../../../../index.html">
-    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+  <a href="../../../../../index.html">
+    <img class="logo" src="../../../../../_static/logo.svg" alt="Logo"/>
     
   </a>
 </p>
@@ -642,7 +376,7 @@
 
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
-    <form class="search" action="../../../../search.html" method="get">
+    <form class="search" action="../../../../../search.html" method="get">
       <div><input type="text" name="q" /></div>
       <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />

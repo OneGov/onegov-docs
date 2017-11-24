@@ -1,0 +1,305 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.election_day.views.election.parties &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.election_day.views.election.parties</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">morepath.request</span> <span class="k">import</span> <span class="n">Response</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">PartyResult</span>
+<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.layout</span> <span class="k">import</span> <span class="n">DefaultLayout</span><span class="p">,</span> <span class="n">ElectionsLayout</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">add_last_modified_header</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
+
+
+<div class="viewcode-block" id="get_party_results"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.parties.get_party_results">[docs]</a><span class="k">def</span> <span class="nf">get_party_results</span><span class="p">(</span><span class="n">election</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; Returns the aggregated party results as list. &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">election</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s1">&#39;proporz&#39;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">election</span><span class="o">.</span><span class="n">party_results</span><span class="o">.</span><span class="n">first</span><span class="p">():</span>
+        <span class="k">return</span> <span class="p">[],</span> <span class="p">{}</span>
+
+    <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="n">election</span><span class="p">)</span>
+
+    <span class="c1"># Get the totals votes per year</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">PartyResult</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">PartyResult</span><span class="o">.</span><span class="n">total_votes</span><span class="p">)</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">PartyResult</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="n">election</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+    <span class="n">totals</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+    <span class="n">years</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">totals</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+    <span class="n">parties</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">election</span><span class="o">.</span><span class="n">party_results</span><span class="p">:</span>
+        <span class="n">party</span> <span class="o">=</span> <span class="n">parties</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">year</span> <span class="o">=</span> <span class="n">party</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">year</span><span class="p">),</span> <span class="p">{})</span>
+        <span class="n">year</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">color</span>
+        <span class="n">year</span><span class="p">[</span><span class="s1">&#39;mandates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">number_of_mandates</span>
+        <span class="n">year</span><span class="p">[</span><span class="s1">&#39;votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;total&#39;</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">votes</span><span class="p">,</span>
+            <span class="s1">&#39;permille&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span>
+                <span class="nb">round</span><span class="p">(</span><span class="mi">1000</span> <span class="o">*</span> <span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">votes</span> <span class="o">/</span> <span class="p">(</span><span class="n">totals</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">year</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)))</span>
+            <span class="p">)</span>
+        <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">years</span><span class="p">,</span> <span class="n">parties</span></div>
+
+
+<div class="viewcode-block" id="get_party_deltas"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.parties.get_party_deltas">[docs]</a><span class="k">def</span> <span class="nf">get_party_deltas</span><span class="p">(</span><span class="n">election</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">parties</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; Returns the aggregated party results with the differences to the</span>
+<span class="sd">    last elections.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">deltas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">years</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">parties</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">party</span> <span class="o">=</span> <span class="n">parties</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="n">years</span><span class="p">:</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="n">party</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">year</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">values</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mandates&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;votes&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;total&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+                <span class="n">permille</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;votes&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;permille&#39;</span><span class="p">)</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">%&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">permille</span> <span class="o">/</span> <span class="mi">10</span> <span class="k">if</span> <span class="n">permille</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">deltas</span><span class="p">:</span>
+            <span class="n">now</span> <span class="o">=</span> <span class="n">party</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">years</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">then</span> <span class="o">=</span> <span class="n">party</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">years</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">now</span> <span class="ow">and</span> <span class="n">then</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">%&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="p">((</span><span class="n">now</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;votes&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;permille&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span>
+                     <span class="p">(</span><span class="n">then</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;votes&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;permille&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">))</span> <span class="o">/</span> <span class="mi">10</span>
+                <span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">deltas</span><span class="p">,</span> <span class="n">results</span></div>
+
+
+<div class="viewcode-block" id="view_election_parties_data"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.parties.view_election_parties_data">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Election</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;parties-data&#39;</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_election_parties_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; Retuns the data used for the grouped bar diagram showing the party</span>
+<span class="sd">    results.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;majorz&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span>
+        <span class="p">}</span>
+
+    <span class="n">years</span><span class="p">,</span> <span class="n">parties</span> <span class="o">=</span> <span class="n">get_party_results</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">parties</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">party</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="n">parties</span><span class="p">[</span><span class="n">party</span><span class="p">]:</span>
+            <span class="n">front</span> <span class="o">=</span> <span class="n">parties</span><span class="p">[</span><span class="n">party</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mandates&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">back</span> <span class="o">=</span> <span class="n">parties</span><span class="p">[</span><span class="n">party</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;votes&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">back</span> <span class="o">=</span> <span class="n">back</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;permille&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="mf">10.0</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="n">parties</span><span class="p">[</span><span class="n">party</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;color&#39;</span><span class="p">,</span> <span class="s1">&#39;#999999&#39;</span><span class="p">)</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s1">&#39;group&#39;</span><span class="p">:</span> <span class="n">party</span><span class="p">,</span>
+                <span class="s1">&#39;item&#39;</span><span class="p">:</span> <span class="n">year</span><span class="p">,</span>
+                <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s1">&#39;front&#39;</span><span class="p">:</span> <span class="n">front</span><span class="p">,</span>
+                    <span class="s1">&#39;back&#39;</span><span class="p">:</span> <span class="n">back</span><span class="p">,</span>
+                <span class="p">},</span>
+                <span class="s1">&#39;active&#39;</span><span class="p">:</span> <span class="n">year</span> <span class="o">==</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">),</span>
+                <span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="n">color</span>
+            <span class="p">})</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;groups&#39;</span><span class="p">:</span> <span class="n">names</span><span class="p">,</span>
+        <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">years</span><span class="p">,</span>
+        <span class="s1">&#39;maximum&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;front&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_of_mandates</span><span class="p">,</span>
+            <span class="s1">&#39;back&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;axis_units&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;front&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;back&#39;</span><span class="p">:</span> <span class="s1">&#39;%&#39;</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="n">results</span><span class="p">,</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="view_election_parties_chart"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.parties.view_election_parties_chart">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Election</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;parties-chart&#39;</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="s1">&#39;embed.pt&#39;</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_election_parties_chart</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;&quot; View the parties as grouped bar chart. &quot;&quot;&quot;</span>
+
+    <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+    <span class="k">def</span> <span class="nf">add_last_modified</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_result_change</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">),</span>
+        <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;grouped_bar&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;parties-data&#39;</span><span class="p">)</span>
+        <span class="p">}</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="view_election_parties"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.parties.view_election_parties">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Election</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;parties&#39;</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="s1">&#39;election/parties.pt&#39;</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_election_parties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;&quot; The main view. &quot;&quot;&quot;</span>
+
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionsLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;parties&#39;</span><span class="p">)</span>
+
+    <span class="n">years</span><span class="p">,</span> <span class="n">parties</span> <span class="o">=</span> <span class="n">get_party_results</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    <span class="n">deltas</span><span class="p">,</span> <span class="n">results</span> <span class="o">=</span> <span class="n">get_party_deltas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">parties</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;election&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="n">results</span><span class="p">,</span>
+        <span class="s1">&#39;years&#39;</span><span class="p">:</span> <span class="n">years</span><span class="p">,</span>
+        <span class="s1">&#39;deltas&#39;</span><span class="p">:</span> <span class="n">deltas</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="view_election_parties_svg"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.parties.view_election_parties_svg">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Election</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;parties-svg&#39;</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_election_parties_svg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; View the parties as SVG. &quot;&quot;&quot;</span>
+
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionsLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;parties&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">layout</span><span class="o">.</span><span class="n">svg_path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;503 Service Unavailable&#39;</span><span class="p">)</span>
+
+    <span class="n">content</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">with</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">filestorage</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">svg_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
+        <span class="n">content</span><span class="p">,</span>
+        <span class="n">content_type</span><span class="o">=</span><span class="s1">&#39;application/svg; charset=utf-8&#39;</span><span class="p">,</span>
+        <span class="n">content_disposition</span><span class="o">=</span><span class="s1">&#39;inline; filename=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">svg_name</span><span class="p">)</span>
+    <span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../../index.html">
+    <img class="logo" src="../../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
