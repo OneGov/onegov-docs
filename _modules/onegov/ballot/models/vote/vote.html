@@ -75,6 +75,17 @@
 
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;votes&#39;</span>
 
+    <span class="c1">#: the type of the item, this can be used to create custom polymorphic</span>
+    <span class="c1">#: subclasses of this class. See</span>
+    <span class="c1">#: `&lt;http://docs.sqlalchemy.org/en/improve_toc/\</span>
+    <span class="c1">#: orm/extensions/declarative/inheritance.html&gt;`_.</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;polymorphic_on&#39;</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span>
+        <span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;simple&#39;</span>
+    <span class="p">}</span>
+
     <span class="c1">#: identifies the vote, may be used in the url, generated from the title</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -103,7 +114,8 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Ballot</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ballot_type</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span> <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">ballot_type</span><span class="p">]</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">result</span> <span class="k">else</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">create</span><span class="p">:</span>
             <span class="n">result</span> <span class="o">=</span> <span class="n">Ballot</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">ballot_type</span><span class="p">)</span>
@@ -113,18 +125,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">proposal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballot</span><span class="p">(</span><span class="s1">&#39;proposal&#39;</span><span class="p">)</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">counter_proposal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballot</span><span class="p">(</span><span class="s1">&#39;counter-proposal&#39;</span><span class="p">)</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">tie_breaker</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballot</span><span class="p">(</span><span class="s1">&#39;tie-breaker&#39;</span><span class="p">)</span>
-
-    <span class="c1">#: may be used to identify the vote type, e.g. simple or complex.</span>
-    <span class="n">vote_type</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;vote_type&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballot</span><span class="p">(</span><span class="s1">&#39;proposal&#39;</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;title_translations&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">title_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">translations</span><span class="p">):</span>
@@ -151,49 +152,13 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">counted</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">proposal</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
 
-        <span class="c1"># standard ballot, no counter proposal</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter_proposal</span><span class="p">:</span>
-            <span class="k">return</span> <span class="s1">&#39;accepted&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proposal</span><span class="o">.</span><span class="n">accepted</span> <span class="k">else</span> <span class="s1">&#39;rejected&#39;</span>
-
-        <span class="c1"># variant ballot, with proposal, coutner proposal and tie breaker</span>
-        <span class="k">elif</span> <span class="nb">all</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">proposal</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter_proposal</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tie_breaker</span><span class="p">)):</span>
-
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proposal</span><span class="o">.</span><span class="n">accepted</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter_proposal</span><span class="o">.</span><span class="n">accepted</span><span class="p">:</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tie_breaker</span><span class="o">.</span><span class="n">accepted</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="s1">&#39;proposal&#39;</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="s1">&#39;counter-proposal&#39;</span>
-
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">proposal</span><span class="o">.</span><span class="n">accepted</span><span class="p">:</span>
-                <span class="k">return</span> <span class="s1">&#39;proposal&#39;</span>
-
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter_proposal</span><span class="o">.</span><span class="n">accepted</span><span class="p">:</span>
-                <span class="k">return</span> <span class="s1">&#39;counter-proposal&#39;</span>
-
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">return</span> <span class="s1">&#39;rejected&#39;</span>
-
-        <span class="c1"># not implemeneted here, not implemented in Swiss law either (at least</span>
-        <span class="c1"># on a federal level)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+        <span class="k">return</span> <span class="s1">&#39;accepted&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proposal</span><span class="o">.</span><span class="n">accepted</span> <span class="k">else</span> <span class="s1">&#39;rejected&#39;</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">yeas_percentage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; The percentage of yeas (discounts empty/invalid ballots). &quot;&quot;&quot;</span>
 
-        <span class="c1"># if we have no counter proposal, the yeas are a simple sum</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter_proposal</span><span class="p">:</span>
-            <span class="n">subject</span> <span class="o">=</span> <span class="bp">self</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">answer</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;proposal&#39;</span><span class="p">,</span> <span class="s1">&#39;rejected&#39;</span><span class="p">):</span>
-                <span class="c1"># if the proposal won or both proposal and counter-proposal</span>
-                <span class="c1"># were rejected, we show the yeas/nays of the proposal</span>
-                <span class="n">subject</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proposal</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">subject</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter_proposal</span>
-
-        <span class="k">return</span> <span class="n">subject</span><span class="o">.</span><span class="n">yeas</span> <span class="o">/</span> <span class="p">((</span><span class="n">subject</span><span class="o">.</span><span class="n">yeas</span> <span class="o">+</span> <span class="n">subject</span><span class="o">.</span><span class="n">nays</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">yeas</span> <span class="o">/</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">yeas</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nays</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">nays_percentage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -205,10 +170,6 @@
     <span class="k">def</span> <span class="nf">progress</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns a tuple with the first value being the number of counted</span>
 <span class="sd">        entities and the second value being the number of total entities.</span>
-
-<span class="sd">        If this is complex vote with proposal, counter-proposal and tie-breaker</span>
-<span class="sd">        it&#39;s assumed all three ballots are present/not present for one entity</span>
-<span class="sd">        (otherwise there might be a rounding error).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 

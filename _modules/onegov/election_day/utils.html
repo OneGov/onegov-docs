@@ -41,6 +41,7 @@
   <h1>Source code for onegov.election_day.utils</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">sha256</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Ballot</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ComplexVote</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Vote</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.models</span> <span class="k">import</span> <span class="n">ArchivedResult</span>
@@ -168,9 +169,6 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">accepted</span><span class="p">(</span><span class="n">ballot</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">ballot</span><span class="o">.</span><span class="n">yeas</span> <span class="o">&gt;</span> <span class="n">ballot</span><span class="o">.</span><span class="n">nays</span>
-
     <span class="n">adjust</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">principal</span><span class="o">.</span><span class="n">domain</span> <span class="o">==</span> <span class="s1">&#39;municipality&#39;</span> <span class="ow">and</span>
         <span class="n">principal</span><span class="o">.</span><span class="n">municipality</span> <span class="ow">and</span>
@@ -179,9 +177,8 @@
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">adjust</span><span class="p">:</span>
         <span class="n">entity_id</span> <span class="o">=</span> <span class="n">principal</span><span class="o">.</span><span class="n">municipality</span>
-        <span class="n">vote</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Vote</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-            <span class="n">Vote</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">source</span><span class="o">.</span><span class="n">external_id</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="n">vote</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Vote</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Vote</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">source</span><span class="o">.</span><span class="n">external_id</span><span class="p">)</span>
+        <span class="n">vote</span> <span class="o">=</span> <span class="n">vote</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">vote</span> <span class="ow">and</span> <span class="n">vote</span><span class="o">.</span><span class="n">proposal</span><span class="p">:</span>
             <span class="n">yeas</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">nays</span> <span class="o">=</span> <span class="kc">None</span>
@@ -192,7 +189,7 @@
             <span class="n">proposal</span> <span class="o">=</span> <span class="n">proposal</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
 
             <span class="k">if</span> <span class="n">proposal</span> <span class="ow">and</span> <span class="n">proposal</span><span class="o">.</span><span class="n">counted</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">vote</span><span class="o">.</span><span class="n">counter_proposal</span> <span class="ow">and</span> <span class="n">vote</span><span class="o">.</span><span class="n">tie_breaker</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">vote</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;complex&#39;</span><span class="p">:</span>
                     <span class="n">counter</span> <span class="o">=</span> <span class="n">vote</span><span class="o">.</span><span class="n">counter_proposal</span><span class="o">.</span><span class="n">results</span>
                     <span class="n">counter</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">)</span>
                     <span class="n">counter</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
@@ -201,19 +198,13 @@
                     <span class="n">tie</span> <span class="o">=</span> <span class="n">tie</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">)</span>
                     <span class="n">tie</span> <span class="o">=</span> <span class="n">tie</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
 
-                    <span class="k">if</span> <span class="n">counter</span> <span class="ow">and</span> <span class="n">counter</span><span class="o">.</span><span class="n">counted</span> <span class="ow">and</span> <span class="n">tie</span> <span class="ow">and</span> <span class="n">tie</span><span class="o">.</span><span class="n">counted</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">accepted</span><span class="p">(</span><span class="n">proposal</span><span class="p">)</span> <span class="ow">and</span> <span class="n">accepted</span><span class="p">(</span><span class="n">counter</span><span class="p">):</span>
-                            <span class="k">if</span> <span class="n">accepted</span><span class="p">(</span><span class="n">tie</span><span class="p">):</span>
-                                <span class="n">answer</span> <span class="o">=</span> <span class="s1">&#39;proposal&#39;</span>
-                            <span class="k">else</span><span class="p">:</span>
-                                <span class="n">answer</span> <span class="o">=</span> <span class="s1">&#39;counter-proposal&#39;</span>
-                        <span class="k">elif</span> <span class="n">accepted</span><span class="p">(</span><span class="n">proposal</span><span class="p">):</span>
-                            <span class="n">answer</span> <span class="o">=</span> <span class="s1">&#39;proposal&#39;</span>
-                        <span class="k">elif</span> <span class="n">accepted</span><span class="p">(</span><span class="n">counter</span><span class="p">):</span>
-                            <span class="n">answer</span> <span class="o">=</span> <span class="s1">&#39;counter-proposal&#39;</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="n">answer</span> <span class="o">=</span> <span class="s1">&#39;rejected&#39;</span>
-
+                    <span class="n">answer</span> <span class="o">=</span> <span class="n">ComplexVote</span><span class="o">.</span><span class="n">get_answer</span><span class="p">(</span>
+                        <span class="n">counter</span><span class="o">.</span><span class="n">counted</span><span class="p">,</span>
+                        <span class="n">proposal</span><span class="p">,</span>
+                        <span class="n">counter</span><span class="p">,</span>
+                        <span class="n">tie</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">answer</span><span class="p">:</span>
                         <span class="k">if</span> <span class="n">answer</span> <span class="o">==</span> <span class="s1">&#39;counter-proposal&#39;</span><span class="p">:</span>
                             <span class="n">yeas</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">yeas</span>
                             <span class="n">nays</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">nays</span>
@@ -223,7 +214,7 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">yeas</span> <span class="o">=</span> <span class="n">proposal</span><span class="o">.</span><span class="n">yeas</span>
                     <span class="n">nays</span> <span class="o">=</span> <span class="n">proposal</span><span class="o">.</span><span class="n">nays</span>
-                    <span class="n">answer</span> <span class="o">=</span> <span class="s1">&#39;accepted&#39;</span> <span class="k">if</span> <span class="n">accepted</span><span class="p">(</span><span class="n">proposal</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;rejected&#39;</span>
+                    <span class="n">answer</span> <span class="o">=</span> <span class="s1">&#39;accepted&#39;</span> <span class="k">if</span> <span class="n">proposal</span><span class="o">.</span><span class="n">accepted</span> <span class="k">else</span> <span class="s1">&#39;rejected&#39;</span>
 
             <span class="k">if</span> <span class="n">yeas</span> <span class="ow">and</span> <span class="n">nays</span> <span class="ow">and</span> <span class="n">answer</span><span class="p">:</span>
                 <span class="n">yeas</span> <span class="o">=</span> <span class="n">yeas</span> <span class="o">/</span> <span class="p">((</span><span class="n">yeas</span> <span class="o">+</span> <span class="n">nays</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>

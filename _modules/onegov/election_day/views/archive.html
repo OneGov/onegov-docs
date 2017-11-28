@@ -39,13 +39,9 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.election_day.views.archive</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">morepath</span> <span class="k">import</span> <span class="n">redirect</span>
-<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Private</span>
-<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
+<span></span><span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.collections</span> <span class="k">import</span> <span class="n">ArchivedResultCollection</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day.forms</span> <span class="k">import</span> <span class="n">EmptyForm</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.layout</span> <span class="k">import</span> <span class="n">DefaultLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.models</span> <span class="k">import</span> <span class="n">Principal</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">add_last_modified_header</span>
@@ -152,38 +148,6 @@
         <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
         <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="n">latest</span><span class="p">,</span>
         <span class="s1">&#39;archive&#39;</span><span class="p">:</span> <span class="n">get_archive_links</span><span class="p">(</span><span class="n">archive</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
-    <span class="p">}</span></div>
-
-
-<div class="viewcode-block" id="view_update_results"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.views.archive.view_update_results">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span>
-    <span class="n">model</span><span class="o">=</span><span class="n">Principal</span><span class="p">,</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;update-results&#39;</span><span class="p">,</span>
-    <span class="n">template</span><span class="o">=</span><span class="s1">&#39;form.pt&#39;</span><span class="p">,</span>
-    <span class="n">form</span><span class="o">=</span><span class="n">EmptyForm</span><span class="p">,</span>
-    <span class="n">permission</span><span class="o">=</span><span class="n">Private</span>
-<span class="p">)</span>
-<span class="k">def</span> <span class="nf">view_update_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
-
-    <span class="sd">&quot;&quot;&quot; Updates all results.</span>
-
-<span class="sd">    This view is not linked anywhere since there is normally no need to call</span>
-<span class="sd">    it.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
-    <span class="n">archive</span> <span class="o">=</span> <span class="n">ArchivedResultCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
-
-    <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-        <span class="n">archive</span> <span class="o">=</span> <span class="n">ArchivedResultCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
-        <span class="n">archive</span><span class="o">.</span><span class="n">update_all</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">manage_link</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
-        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
-        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Update results&quot;</span><span class="p">),</span>
-        <span class="s1">&#39;cancel&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">manage_link</span>
     <span class="p">}</span></div>
 </pre></div>
 
