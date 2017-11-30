@@ -58,6 +58,11 @@
 <span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
 
 
+<span class="c1"># for our empty paragraphs approach we don&#39;t need a full-blown xml parser</span>
+<span class="c1"># since we only remove a very limited set of paragraphs</span>
+<span class="n">EMPTY_PARAGRAPHS</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;p&gt;\s*&lt;br&gt;\s*&lt;/p&gt;&#39;</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="djb2_hash"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.utils.djb2_hash">[docs]</a><span class="k">def</span> <span class="nf">djb2_hash</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Implementation of the djb2 hash, a simple hash function with a</span>
 <span class="sd">    configurable table size.</span>
@@ -179,6 +184,13 @@
         <span class="n">set_image_sizes</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tostring</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">fragments</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">remove_empty_paragraphs</span><span class="p">(</span><span class="n">html</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">html</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">html</span>
+
+    <span class="k">return</span> <span class="n">EMPTY_PARAGRAPHS</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">html</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">set_image_sizes</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
