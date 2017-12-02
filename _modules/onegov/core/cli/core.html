@@ -185,6 +185,28 @@
 <span class="sd">function is going to be called with the request and the app. If we do not, the</span>
 <span class="sd">command ends as expected.</span>
 
+<span class="sd">Returning multiple functions</span>
+<span class="sd">----------------------------</span>
+
+<span class="sd">When a cli command returns multiple functions, they are run in succession.</span>
+
+<span class="sd">The signature is taken into account. If there&#39;s a &#39;request&#39; parameter in the</span>
+<span class="sd">function, the usual request context is set up.</span>
+
+<span class="sd">If there is no &#39;request&#39; parameter in the function, it is called once per</span>
+<span class="sd">appcfg, together with the group context::</span>
+
+<span class="sd">    @cli.command()</span>
+<span class="sd">    def my_special_command():</span>
+
+<span class="sd">        def handle_command(request, app):</span>
+<span class="sd">            pass</span>
+
+<span class="sd">        def handle_raw(group_context, appcfg):</span>
+<span class="sd">            pass</span>
+
+<span class="sd">        return (handle_command, handle_raw)</span>
+
 <span class="sd">Limiting Selectors to a Single Instance</span>
 <span class="sd">---------------------------------------</span>
 
@@ -359,21 +381,33 @@
         <span class="n">mgr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unbound_session_manager</span><span class="p">(</span><span class="n">appcfg</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;dsn&#39;</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">mgr</span><span class="o">.</span><span class="n">list_schemas</span><span class="p">(</span><span class="n">limit_to_namespace</span><span class="o">=</span><span class="n">appcfg</span><span class="o">.</span><span class="n">namespace</span><span class="p">)</span></div>
 
+    <span class="k">def</span> <span class="nf">split_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">match</span><span class="p">):</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;/&#39;</span> <span class="ow">in</span> <span class="n">match</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">match</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
+
 <div class="viewcode-block" id="GroupContext.match_to_path"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.cli.core.GroupContext.match_to_path">[docs]</a>    <span class="k">def</span> <span class="nf">match_to_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">match</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes the given match and returns the application path used in</span>
 <span class="sd">        http requests.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">match</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="s1">&#39;/&#39;</span> <span class="ow">in</span> <span class="n">match</span><span class="p">:</span>
-            <span class="n">namespace</span><span class="p">,</span> <span class="nb">id</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">namespace</span><span class="p">,</span> <span class="nb">id</span> <span class="o">=</span> <span class="n">match</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">namespace</span><span class="p">,</span> <span class="nb">id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_match</span><span class="p">(</span><span class="n">match</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">appcfg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">applications</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">appcfg</span><span class="o">.</span><span class="n">namespace</span> <span class="o">==</span> <span class="n">namespace</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">appcfg</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="nb">id</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GroupContext.match_to_appcfg"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.cli.core.GroupContext.match_to_appcfg">[docs]</a>    <span class="k">def</span> <span class="nf">match_to_appcfg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">match</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Takes the given match and returns the maching appcfg object. &quot;&quot;&quot;</span>
+
+        <span class="n">namespace</span><span class="p">,</span> <span class="nb">id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_match</span><span class="p">(</span><span class="n">match</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">appcfg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">applications</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">appcfg</span><span class="o">.</span><span class="n">namespace</span> <span class="o">==</span> <span class="n">namespace</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">appcfg</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">appcfgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -529,6 +563,11 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">processor</span><span class="p">:</span>
             <span class="k">return</span>
 
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">processor</span><span class="p">):</span>
+            <span class="n">processors</span> <span class="o">=</span> <span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">processors</span> <span class="o">=</span> <span class="n">processor</span>
+
         <span class="n">group_context</span> <span class="o">=</span> <span class="n">click</span><span class="o">.</span><span class="n">get_current_context</span><span class="p">()</span><span class="o">.</span><span class="n">obj</span>
 
         <span class="c1"># load all applications into the server</span>
@@ -589,14 +628,21 @@
             <span class="n">configure_morepath</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
 
+        <span class="k">def</span> <span class="nf">expects_request</span><span class="p">(</span><span class="n">processor</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;request&#39;</span> <span class="ow">in</span> <span class="n">processor</span><span class="o">.</span><span class="vm">__code__</span><span class="o">.</span><span class="n">co_varnames</span>
+
         <span class="c1"># call the matching applications</span>
         <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">server</span><span class="p">)</span>
-
         <span class="n">matches</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">group_context</span><span class="o">.</span><span class="n">matches</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">:</span>
-            <span class="n">path</span> <span class="o">=</span> <span class="n">group_context</span><span class="o">.</span><span class="n">match_to_path</span><span class="p">(</span><span class="n">match</span><span class="p">)</span>
-            <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">view_path</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">processor</span> <span class="ow">in</span> <span class="n">processors</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">expects_request</span><span class="p">(</span><span class="n">processor</span><span class="p">):</span>
+                    <span class="n">path</span> <span class="o">=</span> <span class="n">group_context</span><span class="o">.</span><span class="n">match_to_path</span><span class="p">(</span><span class="n">match</span><span class="p">)</span>
+                    <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">view_path</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">appcfg</span> <span class="o">=</span> <span class="n">group_context</span><span class="o">.</span><span class="n">match_to_appcfg</span><span class="p">(</span><span class="n">match</span><span class="p">)</span>
+                    <span class="n">processor</span><span class="p">(</span><span class="n">group_context</span><span class="p">,</span> <span class="n">appcfg</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">command_group</span></div>
 

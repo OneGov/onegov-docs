@@ -1918,17 +1918,13 @@ forensics.</p>
 <dl class="class">
 <dt id="onegov.core.orm.types.JSON">
 <em class="property">class </em><code class="descclassname">onegov.core.orm.types.</code><code class="descname">JSON</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/types/json_type.html#JSON"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.types.JSON" title="Permalink to this definition">¶</a></dt>
-<dd><p>A JSON type for postgres that’s backwards compatible with Postgres 9.1.</p>
-<p>In the future this will be replaced by JSON (or JSONB) though that requires
-that we require a later Postgres release. It would also mean that all
-json types have to be migrated.</p>
-<p>This type is associated with Sqlalchemy’s MutableDict, so changes made to
-the dict are reflected in the database.</p>
-<p>See <a class="reference external" href="http://docs.sqlalchemy.org/en/rel_0_9/orm/extensions/mutable.html">http://docs.sqlalchemy.org/en/rel_0_9/orm/extensions/mutable.html</a></p>
+<dd><p>A JSONB based type that coerces None’s to empty dictionaries.</p>
+<p>That is, this JSONB column does not have NULL values, it only has
+falsy values (an empty dict).</p>
 <dl class="attribute">
 <dt id="onegov.core.orm.types.JSON.impl">
 <code class="descname">impl</code><a class="headerlink" href="#onegov.core.orm.types.JSON.impl" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">TEXT</span></code></p>
+<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">JSONB</span></code></p>
 </dd></dl>
 
 </dd></dl>
@@ -2997,6 +2993,26 @@ setup something before receiving a request.</p>
 function is going to be called with the request and the app. If we do not, the
 command ends as expected.</p>
 </div>
+<div class="section" id="returning-multiple-functions">
+<h3>Returning multiple functions<a class="headerlink" href="#returning-multiple-functions" title="Permalink to this headline">¶</a></h3>
+<p>When a cli command returns multiple functions, they are run in succession.</p>
+<p>The signature is taken into account. If there’s a ‘request’ parameter in the
+function, the usual request context is set up.</p>
+<p>If there is no ‘request’ parameter in the function, it is called once per
+appcfg, together with the group context:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@cli</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">my_special_command</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">handle_command</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">app</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">handle_raw</span><span class="p">(</span><span class="n">group_context</span><span class="p">,</span> <span class="n">appcfg</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">handle_command</span><span class="p">,</span> <span class="n">handle_raw</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
 <div class="section" id="limiting-selectors-to-a-single-instance">
 <h3>Limiting Selectors to a Single Instance<a class="headerlink" href="#limiting-selectors-to-a-single-instance" title="Permalink to this headline">¶</a></h3>
 <p>Sometimes we want to write commands which only run against a single
@@ -3071,6 +3087,12 @@ bound.</p>
 <code class="descname">match_to_path</code><span class="sig-paren">(</span><em>match</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cli/core.html#GroupContext.match_to_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cli.core.GroupContext.match_to_path" title="Permalink to this definition">¶</a></dt>
 <dd><p>Takes the given match and returns the application path used in
 http requests.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.core.cli.core.GroupContext.match_to_appcfg">
+<code class="descname">match_to_appcfg</code><span class="sig-paren">(</span><em>match</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cli/core.html#GroupContext.match_to_appcfg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cli.core.GroupContext.match_to_appcfg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the given match and returns the maching appcfg object.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -3200,7 +3222,7 @@ upgrades like this:</p>
 
 <dl class="class">
 <dt id="onegov.core.upgrade.upgrade_task">
-<em class="property">class </em><code class="descclassname">onegov.core.upgrade.</code><code class="descname">upgrade_task</code><span class="sig-paren">(</span><em>name</em>, <em>always_run=False</em>, <em>requires=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/upgrade.html#upgrade_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.upgrade.upgrade_task" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">onegov.core.upgrade.</code><code class="descname">upgrade_task</code><span class="sig-paren">(</span><em>name</em>, <em>always_run=False</em>, <em>requires=None</em>, <em>raw=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/upgrade.html#upgrade_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.upgrade.upgrade_task" title="Permalink to this definition">¶</a></dt>
 <dd><p>Marks the decorated function as an upgrade task. Upgrade tasks should
 be defined outside classes (except for testing) - that is in the root of
 the module (directly in onegov/form/upgrades.py for example).</p>
@@ -3237,7 +3259,24 @@ often as possible and to always run them.</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">requires</span><span class="o">=</span><span class="s1">&#39;onegov.form:Add new form field&#39;</span>
 </pre></div>
 </div>
-<p class="last">If the reference cannot be found, the upgrade fails.</p>
+<p>If the reference cannot be found, the upgrade fails.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raw:</th><td class="field-body"><p class="first">A raw task is run without setting up a request. Instead a database
+connection and a list of targeted schemas is passed. It’s up to the
+upgrade function to make sure the right schemas are targeted through
+that connection!</p>
+<p>This is useful for upgrades which need to execute some raw SQL that
+cannot be executed in a request context. For example, this is a way
+to migrate the upgrade states table of the upgrade itself.</p>
+<p>Raw tasks are always run and there state is not recorded. So the
+raw task needs to be idempotent and return False if there was no
+change.</p>
+<p>Only use this if you have no other way. This is a very blunt instrument
+only used under special circumstances.</p>
+<p class="last">Note, raw tasks may be normal function OR generators. If they are
+generators, then with each yield the transaction is either commited
+or rolled-back depending on the dry-run cli argument.</p>
 </td>
 </tr>
 </tbody>
@@ -3318,9 +3357,15 @@ to each upgrade task.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="onegov.core.upgrade.RawUpgradeRunner">
+<em class="property">class </em><code class="descclassname">onegov.core.upgrade.</code><code class="descname">RawUpgradeRunner</code><span class="sig-paren">(</span><em>tasks</em>, <em>commit=True</em>, <em>on_task_success=None</em>, <em>on_task_fail=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/upgrade.html#RawUpgradeRunner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.upgrade.RawUpgradeRunner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the given raw tasks.</p>
+</dd></dl>
+
+<dl class="class">
 <dt id="onegov.core.upgrade.UpgradeRunner">
 <em class="property">class </em><code class="descclassname">onegov.core.upgrade.</code><code class="descname">UpgradeRunner</code><span class="sig-paren">(</span><em>modules</em>, <em>tasks</em>, <em>commit=True</em>, <em>on_task_success=None</em>, <em>on_task_fail=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/upgrade.html#UpgradeRunner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.upgrade.UpgradeRunner" title="Permalink to this definition">¶</a></dt>
-<dd><p>Runs all tasks of a <code class="xref py py-class docutils literal"><span class="pre">UpgradeTasksRegistry</span></code>.</p>
+<dd><p>Runs the given basic tasks.</p>
 </dd></dl>
 
 </div>

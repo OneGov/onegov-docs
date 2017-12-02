@@ -44,7 +44,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day.layout</span> <span class="k">import</span> <span class="n">VotesLayout</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">VoteLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">add_last_modified_header</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">get_vote_summary</span>
 
@@ -58,7 +58,7 @@
 
     <span class="sd">&quot;&quot;&quot;&quot; The main view (proposal). &quot;&quot;&quot;</span>
 
-    <span class="n">layout</span> <span class="o">=</span> <span class="n">VotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;vote&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
@@ -77,7 +77,7 @@
 
     <span class="sd">&quot;&quot;&quot;&quot; The main view (counter-proposal). &quot;&quot;&quot;</span>
 
-    <span class="n">layout</span> <span class="o">=</span> <span class="n">VotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;counter-proposal&#39;</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;counter-proposal&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;vote&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
@@ -96,7 +96,7 @@
 
     <span class="sd">&quot;&quot;&quot;&quot; The main view (tie-breaker). &quot;&quot;&quot;</span>
 
-    <span class="n">layout</span> <span class="o">=</span> <span class="n">VotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;tie-breaker&#39;</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;tie-breaker&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;vote&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
@@ -116,16 +116,16 @@
 
     <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
     <span class="k">def</span> <span class="nf">add_last_modified</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
-        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_result_change</span><span class="p">)</span>
+        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="p">)</span>
 
     <span class="n">show_map</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">is_year_available</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
     <span class="n">media</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">if</span> <span class="n">VotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">pdf_path</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">pdf_path</span><span class="p">:</span>
         <span class="n">media</span><span class="p">[</span><span class="s1">&#39;pdf&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;pdf&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">show_map</span><span class="p">:</span>
         <span class="n">media</span><span class="p">[</span><span class="s1">&#39;maps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">VotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">tab</span><span class="o">=</span><span class="n">ballot</span><span class="o">.</span><span class="n">type</span><span class="p">)</span><span class="o">.</span><span class="n">svg_path</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">tab</span><span class="o">=</span><span class="n">ballot</span><span class="o">.</span><span class="n">type</span><span class="p">)</span><span class="o">.</span><span class="n">svg_path</span><span class="p">:</span>
                 <span class="n">media</span><span class="p">[</span><span class="s1">&#39;maps&#39;</span><span class="p">][</span><span class="n">ballot</span><span class="o">.</span><span class="n">type</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">ballot</span><span class="p">,</span> <span class="s1">&#39;svg&#39;</span><span class="p">)</span>
 
     <span class="n">counted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -135,7 +135,7 @@
         <span class="s1">&#39;completed&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">completed</span><span class="p">,</span>
         <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
         <span class="s1">&#39;domain&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span>
-        <span class="s1">&#39;last_modified&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_result_change</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="s1">&#39;last_modified&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
         <span class="s1">&#39;progress&#39;</span><span class="p">:</span> <span class="p">{</span>
             <span class="s1">&#39;counted&#39;</span><span class="p">:</span> <span class="n">counted</span><span class="p">,</span>
             <span class="s1">&#39;total&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -219,7 +219,7 @@
 
     <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
     <span class="k">def</span> <span class="nf">add_last_modified</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
-        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_result_change</span><span class="p">)</span>
+        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">get_vote_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span></div>
 
@@ -233,7 +233,7 @@
 
     <span class="sd">&quot;&quot;&quot; View the generated PDF. &quot;&quot;&quot;</span>
 
-    <span class="n">layout</span> <span class="o">=</span> <span class="n">VotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">layout</span><span class="o">.</span><span class="n">pdf_path</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;503 Service Unavailable&#39;</span><span class="p">)</span>

@@ -44,7 +44,7 @@
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">PartyResult</span>
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day.layout</span> <span class="k">import</span> <span class="n">DefaultLayout</span><span class="p">,</span> <span class="n">ElectionsLayout</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">DefaultLayout</span><span class="p">,</span> <span class="n">ElectionLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">add_last_modified_header</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 
@@ -187,7 +187,7 @@
 
     <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
     <span class="k">def</span> <span class="nf">add_last_modified</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
-        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_result_change</span><span class="p">)</span>
+        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
@@ -208,7 +208,7 @@
 
     <span class="sd">&quot;&quot;&quot;&quot; The main view. &quot;&quot;&quot;</span>
 
-    <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionsLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;parties&#39;</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;parties&#39;</span><span class="p">)</span>
 
     <span class="n">years</span><span class="p">,</span> <span class="n">parties</span> <span class="o">=</span> <span class="n">get_party_results</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
     <span class="n">deltas</span><span class="p">,</span> <span class="n">results</span> <span class="o">=</span> <span class="n">get_party_deltas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">parties</span><span class="p">)</span>
@@ -231,7 +231,7 @@
 
     <span class="sd">&quot;&quot;&quot; View the parties as SVG. &quot;&quot;&quot;</span>
 
-    <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionsLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;parties&#39;</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;parties&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">layout</span><span class="o">.</span><span class="n">svg_path</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;503 Service Unavailable&#39;</span><span class="p">)</span>
 

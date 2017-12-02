@@ -1,0 +1,401 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>sqlalchemy.dialects.postgresql.json &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for sqlalchemy.dialects.postgresql.json</h1><div class="highlight"><pre>
+<span></span><span class="c1"># postgresql/json.py</span>
+<span class="c1"># Copyright (C) 2005-2017 the SQLAlchemy authors and contributors</span>
+<span class="c1"># &lt;see AUTHORS file&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># This module is part of SQLAlchemy and is released under</span>
+<span class="c1"># the MIT License: http://www.opensource.org/licenses/mit-license.php</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+
+<span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">ischema_names</span><span class="p">,</span> <span class="n">colspecs</span>
+<span class="kn">from</span> <span class="nn">...</span> <span class="k">import</span> <span class="n">types</span> <span class="k">as</span> <span class="n">sqltypes</span>
+<span class="kn">from</span> <span class="nn">...sql</span> <span class="k">import</span> <span class="n">operators</span>
+<span class="kn">from</span> <span class="nn">...sql</span> <span class="k">import</span> <span class="n">elements</span>
+<span class="kn">from</span> <span class="nn">...</span> <span class="k">import</span> <span class="n">util</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;JSON&#39;</span><span class="p">,</span> <span class="s1">&#39;JSONB&#39;</span><span class="p">)</span>
+
+<span class="n">idx_precedence</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">_PRECEDENCE</span><span class="p">[</span><span class="n">operators</span><span class="o">.</span><span class="n">json_getitem_op</span><span class="p">]</span>
+
+<span class="n">ASTEXT</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
+    <span class="s2">&quot;-&gt;&gt;&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+<span class="n">JSONPATH_ASTEXT</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
+    <span class="s2">&quot;#&gt;&gt;&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+
+<span class="n">HAS_KEY</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
+    <span class="s2">&quot;?&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+<span class="n">HAS_ALL</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
+    <span class="s2">&quot;?&amp;&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+<span class="n">HAS_ANY</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
+    <span class="s2">&quot;?|&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+<span class="n">CONTAINS</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
+    <span class="s2">&quot;@&gt;&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+<span class="n">CONTAINED_BY</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
+    <span class="s2">&quot;&lt;@&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">JSONPathType</span><span class="p">(</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">JSON</span><span class="o">.</span><span class="n">JSONPathType</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">bind_processor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dialect</span><span class="p">):</span>
+        <span class="n">super_proc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">string_bind_processor</span><span class="p">(</span><span class="n">dialect</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">Sequence</span><span class="p">)</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="n">util</span><span class="o">.</span><span class="n">text_type</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span><span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="s2">&quot;{</span><span class="si">%s</span><span class="s2">}&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">super_proc</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">super_proc</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">value</span>
+
+        <span class="k">return</span> <span class="n">process</span>
+
+    <span class="k">def</span> <span class="nf">literal_processor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dialect</span><span class="p">):</span>
+        <span class="n">super_proc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">string_literal_processor</span><span class="p">(</span><span class="n">dialect</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">Sequence</span><span class="p">)</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="n">util</span><span class="o">.</span><span class="n">text_type</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span><span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="s2">&quot;{</span><span class="si">%s</span><span class="s2">}&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">super_proc</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">super_proc</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">value</span>
+
+        <span class="k">return</span> <span class="n">process</span>
+
+<span class="n">colspecs</span><span class="p">[</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">JSON</span><span class="o">.</span><span class="n">JSONPathType</span><span class="p">]</span> <span class="o">=</span> <span class="n">JSONPathType</span>
+
+
+<span class="k">class</span> <span class="nc">JSON</span><span class="p">(</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">JSON</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represent the PostgreSQL JSON type.</span>
+
+<span class="sd">    This type is a specialization of the Core-level :class:`.types.JSON`</span>
+<span class="sd">    type.   Be sure to read the documentation for :class:`.types.JSON` for</span>
+<span class="sd">    important tips regarding treatment of NULL values and ORM use.</span>
+
+<span class="sd">    .. versionchanged:: 1.1 :class:`.postgresql.JSON` is now a PostgreSQL-</span>
+<span class="sd">       specific specialization of the new :class:`.types.JSON` type.</span>
+
+<span class="sd">    The operators provided by the PostgreSQL version of :class:`.JSON`</span>
+<span class="sd">    include:</span>
+
+<span class="sd">    * Index operations (the ``-&gt;`` operator)::</span>
+
+<span class="sd">        data_table.c.data[&#39;some key&#39;]</span>
+
+<span class="sd">        data_table.c.data[5]</span>
+
+
+<span class="sd">    * Index operations returning text (the ``-&gt;&gt;`` operator)::</span>
+
+<span class="sd">        data_table.c.data[&#39;some key&#39;].astext == &#39;some value&#39;</span>
+
+<span class="sd">    * Index operations with CAST</span>
+<span class="sd">      (equivalent to ``CAST(col -&gt;&gt; [&#39;some key&#39;] AS &lt;type&gt;)``)::</span>
+
+<span class="sd">        data_table.c.data[&#39;some key&#39;].astext.cast(Integer) == 5</span>
+
+<span class="sd">    * Path index operations (the ``#&gt;`` operator)::</span>
+
+<span class="sd">        data_table.c.data[(&#39;key_1&#39;, &#39;key_2&#39;, 5, ..., &#39;key_n&#39;)]</span>
+
+<span class="sd">    * Path index operations returning text (the ``#&gt;&gt;`` operator)::</span>
+
+<span class="sd">        data_table.c.data[(&#39;key_1&#39;, &#39;key_2&#39;, 5, ..., &#39;key_n&#39;)].astext == \</span>
+<span class="sd">&#39;some value&#39;</span>
+
+<span class="sd">    .. versionchanged:: 1.1  The :meth:`.ColumnElement.cast` operator on</span>
+<span class="sd">       JSON objects now requires that the :attr:`.JSON.Comparator.astext`</span>
+<span class="sd">       modifier be called explicitly, if the cast works only from a textual</span>
+<span class="sd">       string.</span>
+
+<span class="sd">    Index operations return an expression object whose type defaults to</span>
+<span class="sd">    :class:`.JSON` by default, so that further JSON-oriented instructions</span>
+<span class="sd">    may be called upon the result type.</span>
+
+<span class="sd">    Custom serializers and deserializers are specified at the dialect level,</span>
+<span class="sd">    that is using :func:`.create_engine`.  The reason for this is that when</span>
+<span class="sd">    using psycopg2, the DBAPI only allows serializers at the per-cursor</span>
+<span class="sd">    or per-connection level.   E.g.::</span>
+
+<span class="sd">        engine = create_engine(&quot;postgresql://scott:tiger@localhost/test&quot;,</span>
+<span class="sd">                                json_serializer=my_serialize_fn,</span>
+<span class="sd">                                json_deserializer=my_deserialize_fn</span>
+<span class="sd">                        )</span>
+
+<span class="sd">    When using the psycopg2 dialect, the json_deserializer is registered</span>
+<span class="sd">    against the database using ``psycopg2.extras.register_default_json``.</span>
+
+<span class="sd">    .. seealso::</span>
+
+<span class="sd">        :class:`.types.JSON` - Core level JSON type</span>
+
+<span class="sd">        :class:`.JSONB`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">astext_type</span> <span class="o">=</span> <span class="n">sqltypes</span><span class="o">.</span><span class="n">Text</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">none_as_null</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">astext_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Construct a :class:`.JSON` type.</span>
+
+<span class="sd">        :param none_as_null: if True, persist the value ``None`` as a</span>
+<span class="sd">         SQL NULL value, not the JSON encoding of ``null``.   Note that</span>
+<span class="sd">         when this flag is False, the :func:`.null` construct can still</span>
+<span class="sd">         be used to persist a NULL value::</span>
+
+<span class="sd">             from sqlalchemy import null</span>
+<span class="sd">             conn.execute(table.insert(), data=null())</span>
+
+<span class="sd">         .. versionchanged:: 0.9.8 - Added ``none_as_null``, and :func:`.null`</span>
+<span class="sd">            is now supported in order to persist a NULL value.</span>
+
+<span class="sd">         .. seealso::</span>
+
+<span class="sd">              :attr:`.JSON.NULL`</span>
+
+<span class="sd">        :param astext_type: the type to use for the</span>
+<span class="sd">         :attr:`.JSON.Comparator.astext`</span>
+<span class="sd">         accessor on indexed attributes.  Defaults to :class:`.types.Text`.</span>
+
+<span class="sd">         .. versionadded:: 1.1</span>
+
+<span class="sd">         &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">JSON</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">none_as_null</span><span class="o">=</span><span class="n">none_as_null</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">astext_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">astext_type</span> <span class="o">=</span> <span class="n">astext_type</span>
+
+    <span class="k">class</span> <span class="nc">Comparator</span><span class="p">(</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">JSON</span><span class="o">.</span><span class="n">Comparator</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Define comparison operations for :class:`.JSON`.&quot;&quot;&quot;</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">astext</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;On an indexed expression, use the &quot;astext&quot; (e.g. &quot;-&gt;&gt;&quot;)</span>
+<span class="sd">            conversion when rendered in SQL.</span>
+
+<span class="sd">            E.g.::</span>
+
+<span class="sd">                select([data_table.c.data[&#39;some key&#39;].astext])</span>
+
+<span class="sd">            .. seealso::</span>
+
+<span class="sd">                :meth:`.ColumnElement.cast`</span>
+
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">right</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">sqltypes</span><span class="o">.</span><span class="n">JSON</span><span class="o">.</span><span class="n">JSONPathType</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">left</span><span class="o">.</span><span class="n">operate</span><span class="p">(</span>
+                    <span class="n">JSONPATH_ASTEXT</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">right</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">astext_type</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">left</span><span class="o">.</span><span class="n">operate</span><span class="p">(</span>
+                    <span class="n">ASTEXT</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">right</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">astext_type</span><span class="p">)</span>
+
+    <span class="n">comparator_factory</span> <span class="o">=</span> <span class="n">Comparator</span>
+
+
+<span class="n">colspecs</span><span class="p">[</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">JSON</span><span class="p">]</span> <span class="o">=</span> <span class="n">JSON</span>
+<span class="n">ischema_names</span><span class="p">[</span><span class="s1">&#39;json&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">JSON</span>
+
+
+<span class="k">class</span> <span class="nc">JSONB</span><span class="p">(</span><span class="n">JSON</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represent the PostgreSQL JSONB type.</span>
+
+<span class="sd">    The :class:`.JSONB` type stores arbitrary JSONB format data, e.g.::</span>
+
+<span class="sd">        data_table = Table(&#39;data_table&#39;, metadata,</span>
+<span class="sd">            Column(&#39;id&#39;, Integer, primary_key=True),</span>
+<span class="sd">            Column(&#39;data&#39;, JSONB)</span>
+<span class="sd">        )</span>
+
+<span class="sd">        with engine.connect() as conn:</span>
+<span class="sd">            conn.execute(</span>
+<span class="sd">                data_table.insert(),</span>
+<span class="sd">                data = {&quot;key1&quot;: &quot;value1&quot;, &quot;key2&quot;: &quot;value2&quot;}</span>
+<span class="sd">            )</span>
+
+<span class="sd">    The :class:`.JSONB` type includes all operations provided by</span>
+<span class="sd">    :class:`.JSON`, including the same behaviors for indexing operations.</span>
+<span class="sd">    It also adds additional operators specific to JSONB, including</span>
+<span class="sd">    :meth:`.JSONB.Comparator.has_key`, :meth:`.JSONB.Comparator.has_all`,</span>
+<span class="sd">    :meth:`.JSONB.Comparator.has_any`, :meth:`.JSONB.Comparator.contains`,</span>
+<span class="sd">    and :meth:`.JSONB.Comparator.contained_by`.</span>
+
+<span class="sd">    Like the :class:`.JSON` type, the :class:`.JSONB` type does not detect</span>
+<span class="sd">    in-place changes when used with the ORM, unless the</span>
+<span class="sd">    :mod:`sqlalchemy.ext.mutable` extension is used.</span>
+
+<span class="sd">    Custom serializers and deserializers</span>
+<span class="sd">    are shared with the :class:`.JSON` class, using the ``json_serializer``</span>
+<span class="sd">    and ``json_deserializer`` keyword arguments.  These must be specified</span>
+<span class="sd">    at the dialect level using :func:`.create_engine`.  When using</span>
+<span class="sd">    psycopg2, the serializers are associated with the jsonb type using</span>
+<span class="sd">    ``psycopg2.extras.register_default_jsonb`` on a per-connection basis,</span>
+<span class="sd">    in the same way that ``psycopg2.extras.register_default_json`` is used</span>
+<span class="sd">    to register these handlers with the json type.</span>
+
+<span class="sd">    .. versionadded:: 0.9.7</span>
+
+<span class="sd">    .. seealso::</span>
+
+<span class="sd">        :class:`.JSON`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__visit_name__</span> <span class="o">=</span> <span class="s1">&#39;JSONB&#39;</span>
+
+    <span class="k">class</span> <span class="nc">Comparator</span><span class="p">(</span><span class="n">JSON</span><span class="o">.</span><span class="n">Comparator</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Define comparison operations for :class:`.JSON`.&quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">has_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Boolean expression.  Test for presence of a key.  Note that the</span>
+<span class="sd">            key may be a SQLA expression.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">operate</span><span class="p">(</span><span class="n">HAS_KEY</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">Boolean</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">has_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Boolean expression.  Test for presence of all keys in jsonb</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">operate</span><span class="p">(</span><span class="n">HAS_ALL</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">Boolean</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">has_any</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Boolean expression.  Test for presence of any key in jsonb</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">operate</span><span class="p">(</span><span class="n">HAS_ANY</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">Boolean</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">contains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Boolean expression.  Test if keys (or array) are a superset</span>
+<span class="sd">            of/contained the keys of the argument jsonb expression.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">operate</span><span class="p">(</span><span class="n">CONTAINS</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">Boolean</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">contained_by</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Boolean expression.  Test if keys are a proper subset of the</span>
+<span class="sd">            keys of the argument jsonb expression.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">operate</span><span class="p">(</span>
+                <span class="n">CONTAINED_BY</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">Boolean</span><span class="p">)</span>
+
+    <span class="n">comparator_factory</span> <span class="o">=</span> <span class="n">Comparator</span>
+
+<span class="n">ischema_names</span><span class="p">[</span><span class="s1">&#39;jsonb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">JSONB</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

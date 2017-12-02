@@ -45,7 +45,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day.layout</span> <span class="k">import</span> <span class="n">ElectionsLayout</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">ElectionLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">add_last_modified_header</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">get_election_summary</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.views.election</span> <span class="k">import</span> <span class="n">get_candidates_results</span>
@@ -62,7 +62,7 @@
 
     <span class="sd">&quot;&quot;&quot;&quot; The main view. &quot;&quot;&quot;</span>
 
-    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">ElectionsLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">main_view</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">main_view</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="view_election_json"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.main.view_election_json">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span>
@@ -75,25 +75,25 @@
 
     <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
     <span class="k">def</span> <span class="nf">add_last_modified</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
-        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_result_change</span><span class="p">)</span>
+        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="p">)</span>
 
     <span class="n">media</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;charts&#39;</span><span class="p">:</span> <span class="p">{}}</span>
-    <span class="k">if</span> <span class="n">ElectionsLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">pdf_path</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">pdf_path</span><span class="p">:</span>
         <span class="n">media</span><span class="p">[</span><span class="s1">&#39;pdf&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;pdf&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">tab</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;candidates&#39;</span><span class="p">,</span> <span class="s1">&#39;lists&#39;</span><span class="p">,</span> <span class="s1">&#39;connections&#39;</span><span class="p">,</span> <span class="s1">&#39;panachage&#39;</span><span class="p">,</span> <span class="s1">&#39;parties&#39;</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">ElectionsLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">tab</span><span class="o">=</span><span class="n">tab</span><span class="p">)</span><span class="o">.</span><span class="n">svg_path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">tab</span><span class="o">=</span><span class="n">tab</span><span class="p">)</span><span class="o">.</span><span class="n">svg_path</span><span class="p">:</span>
             <span class="n">media</span><span class="p">[</span><span class="s1">&#39;charts&#39;</span><span class="p">][</span><span class="n">tab</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-svg&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tab</span><span class="p">))</span>
 
     <span class="n">embed</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;candidates&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;candidates-chart&#39;</span><span class="p">)}</span>
     <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;lists&#39;</span><span class="p">,</span> <span class="s1">&#39;connections&#39;</span><span class="p">,</span> <span class="s1">&#39;panachage&#39;</span><span class="p">,</span> <span class="s1">&#39;parties&#39;</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">ElectionsLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">visible</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">visible</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
             <span class="n">embed</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-chart&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
 
     <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;completed&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">completed</span><span class="p">,</span>
         <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
         <span class="s1">&#39;domain&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span>
-        <span class="s1">&#39;last_modified&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_result_change</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="s1">&#39;last_modified&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
         <span class="s1">&#39;mandates&#39;</span><span class="p">:</span> <span class="p">{</span>
             <span class="s1">&#39;allocated&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">allocated_mandates</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
             <span class="s1">&#39;total&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_of_mandates</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
@@ -216,7 +216,7 @@
 
     <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
     <span class="k">def</span> <span class="nf">add_last_modified</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
-        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_result_change</span><span class="p">)</span>
+        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">get_election_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span></div>
 
@@ -230,7 +230,7 @@
 
     <span class="sd">&quot;&quot;&quot; View the generated PDF. &quot;&quot;&quot;</span>
 
-    <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionsLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">layout</span><span class="o">.</span><span class="n">pdf_path</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;503 Service Unavailable&#39;</span><span class="p">)</span>

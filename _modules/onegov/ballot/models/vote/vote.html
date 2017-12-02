@@ -39,13 +39,13 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.ballot.models.vote.vote</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.ballot_result</span> <span class="k">import</span> <span class="n">BallotResult</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.ballot</span> <span class="k">import</span> <span class="n">Ballot</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.mixins</span> <span class="k">import</span> <span class="n">DerivedBallotsCountMixin</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">DomainOfInfluenceMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">StatusMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">summarized_property</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.ballot</span> <span class="k">import</span> <span class="n">Ballot</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.ballot_result</span> <span class="k">import</span> <span class="n">BallotResult</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.mixins</span> <span class="k">import</span> <span class="n">DerivedBallotsCountMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">translation_hybrid</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">ContentMixin</span>
@@ -224,39 +224,34 @@
         <span class="k">return</span> <span class="n">expr</span></div>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">last_result_change</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Gets the latest created/modified date of the vote or amongst the</span>
-<span class="sd">        results of this vote.</span>
+    <span class="k">def</span> <span class="nf">last_modified</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns last change of the vote, its ballots and any of its</span>
+<span class="sd">        results.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ballots</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Ballot</span><span class="o">.</span><span class="n">last_change</span><span class="p">)</span>
+        <span class="n">ballots</span> <span class="o">=</span> <span class="n">ballots</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">desc</span><span class="p">(</span><span class="n">Ballot</span><span class="o">.</span><span class="n">last_change</span><span class="p">))</span>
+        <span class="n">ballots</span> <span class="o">=</span> <span class="n">ballots</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Ballot</span><span class="o">.</span><span class="n">vote_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">ballots</span> <span class="o">=</span> <span class="n">ballots</span><span class="o">.</span><span class="n">first</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">ballots</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
 
-        <span class="n">last_changes</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_change</span><span class="p">:</span>
-            <span class="n">last_changes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_change</span><span class="p">)</span>
+        <span class="n">changes</span> <span class="o">=</span> <span class="p">[</span><span class="n">ballots</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_change</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_result_change</span><span class="p">]</span>
+        <span class="n">changes</span> <span class="o">=</span> <span class="p">[</span><span class="n">change</span> <span class="k">for</span> <span class="n">change</span> <span class="ow">in</span> <span class="n">changes</span> <span class="k">if</span> <span class="n">change</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">changes</span><span class="p">)</span> <span class="k">if</span> <span class="n">changes</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">last_result_change</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the last change of the results of the vote. &quot;&quot;&quot;</span>
 
         <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-
-        <span class="n">ballots</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Ballot</span><span class="p">)</span>
-        <span class="n">ballots</span> <span class="o">=</span> <span class="n">ballots</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Ballot</span><span class="o">.</span><span class="n">vote_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-        <span class="n">ballots</span> <span class="o">=</span> <span class="n">ballots</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="n">ballots</span><span class="p">:</span>
-            <span class="n">last_changes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ballot</span><span class="o">.</span><span class="n">last_change</span><span class="p">)</span>
-
-        <span class="n">ballot_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">ballot</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="n">ballots</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">ballot_ids</span><span class="p">:</span>
-            <span class="n">results</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">BallotResult</span><span class="p">)</span>
-            <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">last_change</span><span class="p">)</span>
-            <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">desc</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">last_change</span><span class="p">))</span>
-            <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">ballot_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">ballot_ids</span><span class="p">))</span>
-
-            <span class="n">last_change</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">last_change</span><span class="p">:</span>
-                <span class="n">last_changes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">last_change</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">last_changes</span><span class="p">):</span>
+        <span class="n">ballot_ids</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Ballot</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">ballot_ids</span> <span class="o">=</span> <span class="n">ballot_ids</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Ballot</span><span class="o">.</span><span class="n">vote_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ballot_ids</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
 
-        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">last_changes</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">last_change</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">desc</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">last_change</span><span class="p">))</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">ballot_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">ballot_ids</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">results</span><span class="o">.</span><span class="n">first</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
 
     <span class="c1">#: may be used to store a link related to this vote</span>
     <span class="n">related_link</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;related_link&#39;</span><span class="p">)</span>

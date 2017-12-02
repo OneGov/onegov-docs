@@ -45,37 +45,30 @@
 <span class="c1"># to read each others json.</span>
 <span class="c1">#</span>
 <span class="c1"># Therefore we use a common denominator kind of json encoder/decoder.</span>
-<span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">custom_json</span> <span class="k">as</span> <span class="n">json</span>
-
 <span class="kn">from</span> <span class="nn">sqlalchemy.ext.mutable</span> <span class="k">import</span> <span class="n">MutableDict</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.types</span> <span class="k">import</span> <span class="n">TypeDecorator</span><span class="p">,</span> <span class="n">TEXT</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.types</span> <span class="k">import</span> <span class="n">TypeDecorator</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.dialects.postgresql</span> <span class="k">import</span> <span class="n">JSONB</span>
 
 
 <div class="viewcode-block" id="JSON"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.types.JSON">[docs]</a><span class="k">class</span> <span class="nc">JSON</span><span class="p">(</span><span class="n">TypeDecorator</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; A JSON type for postgres that&#39;s backwards compatible with Postgres 9.1.</span>
+    <span class="sd">&quot;&quot;&quot; A JSONB based type that coerces None&#39;s to empty dictionaries.</span>
 
-<span class="sd">    In the future this will be replaced by JSON (or JSONB) though that requires</span>
-<span class="sd">    that we require a later Postgres release. It would also mean that all</span>
-<span class="sd">    json types have to be migrated.</span>
-
-<span class="sd">    This type is associated with Sqlalchemy&#39;s MutableDict, so changes made to</span>
-<span class="sd">    the dict are reflected in the database.</span>
-
-<span class="sd">    See http://docs.sqlalchemy.org/en/rel_0_9/orm/extensions/mutable.html</span>
+<span class="sd">    That is, this JSONB column does not have NULL values, it only has</span>
+<span class="sd">    falsy values (an empty dict).</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">impl</span> <span class="o">=</span> <span class="n">TEXT</span>
+    <span class="n">impl</span> <span class="o">=</span> <span class="n">JSONB</span>
 
     <span class="k">def</span> <span class="nf">process_bind_param</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">dialect</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span>
 
         <span class="k">return</span> <span class="n">value</span>
 
     <span class="k">def</span> <span class="nf">process_result_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">dialect</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span>
 
         <span class="k">return</span> <span class="n">value</span></div>
 

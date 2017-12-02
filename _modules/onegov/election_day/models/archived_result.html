@@ -71,11 +71,14 @@
     <span class="c1">#: Identifies the result</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
 
-    <span class="c1">#: Identifies the date of the vote</span>
+    <span class="c1">#: The date of the election/vote</span>
     <span class="n">date</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Date</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="c1">#: Identifies the date of the vote</span>
-    <span class="n">last_result_change</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UTCDateTime</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="c1">#: The last change of the results election/vote</span>
+    <span class="n">last_modified</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UTCDateTime</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: The last change of election/vote</span>
+    <span class="n">last_result_change</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UTCDateTime</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1">#: Type of the result</span>
     <span class="nb">type</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span>
@@ -195,6 +198,7 @@
 
     <span class="k">def</span> <span class="nf">copy_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">date</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">date</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">last_modified</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">last_result_change</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">last_result_change</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">schema</span>
