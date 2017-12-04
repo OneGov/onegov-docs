@@ -41,45 +41,13 @@
   <h1>Source code for onegov.core.mail</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">mailthon.headers</span> <span class="k">as</span> <span class="nn">headers</span>
 <span class="kn">import</span> <span class="nn">os.path</span>
-<span class="kn">import</span> <span class="nn">re</span>
 
 <span class="kn">from</span> <span class="nn">email.mime.multipart</span> <span class="k">import</span> <span class="n">MIMEMultipart</span>
-<span class="kn">from</span> <span class="nn">html2text</span> <span class="k">import</span> <span class="n">html2text</span>
 <span class="kn">from</span> <span class="nn">mailbox</span> <span class="k">import</span> <span class="n">Maildir</span><span class="p">,</span> <span class="n">MaildirMessage</span>
 <span class="kn">from</span> <span class="nn">mailthon.enclosure</span> <span class="k">import</span> <span class="n">HTML</span><span class="p">,</span> <span class="n">PlainText</span><span class="p">,</span> <span class="n">Attachment</span>
 <span class="kn">from</span> <span class="nn">mailthon.envelope</span> <span class="k">import</span> <span class="n">Envelope</span> <span class="k">as</span> <span class="n">BaseEnvelope</span>
 <span class="kn">from</span> <span class="nn">mailthon.postman</span> <span class="k">import</span> <span class="n">Postman</span>
-
-
-<span class="n">VALID_PLAINTEXT_CHARACTERS</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">    [</span>
-<span class="s2">        \d  # decimals</span>
-<span class="s2">        \w  # words</span>
-<span class="s2">        \n  # new lines</span>
-
-<span class="s2">        # emojis</span>
-<span class="s2">        \U00002600-\U000027BF</span>
-<span class="s2">        \U0001f300-\U0001f64F</span>
-<span class="s2">        \U0001f680-\U0001f6FF</span>
-<span class="s2">    ]+</span>
-<span class="s2">&quot;&quot;&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">convert_to_plaintext</span><span class="p">(</span><span class="n">html</span><span class="p">):</span>
-
-    <span class="c1"># filter out duplicated lines and lines without any text</span>
-    <span class="n">lines</span> <span class="o">=</span> <span class="n">html2text</span><span class="p">(</span><span class="n">html</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">bodywidth</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
-    <span class="n">lines</span> <span class="o">=</span> <span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">)</span>
-    <span class="n">lines</span> <span class="o">=</span> <span class="p">(</span><span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lines</span> <span class="k">if</span> <span class="n">VALID_PLAINTEXT_CHARACTERS</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
-
-    <span class="c1"># use double newlines to get paragraphs</span>
-    <span class="n">plaintext</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
-
-    <span class="c1"># in an attempt to create proper markdown html2text will escape</span>
-    <span class="c1"># dots. Since markdown is not something we care about here, we undo that</span>
-    <span class="n">plaintext</span> <span class="o">=</span> <span class="n">plaintext</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">plaintext</span>
+<span class="kn">from</span> <span class="nn">onegov.core.html</span> <span class="k">import</span> <span class="n">html_to_text</span>
 
 
 <div class="viewcode-block" id="email"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.mail.email">[docs]</a><span class="k">def</span> <span class="nf">email</span><span class="p">(</span><span class="n">sender</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">receivers</span><span class="o">=</span><span class="p">(),</span> <span class="n">cc</span><span class="o">=</span><span class="p">(),</span> <span class="n">bcc</span><span class="o">=</span><span class="p">(),</span>
@@ -101,7 +69,7 @@
     <span class="k">if</span> <span class="n">content</span><span class="p">:</span>
         <span class="c1"># turn the html email into a plaintext representation</span>
         <span class="c1"># this leads to a lower spam rating</span>
-        <span class="n">plaintext</span> <span class="o">=</span> <span class="n">convert_to_plaintext</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="n">plaintext</span> <span class="o">=</span> <span class="n">html_to_text</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">plaintext</span> <span class="o">=</span> <span class="kc">None</span>
 
