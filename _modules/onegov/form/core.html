@@ -1,0 +1,821 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.form.core &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.form.core</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">weakref</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">decimal</span> <span class="k">import</span> <span class="n">Decimal</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">Price</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">Form</span> <span class="k">as</span> <span class="n">BaseForm</span>
+<span class="kn">from</span> <span class="nn">wtforms.fields.html5</span> <span class="k">import</span> <span class="n">EmailField</span>
+<span class="kn">from</span> <span class="nn">wtforms.validators</span> <span class="k">import</span> <span class="n">InputRequired</span><span class="p">,</span> <span class="n">DataRequired</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">wtforms_components</span> <span class="k">import</span> <span class="n">If</span><span class="p">,</span> <span class="n">Chain</span>
+
+
+<div class="viewcode-block" id="Form"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form">[docs]</a><span class="k">class</span> <span class="nc">Form</span><span class="p">(</span><span class="n">BaseForm</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends wtforms.Form with useful methods and integrations needed in</span>
+<span class="sd">    OneGov applications.</span>
+
+<span class="sd">    **Fieldsets**</span>
+
+<span class="sd">    This form supports fieldsets (which WTForms doesn&#39;t recognize). To put</span>
+<span class="sd">    fields into a fieldset, add a fieldset attribute to the field during</span>
+<span class="sd">    class definition::</span>
+
+<span class="sd">        class MyForm(Form):</span>
+<span class="sd">            first_name = StringField(&#39;First Name&#39;, fieldset=&#39;Name&#39;)</span>
+<span class="sd">            last_name = StringField(&#39;Last Name&#39;, fieldset=&#39;Name&#39;)</span>
+<span class="sd">            comment = StringField(&#39;Comment&#39;)</span>
+
+<span class="sd">    A form created like this will have two fieldsets, one visible fieldset</span>
+<span class="sd">    with the legend set to &#39;Name&#39; and one invisible fieldset containing</span>
+<span class="sd">    &#39;comment&#39;.</span>
+
+<span class="sd">    Fieldsets with the same name are *not* automatically grouped together.</span>
+<span class="sd">    Instead, fields are taken in the order they are defined and put into the</span>
+<span class="sd">    same fieldset, if the previous fieldset has the same name.</span>
+
+<span class="sd">    That is to say, in this example, we get three fieldsets::</span>
+
+<span class="sd">        class MyForm(Form):</span>
+<span class="sd">            a = StringField(&#39;A&#39;, fieldset=&#39;1&#39;)</span>
+<span class="sd">            b = StringField(&#39;B&#39;, fieldset=&#39;2&#39;)</span>
+<span class="sd">            c = StringField(&#39;C&#39;, fieldset=&#39;1&#39;)</span>
+
+<span class="sd">    The first fieldset has the label &#39;1&#39; and it contains &#39;a&#39;. The second</span>
+<span class="sd">    fieldset has the label &#39;2&#39; and it contains &#39;b&#39;. The third fieldset has</span>
+<span class="sd">    the label &#39;3&#39; and it contains &#39;c&#39;.</span>
+
+<span class="sd">    This ensures that all fields are in either a visible or an invisible</span>
+<span class="sd">    fieldset (see :meth:`Fieldset.is_visible`).</span>
+
+<span class="sd">    **Dependencies**</span>
+
+<span class="sd">    This form also supports dependencies. So field b may depend on field a, if</span>
+<span class="sd">    field a has a certain value, field b is shown on the form (with some</span>
+<span class="sd">    javascript) and its validators are actually executed. If field a does</span>
+<span class="sd">    not have the required value, field b is hidden with javascript and its</span>
+<span class="sd">    validators are not executed.</span>
+
+<span class="sd">    The validators which are skipped are only the validators passed with the</span>
+<span class="sd">    field, the validators on the field itself are still invoked (we can&#39;t</span>
+<span class="sd">    skip them). However, only if the optional field is not empty. That is we</span>
+<span class="sd">    prevent invalid values no matter what, but we allow for empty values if</span>
+<span class="sd">    the dependent field does not have the required value.</span>
+
+<span class="sd">    This sounds a lot more complicated than it is::</span>
+
+<span class="sd">        class MyForm(Form):</span>
+
+<span class="sd">            option = RadioField(&#39;Option&#39;, choices=[</span>
+<span class="sd">                (&#39;yes&#39;, &#39;Yes&#39;),</span>
+<span class="sd">                (&#39;no&#39;, &#39;No&#39;),</span>
+<span class="sd">            ])</span>
+<span class="sd">            only_if_no = StringField(</span>
+<span class="sd">                label=&#39;Only Shown When No&#39;,</span>
+<span class="sd">                validators=[InputRequired()],</span>
+<span class="sd">                depends_on=(&#39;option&#39;, &#39;no&#39;)</span>
+<span class="sd">            )</span>
+
+<span class="sd">    **Pricing**</span>
+
+<span class="sd">    Pricing is a way to attach prices to certain form fields. A total price</span>
+<span class="sd">    is calcualted depending on the selections the user makes::</span>
+
+<span class="sd">        class MyForm(Form):</span>
+
+<span class="sd">            ticket_insurance = RadioField(&#39;Option&#39;, choices=[</span>
+<span class="sd">                (&#39;yes&#39;, &#39;Yes&#39;),</span>
+<span class="sd">                (&#39;no&#39;, &#39;No&#39;)</span>
+<span class="sd">            ], pricing={</span>
+<span class="sd">                &#39;yes&#39;: (10.0, &#39;CHF&#39;)</span>
+<span class="sd">            })</span>
+
+<span class="sd">            discount_code = TextField(&#39;Discount Code&#39;, pricing={</span>
+<span class="sd">                &#39;CAMPAIGN2017&#39;: (-5.0, &#39;CHF&#39;)</span>
+<span class="sd">            })</span>
+
+<span class="sd">    Note that the pricing has no implicit meaning. This is simply a way to</span>
+<span class="sd">    attach prices and to get the total through the ``prices()`` and ``total()``</span>
+<span class="sd">    calls. What you do with these prices is up to you.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="c1"># preprocessors are generators which yield control to give the</span>
+        <span class="c1"># constructor the chance to call the parent constructor. Their</span>
+        <span class="c1"># purpose is to handle custom attributes passed to the fields,</span>
+        <span class="c1"># removing them in the process (so wtforms doesn&#39;t trip up).</span>
+        <span class="n">preprocessors</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_fieldset</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_depends_on</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_pricing</span><span class="p">()</span>
+        <span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">processor</span> <span class="ow">in</span> <span class="n">preprocessors</span><span class="p">:</span>
+            <span class="nb">next</span><span class="p">(</span><span class="n">processor</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">processor</span> <span class="ow">in</span> <span class="n">preprocessors</span><span class="p">:</span>
+            <span class="nb">next</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Form.process_fieldset"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.process_fieldset">[docs]</a>    <span class="k">def</span> <span class="nf">process_fieldset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Processes the fieldset parameter on the fields, which puts</span>
+<span class="sd">        fields into fieldsets.</span>
+
+<span class="sd">        In the process the fields are altered so that wtforms recognizes them</span>
+<span class="sd">        again (that is, attributes only known to us are removed).</span>
+
+<span class="sd">        See :class:`Form` for more information.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fieldsets</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># consume the fieldset attribute of all unbound fields, as WTForms</span>
+        <span class="c1"># doesn&#39;t know it -&gt; move it to the field which is a *class* attribute</span>
+        <span class="c1"># (so this only happens once per class)</span>
+        <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unbound_fields</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="s1">&#39;fieldset&#39;</span><span class="p">):</span>
+                <span class="n">field</span><span class="o">.</span><span class="n">fieldset</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;fieldset&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">fields_by_fieldset</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">fieldset</span><span class="p">,</span> <span class="n">field_id</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unbound_fields</span>
+        <span class="p">]</span>
+
+        <span class="c1"># yield control to the constructor so it can call the parent</span>
+        <span class="k">yield</span>
+
+        <span class="c1"># wtforms&#39; constructor might add more fields not available as</span>
+        <span class="c1"># unbound fields (like the csrf token)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unbound_fields</span><span class="p">):</span>
+            <span class="n">processed</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fields_by_fieldset</span><span class="p">)</span>
+            <span class="n">extra</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">f</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">processed</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fieldsets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Fieldset</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="n">extra</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">fields</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="n">fields_by_fieldset</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fieldsets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Fieldset</span><span class="p">(</span>
+                <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
+                <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="p">[</span><span class="n">f</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">)</span>
+            <span class="p">))</span></div>
+
+<div class="viewcode-block" id="Form.process_depends_on"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.process_depends_on">[docs]</a>    <span class="k">def</span> <span class="nf">process_depends_on</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Processes the depends_on parameter on the fields, which adds the</span>
+<span class="sd">        ability to have fields depend on values of other fields.</span>
+
+<span class="sd">        In the process the fields are altered so that wtforms recognizes them</span>
+<span class="sd">        again (that is, attributes only known to us are removed).</span>
+
+<span class="sd">        See :class:`Form` for more information.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unbound_fields</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="s1">&#39;depends_on&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">kwargs</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">depends_on</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;depends_on&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">depends_on</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">field</span><span class="o">.</span><span class="n">depends_on</span> <span class="o">=</span> <span class="n">FieldDependency</span><span class="p">(</span><span class="o">*</span><span class="n">depends_on</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s1">&#39;validators&#39;</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">field</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;validators&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">If</span><span class="p">(</span>
+                        <span class="n">field</span><span class="o">.</span><span class="n">depends_on</span><span class="o">.</span><span class="n">fulfilled</span><span class="p">,</span>
+                        <span class="n">Chain</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;validators&#39;</span><span class="p">])</span>
+                    <span class="p">),</span>
+                    <span class="n">If</span><span class="p">(</span>
+                        <span class="n">field</span><span class="o">.</span><span class="n">depends_on</span><span class="o">.</span><span class="n">unfulfilled</span><span class="p">,</span>
+                        <span class="n">Optional</span><span class="p">()</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+
+            <span class="n">field</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;render_kw&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;render_kw&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;render_kw&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">depends_on</span><span class="o">.</span><span class="n">html_data</span><span class="p">)</span>
+
+        <span class="k">yield</span></div>
+
+<div class="viewcode-block" id="Form.process_pricing"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.process_pricing">[docs]</a>    <span class="k">def</span> <span class="nf">process_pricing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Processes the pricing parameter on the fields, which adds the</span>
+<span class="sd">        ability to have fields associated with a price.</span>
+
+<span class="sd">        See :class:`Form` for more information.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pricings</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># move the pricing rule to the field class (happens once per class)</span>
+        <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unbound_fields</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="s1">&#39;pricing&#39;</span><span class="p">):</span>
+                <span class="n">field</span><span class="o">.</span><span class="n">pricing</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;pricing&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># prepare the pricing rules</span>
+        <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unbound_fields</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">pricing</span><span class="p">:</span>
+                <span class="n">pricings</span><span class="p">[</span><span class="n">field_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">Pricing</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">pricing</span><span class="p">)</span>
+
+        <span class="k">yield</span>
+
+        <span class="c1"># attach the pricing rules to the field instances</span>
+        <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">pricing</span> <span class="ow">in</span> <span class="n">pricings</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="p">[</span><span class="n">field_id</span><span class="p">]</span><span class="o">.</span><span class="n">pricing</span> <span class="o">=</span> <span class="n">pricing</span></div>
+
+<div class="viewcode-block" id="Form.is_visible_through_dependencies"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.is_visible_through_dependencies">[docs]</a>    <span class="k">def</span> <span class="nf">is_visible_through_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns true if the given field id has visible because all of</span>
+<span class="sd">        it&#39;s parents are visible. A field is invisible if its dependency is</span>
+<span class="sd">        not met.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">unbound_field</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">field_id</span><span class="p">)</span>
+        <span class="n">depends_on</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">unbound_field</span><span class="p">,</span> <span class="s1">&#39;depends_on&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">depends_on</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="n">bound_field</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">depends_on</span><span class="o">.</span><span class="n">fulfilled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bound_field</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_visible_through_dependencies</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;field_id&#39;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">depends_on</span><span class="o">.</span><span class="n">dependencies</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Form.prices"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.prices">[docs]</a>    <span class="k">def</span> <span class="nf">prices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the prices of all selected items depending on the</span>
+<span class="sd">        formdata. &quot;&quot;&quot;</span>
+
+        <span class="n">prices</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="s1">&#39;pricing&#39;</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_visible_through_dependencies</span><span class="p">(</span><span class="n">field_id</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">price</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">pricing</span><span class="o">.</span><span class="n">price</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">price</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">prices</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">field_id</span><span class="p">,</span> <span class="n">price</span><span class="p">))</span>
+
+        <span class="n">currencies</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">price</span><span class="o">.</span><span class="n">currency</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">price</span> <span class="ow">in</span> <span class="n">prices</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">currencies</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Mixed currencies are not supported&quot;</span>
+
+        <span class="k">return</span> <span class="n">prices</span></div>
+
+<div class="viewcode-block" id="Form.total"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.total">[docs]</a>    <span class="k">def</span> <span class="nf">total</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the total amount of all prices. &quot;&quot;&quot;</span>
+        <span class="n">prices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prices</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">prices</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">Price</span><span class="p">(</span>
+            <span class="nb">sum</span><span class="p">(</span><span class="n">price</span><span class="o">.</span><span class="n">amount</span> <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">price</span> <span class="ow">in</span> <span class="n">prices</span><span class="p">),</span>
+            <span class="n">prices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">currency</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Form.submitted"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.submitted">[docs]</a>    <span class="k">def</span> <span class="nf">submitted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns true if the given request is a successful post request. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Form.ignore_csrf_error"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.ignore_csrf_error">[docs]</a>    <span class="k">def</span> <span class="nf">ignore_csrf_error</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Removes the csrf error from the form if found, after validation.</span>
+
+<span class="sd">        Use this only if you know what you are doing (really, never).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">csrf_field_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">errors</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">errors</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">csrf_field_name</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">csrf_token</span><span class="o">.</span><span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_required_email_field</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns True if the form has a required e-mail field. &quot;&quot;&quot;</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_fields</span><span class="p">(</span>
+            <span class="n">include_classes</span><span class="o">=</span><span class="p">(</span><span class="n">EmailField</span><span class="p">,</span> <span class="p">),</span>
+            <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">limit</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">matches</span> <span class="ow">and</span> <span class="kc">True</span> <span class="ow">or</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="Form.match_fields"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.match_fields">[docs]</a>    <span class="k">def</span> <span class="nf">match_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exclude_classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">required</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns field ids matching the given search criteria.</span>
+
+<span class="sd">        :include_classes:</span>
+<span class="sd">            A list of field classes which should be included.</span>
+
+<span class="sd">        :excluded_classes:</span>
+<span class="sd">            A list of field classes which should be excluded.</span>
+
+<span class="sd">        :required:</span>
+<span class="sd">            True if required fields only, False if no required fields.</span>
+
+<span class="sd">        :limit:</span>
+<span class="sd">            If &gt; 0, limits the number of returned elements.</span>
+
+<span class="sd">        All parameters may be set to None disable matching it to anything.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">matches</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">field_id</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">include_classes</span><span class="p">:</span>
+                <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">include_classes</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">exclude_classes</span><span class="p">:</span>
+                <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">exclude_classes</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">required</span> <span class="ow">is</span> <span class="kc">True</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_required</span><span class="p">(</span><span class="n">field_id</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">required</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_required</span><span class="p">(</span><span class="n">field_id</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">matches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field_id</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">limit</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">==</span> <span class="n">limit</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="k">return</span> <span class="n">matches</span></div>
+
+<div class="viewcode-block" id="Form.is_required"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.is_required">[docs]</a>    <span class="k">def</span> <span class="nf">is_required</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns true if the given field_id is required. &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">validator</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="p">[</span><span class="n">field_id</span><span class="p">]</span><span class="o">.</span><span class="n">validators</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">validator</span><span class="p">,</span> <span class="p">(</span><span class="n">InputRequired</span><span class="p">,</span> <span class="n">DataRequired</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="Form.get_useful_data"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.get_useful_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_useful_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;csrf_token&#39;</span><span class="p">}):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the form data in a dictionary, by default excluding data</span>
+<span class="sd">        that should not be stored in the db backend.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="Form.populate_obj"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.populate_obj">[docs]</a>    <span class="k">def</span> <span class="nf">populate_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">include</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; A reimplementation of wtforms populate_obj function with the addage</span>
+<span class="sd">        of optional include/exclude filters.</span>
+
+<span class="sd">        If neither exclude nor include is passed, the function works like it</span>
+<span class="sd">        does in wtforms. Otherwise fields are considered which are included</span>
+<span class="sd">        but not excluded.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">include</span> <span class="o">=</span> <span class="n">include</span> <span class="ow">or</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">exclude</span> <span class="o">=</span> <span class="n">exclude</span> <span class="ow">or</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">include</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">:</span>
+                <span class="n">field</span><span class="o">.</span><span class="n">populate_obj</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Form.process"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.process">[docs]</a>    <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calls :meth:`process_obj` if ``process()`` was called with</span>
+<span class="sd">        the ``obj`` keyword argument.</span>
+
+<span class="sd">        This saves an extra check in many cases where we want to extend the</span>
+<span class="sd">        process function, but only *if* an obj has been provided.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;obj&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_obj</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;obj&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Form.process_obj"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.process_obj">[docs]</a>    <span class="k">def</span> <span class="nf">process_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Called by :meth:`process` if an object was passed.</span>
+
+<span class="sd">        Do *not* use this function directly. To process an object, you should</span>
+<span class="sd">        call ``form.process(obj=obj)`` instead.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Form.delete_field"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.delete_field">[docs]</a>    <span class="k">def</span> <span class="nf">delete_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fieldname</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Removes the given field from the form and all the fieldsets. &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">fieldsets_without_field</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">fieldset</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fieldsets</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">fieldname</span> <span class="ow">in</span> <span class="n">fieldset</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">fieldset</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">fieldname</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">fieldset</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">fieldset</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fieldsets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">fieldsets_without_field</span><span class="p">())</span>
+
+        <span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">fieldname</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Form.validate"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.validate">[docs]</a>    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Adds support for &#39;ensurances&#39; to the form. An ensurance is a</span>
+<span class="sd">        method which is called during validation when all the fields have</span>
+<span class="sd">        been populated. Therefore it is a good place to validate against</span>
+<span class="sd">        multiple fields.</span>
+
+<span class="sd">        All methods which start with ``ensure_`` are ensurances. If and only if</span>
+<span class="sd">        an ensurance returns False it is considered to have failed. In this</span>
+<span class="sd">        case the validate method returns False as well. If None or &#39;&#39; or</span>
+<span class="sd">        any other falsy value is returned, no error is assumed! This avoids</span>
+<span class="sd">        having to return an extra True at the end of each ensurance.</span>
+
+<span class="sd">        When one ensurance fails, the others are still run. Also, there&#39;s no</span>
+<span class="sd">        error display mechanism. Showing an error is left to the ensurance</span>
+<span class="sd">        itself. It can do so by adding messages to the various error lists</span>
+<span class="sd">        of the form or by showing an alert through the request.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">ensurance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensurances</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ensurance</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ensurances</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the ensurances that need to be checked when validating.</span>
+
+<span class="sd">        This property may be overridden if only a subset of all ensurances</span>
+<span class="sd">        should actually be enforced.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># inspect.getmembers is no good here as it triggers the properties</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;ensure_&#39;</span><span class="p">):</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">name</span><span class="p">),</span> <span class="nb">property</span><span class="p">):</span>
+                    <span class="k">continue</span>
+
+                <span class="n">member</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">member</span><span class="p">):</span>
+                    <span class="k">yield</span> <span class="n">member</span></div>
+
+
+<div class="viewcode-block" id="Fieldset"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Fieldset">[docs]</a><span class="k">class</span> <span class="nc">Fieldset</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Defines a fieldset with a list of fields. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">fields</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Initializes the Fieldset.</span>
+
+<span class="sd">        :label: Label of the fieldset (None if it&#39;s an invisible fieldset)</span>
+<span class="sd">        :fields: Iterator of bound fields. Fieldset creates a list of weak</span>
+<span class="sd">        references to these fields, as they are defined elsewhere and should</span>
+<span class="sd">        not be kept in memory just because a Fieldset references them.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fields</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">((</span><span class="n">f</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">weakref</span><span class="o">.</span><span class="n">proxy</span><span class="p">(</span><span class="n">f</span><span class="p">))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_visible</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">non_empty_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns only the fields which are not empty. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span> <span class="k">for</span> <span class="nb">id</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="with_options"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.with_options">[docs]</a><span class="k">def</span> <span class="nf">with_options</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="o">**</span><span class="n">render_options</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a widget class or instance and returns a child-instance of the</span>
+<span class="sd">    widget class, with the given options set on the render call.</span>
+
+<span class="sd">    This makes it easy to use existing WTForms widgets with custom render</span>
+<span class="sd">    options:</span>
+
+<span class="sd">    field = StringField(widget=with_options(TextArea, class_=&quot;markdown&quot;))</span>
+
+<span class="sd">    Note: With wtforms 2.1 this is no longer necssary. Instead use the</span>
+<span class="sd">    render_kw parameter of the field class. This function will be deprecated</span>
+<span class="sd">    in a future release.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">widget</span><span class="p">):</span>
+        <span class="k">class</span> <span class="nc">Widget</span><span class="p">(</span><span class="n">widget</span><span class="p">):</span>
+
+            <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="n">render_options</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">render_options</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Widget</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">class</span> <span class="nc">Widget</span><span class="p">(</span><span class="n">widget</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
+
+            <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">widget</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="n">render_options</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">widget</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">render_options</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Widget</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="FieldDependency"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.FieldDependency">[docs]</a><span class="k">class</span> <span class="nc">FieldDependency</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Defines a dependency to a field. The given field(s) must have the given</span>
+<span class="sd">    choice for this dependency to be fulfilled.</span>
+
+<span class="sd">    It&#39;s possible to depend on NOT the given value by preceeding it with a &#39;!&#39;:</span>
+
+<span class="sd">        FieldDependency(&#39;field_1&#39;, &#39;!choice_1&#39;)</span>
+
+<span class="sd">    To depend on more than one field, add the field_id&#39;s and choices to the</span>
+<span class="sd">    constructor:</span>
+
+<span class="sd">        FieldDependency(&#39;field_1&#39;, &#39;choice_1&#39;)</span>
+<span class="sd">        FieldDependency(&#39;field_1&#39;, &#39;choice_1&#39;, &#39;field_2&#39;, &#39;choice_2&#39;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">choice</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">invert</span> <span class="o">=</span> <span class="n">choice</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;!&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s1">&#39;field_id&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">index</span><span class="p">],</span>
+                <span class="s1">&#39;raw_choice&#39;</span><span class="p">:</span> <span class="n">choice</span><span class="p">,</span>
+                <span class="s1">&#39;invert&#39;</span><span class="p">:</span> <span class="n">invert</span><span class="p">,</span>
+                <span class="s1">&#39;choice&#39;</span><span class="p">:</span> <span class="n">choice</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="n">invert</span> <span class="k">else</span> <span class="n">choice</span><span class="p">,</span>
+            <span class="p">})</span>
+
+    <span class="k">def</span> <span class="nf">fulfilled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">dependency</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="n">dependency</span><span class="p">[</span><span class="s1">&#39;field_id&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">data</span>
+            <span class="n">choice</span> <span class="o">=</span> <span class="n">dependency</span><span class="p">[</span><span class="s1">&#39;choice&#39;</span><span class="p">]</span>
+            <span class="n">invert</span> <span class="o">=</span> <span class="n">dependency</span><span class="p">[</span><span class="s1">&#39;invert&#39;</span><span class="p">]</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span> <span class="ow">and</span> <span class="p">((</span><span class="n">data</span> <span class="o">==</span> <span class="n">choice</span><span class="p">)</span> <span class="o">^</span> <span class="n">invert</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">unfulfilled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fulfilled</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">field_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;field_id&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">html_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="s1">&#39;;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span>
+            <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">dep</span><span class="p">[</span><span class="s1">&#39;field_id&#39;</span><span class="p">],</span> <span class="n">dep</span><span class="p">[</span><span class="s1">&#39;raw_choice&#39;</span><span class="p">]))</span>
+            <span class="k">for</span> <span class="n">dep</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span>
+        <span class="p">))</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;data-depends-on&#39;</span><span class="p">:</span> <span class="n">value</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="Pricing"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Pricing">[docs]</a><span class="k">class</span> <span class="nc">Pricing</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Defines pricing on a field, returning the correct price for the field</span>
+<span class="sd">    depending on its rule.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rules</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rules</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">rule</span><span class="p">:</span> <span class="n">Price</span><span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">currency</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">rule</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">currency</span><span class="p">)</span> <span class="ow">in</span> <span class="n">rules</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">price</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">total</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+                <span class="n">price</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">price</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">total</span> <span class="o">=</span> <span class="p">(</span><span class="n">total</span> <span class="ow">or</span> <span class="n">Decimal</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span> <span class="o">+</span> <span class="n">price</span><span class="o">.</span><span class="n">amount</span>
+                    <span class="n">currency</span> <span class="o">=</span> <span class="n">price</span><span class="o">.</span><span class="n">currency</span>
+
+            <span class="k">if</span> <span class="n">total</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">Price</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="n">currency</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="merge_forms"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.merge_forms">[docs]</a><span class="k">def</span> <span class="nf">merge_forms</span><span class="p">(</span><span class="o">*</span><span class="n">forms</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a list of forms and merges them.</span>
+
+<span class="sd">    In doing so, a new class is created which inherits from all the forms in</span>
+<span class="sd">    the default method resolution order. So the first class will override</span>
+<span class="sd">    fields in the second class and so on.</span>
+
+<span class="sd">    So this method is basically the same as:</span>
+
+<span class="sd">        class Merged(*forms):</span>
+<span class="sd">            pass</span>
+
+<span class="sd">    With *one crucial difference*, the order of the fields is as follows:</span>
+
+<span class="sd">    First, the fields from the first form are rendered, then the fields</span>
+<span class="sd">    from the second form and so on. This is not the case if you merge the</span>
+<span class="sd">    forms by simple class inheritance, as each form has it&#39;s own internal</span>
+<span class="sd">    field order, which when merged leads to unexpected results.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">class</span> <span class="nc">MergedForm</span><span class="p">(</span><span class="o">*</span><span class="n">forms</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="n">fields_in_order</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">name</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">forms</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">field</span>
+        <span class="ow">in</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_fields_from_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">enforce_order</span><span class="p">(</span><span class="n">MergedForm</span><span class="p">,</span> <span class="n">fields_in_order</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="enforce_order"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.enforce_order">[docs]</a><span class="k">def</span> <span class="nf">enforce_order</span><span class="p">(</span><span class="n">form_class</span><span class="p">,</span> <span class="n">fields_in_order</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a list of fields used in a form_class and enforces the</span>
+<span class="sd">    order of those fields.</span>
+
+<span class="sd">    If not all fields in the form are given, the resulting order is undefined.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># XXX to make sure the field order of the existing class remains</span>
+    <span class="c1"># unchanged, we need to instantiate the class once (wtforms seems</span>
+    <span class="c1"># to do some housekeeping somehwere)</span>
+    <span class="n">form_class</span><span class="p">()</span>
+
+    <span class="k">class</span> <span class="nc">EnforcedOrderForm</span><span class="p">(</span><span class="n">form_class</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="n">processed</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">counter</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fields_in_order</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">processed</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="nb">getattr</span><span class="p">(</span><span class="n">EnforcedOrderForm</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">creation_counter</span> <span class="o">=</span> <span class="n">counter</span>
+        <span class="n">processed</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">EnforcedOrderForm</span></div>
+
+
+<div class="viewcode-block" id="move_fields"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.move_fields">[docs]</a><span class="k">def</span> <span class="nf">move_fields</span><span class="p">(</span><span class="n">form_class</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">after</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Reorders the given fields (given by name) by inserting them directly</span>
+<span class="sd">    after the given field.</span>
+
+<span class="sd">    If ``after`` is None, the fields are moved to the end.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">fields_in_order</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_fields_from_class</span><span class="p">(</span><span class="n">form_class</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">fields_in_order</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="n">after</span><span class="p">:</span>
+            <span class="n">fields_in_order</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">after</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fields_in_order</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">enforce_order</span><span class="p">(</span><span class="n">form_class</span><span class="p">,</span> <span class="n">fields_in_order</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,658 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.org.path &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.org.path</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Contains the paths to the different models served by onegov.org. &quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">morepath</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
+<span class="kn">from</span> <span class="nn">onegov.chat</span> <span class="k">import</span> <span class="n">MessageCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.core.converters</span> <span class="k">import</span> <span class="n">extended_date_converter</span>
+<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">Directory</span>
+<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryEntryCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryEntry</span>
+<span class="kn">from</span> <span class="nn">onegov.event</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">Event</span><span class="p">,</span>
+    <span class="n">EventCollection</span><span class="p">,</span>
+    <span class="n">Occurrence</span><span class="p">,</span>
+    <span class="n">OccurrenceCollection</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">File</span>
+<span class="kn">from</span> <span class="nn">onegov.file.integration</span> <span class="k">import</span> <span class="n">get_file</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">FormDefinition</span><span class="p">,</span>
+    <span class="n">FormCollection</span><span class="p">,</span>
+    <span class="n">CompleteFormSubmission</span><span class="p">,</span>
+    <span class="n">PendingFormSubmission</span><span class="p">,</span>
+    <span class="n">FormFile</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">onegov.newsletter</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">Newsletter</span><span class="p">,</span>
+    <span class="n">NewsletterCollection</span><span class="p">,</span>
+    <span class="n">Subscription</span><span class="p">,</span>
+    <span class="n">RecipientCollection</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">onegov.org.app</span> <span class="k">import</span> <span class="n">OrgApp</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">AtoZPages</span><span class="p">,</span>
+    <span class="n">Clipboard</span><span class="p">,</span>
+    <span class="n">Editor</span><span class="p">,</span>
+    <span class="n">Export</span><span class="p">,</span>
+    <span class="n">ExportCollection</span><span class="p">,</span>
+    <span class="n">FormPersonMove</span><span class="p">,</span>
+    <span class="n">GeneralFileCollection</span><span class="p">,</span>
+    <span class="n">ImageFileCollection</span><span class="p">,</span>
+    <span class="n">ImageSet</span><span class="p">,</span>
+    <span class="n">ImageSetCollection</span><span class="p">,</span>
+    <span class="n">LegacyFile</span><span class="p">,</span>
+    <span class="n">LegacyFileCollection</span><span class="p">,</span>
+    <span class="n">LegacyImage</span><span class="p">,</span>
+    <span class="n">LegacyImageCollection</span><span class="p">,</span>
+    <span class="n">News</span><span class="p">,</span>
+    <span class="n">Organisation</span><span class="p">,</span>
+    <span class="n">PageMove</span><span class="p">,</span>
+    <span class="n">PagePersonMove</span><span class="p">,</span>
+    <span class="n">ResourcePersonMove</span><span class="p">,</span>
+    <span class="n">ResourceRecipient</span><span class="p">,</span>
+    <span class="n">ResourceRecipientCollection</span><span class="p">,</span>
+    <span class="n">Search</span><span class="p">,</span>
+    <span class="n">SiteCollection</span><span class="p">,</span>
+    <span class="n">TicketNote</span><span class="p">,</span>
+    <span class="n">Topic</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">onegov.page</span> <span class="k">import</span> <span class="n">PageCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">PaymentProvider</span><span class="p">,</span> <span class="n">Payment</span><span class="p">,</span> <span class="n">PaymentCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">PaymentProviderCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.people</span> <span class="k">import</span> <span class="n">Person</span><span class="p">,</span> <span class="n">PersonCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Allocation</span>
+<span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Reservation</span>
+<span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Resource</span>
+<span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">ResourceCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">Ticket</span><span class="p">,</span> <span class="n">TicketCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.user</span> <span class="k">import</span> <span class="n">Auth</span><span class="p">,</span> <span class="n">User</span><span class="p">,</span> <span class="n">UserCollection</span>
+<span class="kn">from</span> <span class="nn">webob</span> <span class="k">import</span> <span class="n">exc</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">UUID</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Organisation</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_org</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">app</span><span class="o">.</span><span class="n">org</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Auth</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/auth&#39;</span><span class="p">,</span> <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">skip</span><span class="o">=</span><span class="nb">bool</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_auth</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">to</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">signup_token</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">Auth</span><span class="o">.</span><span class="n">from_app</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">to</span><span class="p">,</span> <span class="n">skip</span><span class="p">,</span> <span class="n">signup_token</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">User</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/benutzer/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_user</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">UserCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">UserCollection</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/usermanagement&#39;</span><span class="p">,</span>
+    <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="p">[</span><span class="nb">bool</span><span class="p">],</span> <span class="n">role</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_users</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">UserCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="n">active</span><span class="o">=</span><span class="n">active</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Topic</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/topics&#39;</span><span class="p">,</span> <span class="n">absorb</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_topic</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">absorb</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">PageCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_path</span><span class="p">(</span><span class="n">absorb</span><span class="p">,</span> <span class="n">ensure_type</span><span class="o">=</span><span class="s1">&#39;topic&#39;</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">News</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/news&#39;</span><span class="p">,</span> <span class="n">absorb</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_news</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">absorb</span><span class="p">):</span>
+    <span class="n">pages</span> <span class="o">=</span> <span class="n">PageCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+
+    <span class="n">old_path</span> <span class="o">=</span> <span class="s1">&#39;/</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;aktuelles&#39;</span><span class="p">,</span> <span class="n">absorb</span><span class="p">)</span>
+    <span class="n">new_path</span> <span class="o">=</span> <span class="s1">&#39;/</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;news&#39;</span><span class="p">,</span> <span class="n">absorb</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pages</span><span class="o">.</span><span class="n">by_path</span><span class="p">(</span><span class="n">new_path</span><span class="p">,</span> <span class="n">ensure_type</span><span class="o">=</span><span class="s1">&#39;news&#39;</span><span class="p">)</span>\
+        <span class="ow">or</span> <span class="n">pages</span><span class="o">.</span><span class="n">by_path</span><span class="p">(</span><span class="n">old_path</span><span class="p">,</span> <span class="n">ensure_type</span><span class="o">=</span><span class="s1">&#39;news&#39;</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">GeneralFileCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/files&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_files</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">GeneralFileCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">ImageFileCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/images&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_images</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ImageFileCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">ExportCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/exports&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_exports</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ExportCollection</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Export</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/export/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_export</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ExportCollection</span><span class="p">(</span><span class="n">app</span><span class="p">)</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">FormCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/forms&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_forms</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">FormDefinition</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/form/</span><span class="si">{name}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_form</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">definitions</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">PendingFormSubmission</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/form-preview/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">,</span>
+             <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_pending_form_submission</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span>
+        <span class="nb">id</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;pending&#39;</span><span class="p">,</span> <span class="n">current_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">CompleteFormSubmission</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/form-submission/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">,</span>
+             <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_complete_form_submission</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span>
+        <span class="nb">id</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;complete&#39;</span><span class="p">,</span> <span class="n">current_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_file_for_org"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.path.get_file_for_org">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/storage/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_file_for_org</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Form files are kept private and out of any caches.</span>
+
+<span class="sd">    This approach is not all that morepath-y, as we could override the views</span>
+<span class="sd">    instead to change the required permissions, but this approach has the</span>
+<span class="sd">    advantage that we don&#39;t need to overwrite multiple views and we do not</span>
+<span class="sd">    have to care for additional views added in the future.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">obj</span> <span class="o">=</span> <span class="n">get_file</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">obj</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">FormFile</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">has_role</span><span class="p">(</span><span class="s1">&#39;editor&#39;</span><span class="p">,</span> <span class="s1">&#39;admin&#39;</span><span class="p">):</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+            <span class="k">def</span> <span class="nf">disable_cache</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+                <span class="n">response</span><span class="o">.</span><span class="n">cache_control</span><span class="o">.</span><span class="n">no_cache</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">response</span><span class="o">.</span><span class="n">cache_control</span><span class="o">.</span><span class="n">max_age</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">response</span><span class="o">.</span><span class="n">cache_control</span><span class="o">.</span><span class="n">public</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">response</span><span class="o">.</span><span class="n">cache_control</span><span class="o">.</span><span class="n">private</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">obj</span></div>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Editor</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/editor/</span><span class="si">{action}</span><span class="s1">/</span><span class="si">{trait}</span><span class="s1">/</span><span class="si">{page_id}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_editor</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">trait</span><span class="p">,</span> <span class="n">page_id</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">Editor</span><span class="o">.</span><span class="n">is_supported_action</span><span class="p">(</span><span class="n">action</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">page</span> <span class="o">=</span> <span class="n">PageCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">page_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">page</span><span class="o">.</span><span class="n">is_supported_trait</span><span class="p">(</span><span class="n">trait</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">page</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Editor</span><span class="p">(</span><span class="n">action</span><span class="o">=</span><span class="n">action</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="n">page</span><span class="p">,</span> <span class="n">trait</span><span class="o">=</span><span class="n">trait</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">PersonCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/people&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_people</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">PersonCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Person</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/person/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_person</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">PersonCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Ticket</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/ticket/</span><span class="si">{handler_code}</span><span class="s1">/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">,</span>
+             <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_ticket</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">handler_code</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">TicketCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span>
+        <span class="nb">id</span><span class="p">,</span> <span class="n">ensure_handler_code</span><span class="o">=</span><span class="n">handler_code</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">TicketCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/tickets/</span><span class="si">{handler}</span><span class="s1">/</span><span class="si">{state}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_tickets</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">handler</span><span class="o">=</span><span class="s1">&#39;ALL&#39;</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;open&#39;</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">owner</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extra_parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">TicketCollection</span><span class="p">(</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span>
+        <span class="n">handler</span><span class="o">=</span><span class="n">handler</span><span class="p">,</span>
+        <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">,</span>
+        <span class="n">page</span><span class="o">=</span><span class="n">page</span><span class="p">,</span>
+        <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">,</span>
+        <span class="n">owner</span><span class="o">=</span><span class="n">owner</span> <span class="ow">or</span> <span class="s1">&#39;*&#39;</span><span class="p">,</span>
+        <span class="n">extra_parameters</span><span class="o">=</span><span class="n">extra_parameters</span>
+    <span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">TicketNote</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/ticket-notes/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_ticket_note</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">MessageCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;ticket_note&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">ResourceCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/resources&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_resources</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">app</span><span class="o">.</span><span class="n">libres_resources</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/resource/</span><span class="si">{name}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+             <span class="n">date</span><span class="o">=</span><span class="n">date</span><span class="p">,</span> <span class="n">highlights_min</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">highlights_max</span><span class="o">=</span><span class="nb">int</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_resource</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">view</span><span class="o">=</span><span class="s1">&#39;agendaWeek&#39;</span><span class="p">,</span>
+                 <span class="n">highlights_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">highlights_max</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="n">resource</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">libres_resources</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">resource</span><span class="p">:</span>
+        <span class="n">resource</span><span class="o">.</span><span class="n">date</span> <span class="o">=</span> <span class="n">date</span>
+        <span class="n">resource</span><span class="o">.</span><span class="n">highlights_min</span> <span class="o">=</span> <span class="n">highlights_min</span>
+        <span class="n">resource</span><span class="o">.</span><span class="n">highlights_max</span> <span class="o">=</span> <span class="n">highlights_max</span>
+        <span class="n">resource</span><span class="o">.</span><span class="n">view</span> <span class="o">=</span> <span class="n">view</span>
+
+    <span class="k">return</span> <span class="n">resource</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Allocation</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/allocation/</span><span class="si">{resource}</span><span class="s1">/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">,</span>
+             <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">resource</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_allocation</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="n">resource</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">libres_resources</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">resource</span><span class="p">:</span>
+        <span class="n">allocation</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">allocations_by_ids</span><span class="p">((</span><span class="nb">id</span><span class="p">,</span> <span class="p">))</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+        <span class="c1"># always get the master, even if another id is requested</span>
+        <span class="k">return</span> <span class="n">allocation</span> <span class="ow">and</span> <span class="n">allocation</span><span class="o">.</span><span class="n">get_master</span><span class="p">()</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Reservation</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/reservation/</span><span class="si">{resource}</span><span class="s1">/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">,</span>
+             <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">resource</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_reservation</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="n">resource</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">libres_resources</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">resource</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">managed_reservations</span><span class="p">()</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Reservation</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="nb">id</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Clipboard</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/clipboard/copy/</span><span class="si">{token}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_clipboard</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">token</span><span class="p">):</span>
+    <span class="n">clipboard</span> <span class="o">=</span> <span class="n">Clipboard</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">token</span><span class="p">)</span>
+
+    <span class="c1"># the url is None if the token is invalid</span>
+    <span class="k">if</span> <span class="n">clipboard</span><span class="o">.</span><span class="n">url</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">clipboard</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">SiteCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/sitecollection&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_sitecollection</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">SiteCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">PageMove</span><span class="p">,</span>
+             <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/move/page/</span><span class="si">{subject_id}</span><span class="s1">/</span><span class="si">{direction}</span><span class="s1">/</span><span class="si">{target_id}</span><span class="s1">&#39;</span><span class="p">,</span>
+             <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">subject_id</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">target_id</span><span class="o">=</span><span class="nb">int</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_page_move</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">subject_id</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">target_id</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">subject_id</span> <span class="o">==</span> <span class="n">target_id</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">HTTPBadRequest</span><span class="p">()</span>
+
+    <span class="n">session</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
+    <span class="n">pages</span> <span class="o">=</span> <span class="n">PageCollection</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+
+    <span class="n">subject</span> <span class="o">=</span> <span class="n">pages</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">subject_id</span><span class="p">)</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">pages</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">target_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">subject</span> <span class="ow">and</span> <span class="n">target</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">PageMove</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">PagePersonMove</span><span class="p">,</span>
+             <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/move/page-person/</span><span class="si">{key}</span><span class="s1">/</span><span class="si">{subject}</span><span class="s1">/</span><span class="si">{direction}</span><span class="s1">/</span><span class="si">{target}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_person_move</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">subject</span> <span class="o">==</span> <span class="n">target</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">HTTPBadRequest</span><span class="p">()</span>
+
+    <span class="n">session</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
+    <span class="n">page</span> <span class="o">=</span> <span class="n">PageCollection</span><span class="p">(</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">page</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">PagePersonMove</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">page</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">FormPersonMove</span><span class="p">,</span>
+             <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/move/form-person/</span><span class="si">{key}</span><span class="s1">/</span><span class="si">{subject}</span><span class="s1">/</span><span class="si">{direction}</span><span class="s1">/</span><span class="si">{target}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_form_move</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
+    <span class="n">form</span> <span class="o">=</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">definitions</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">form</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">FormPersonMove</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">ResourcePersonMove</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/move/resource-person/</span><span class="si">{key}</span><span class="s1">/</span><span class="si">{subject}</span><span class="s1">/</span><span class="si">{direction}</span><span class="s1">/</span><span class="si">{target}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_resource_move</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
+    <span class="n">resource</span> <span class="o">=</span> <span class="n">ResourceCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">libres_context</span><span class="p">)</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">resource</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ResourcePersonMove</span><span class="p">(</span>
+            <span class="n">session</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">OccurrenceCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/events&#39;</span><span class="p">,</span>
+             <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">extended_date_converter</span><span class="p">,</span>
+                             <span class="n">end</span><span class="o">=</span><span class="n">extended_date_converter</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">[]))</span>
+<span class="k">def</span> <span class="nf">get_occurrences</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">OccurrenceCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="n">page</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">tags</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Occurrence</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/event/</span><span class="si">{name}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_occurrence</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">OccurrenceCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">EventCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/event-manager&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_events</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;published&#39;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">EventCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="n">page</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Event</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/event-management/</span><span class="si">{name}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_event</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">EventCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Search</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/search&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_search</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">Search</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">page</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">AtoZPages</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/a-z&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_a_to_z</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">AtoZPages</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">NewsletterCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/newsletters&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_newsletters</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">NewsletterCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Newsletter</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/newsletter/</span><span class="si">{name}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_newsletter</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_newsletters</span><span class="p">(</span><span class="n">app</span><span class="p">)</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">RecipientCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/subscribers&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_newsletter_recipients</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">RecipientCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Subscription</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/abonnement/</span><span class="si">{recipient_id}</span><span class="s1">/</span><span class="si">{token}</span><span class="s1">&#39;</span><span class="p">,</span>
+             <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">recipient_id</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_subscription</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">recipient_id</span><span class="p">,</span> <span class="n">token</span><span class="p">):</span>
+    <span class="n">recipient</span> <span class="o">=</span> <span class="n">RecipientCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">recipient_id</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">recipient</span> <span class="ow">and</span> <span class="n">Subscription</span><span class="p">(</span><span class="n">recipient</span><span class="p">,</span> <span class="n">token</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">LegacyFile</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/file/</span><span class="si">{filename}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_legacy_file</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">LegacyFileCollection</span><span class="p">(</span><span class="n">app</span><span class="p">)</span><span class="o">.</span><span class="n">get_file_by_filename</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">LegacyImage</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/image/</span><span class="si">{filename}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_image</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">LegacyImageCollection</span><span class="p">(</span><span class="n">app</span><span class="p">)</span><span class="o">.</span><span class="n">get_file_by_filename</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">ImageSetCollection</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/photoalbums&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_image_sets</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ImageSetCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">ImageSet</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/photoalbum/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_image_set</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ImageSetCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">ResourceRecipientCollection</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/resource-recipients&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_resource_recipient_collection</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ResourceRecipientCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">ResourceRecipient</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/resource-recipient/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">,</span>
+    <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_resource_recipient</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ResourceRecipientCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">PaymentProviderCollection</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/payment-provider&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_payment_provider_collection</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">payment_providers_enabled</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">PaymentProviderCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">PaymentProvider</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/payment-provider-entry/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">,</span>
+    <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_payment_provider</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">payment_providers_enabled</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">PaymentProviderCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Payment</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/payment/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">,</span>
+    <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_payment</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">PaymentCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">PaymentCollection</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/payments&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_payments</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">PaymentCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="n">source</span><span class="p">,</span> <span class="n">page</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">MessageCollection</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/timeline&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_messages</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">channel_id</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span>
+                 <span class="n">newer_than</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">older_than</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
+                 <span class="n">load</span><span class="o">=</span><span class="s1">&#39;older-first&#39;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">MessageCollection</span><span class="p">(</span>
+        <span class="n">session</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">,</span>
+        <span class="n">channel_id</span><span class="o">=</span><span class="n">channel_id</span><span class="p">,</span>
+        <span class="n">newer_than</span><span class="o">=</span><span class="n">newer_than</span><span class="p">,</span>
+        <span class="n">older_than</span><span class="o">=</span><span class="n">older_than</span><span class="p">,</span>
+        <span class="n">limit</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="mi">25</span><span class="p">,</span> <span class="n">limit</span><span class="p">),</span>  <span class="c1"># bind the limit to a max of 25</span>
+        <span class="n">load</span><span class="o">=</span><span class="s1">&#39;newer-first&#39;</span> <span class="k">if</span> <span class="n">load</span> <span class="o">==</span> <span class="s1">&#39;newer-first&#39;</span> <span class="k">else</span> <span class="s1">&#39;older-first&#39;</span>
+    <span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">DirectoryCollection</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/directories&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_directories</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">DirectoryCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;extended&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="keywords_decode"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.path.keywords_decode">[docs]</a><span class="k">def</span> <span class="nf">keywords_decode</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Deocdes the directory entry collection keywords. &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">s</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">):</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="keywords_encode"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.path.keywords_encode">[docs]</a><span class="k">def</span> <span class="nf">keywords_encode</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Encodes the directory entry collection keywords. &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">d</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">return</span> <span class="s1">&#39;+&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">d</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">])</span></div>
+
+
+<span class="n">keywords_converter</span> <span class="o">=</span> <span class="n">morepath</span><span class="o">.</span><span class="n">Converter</span><span class="p">(</span>
+    <span class="n">decode</span><span class="o">=</span><span class="n">keywords_decode</span><span class="p">,</span> <span class="n">encode</span><span class="o">=</span><span class="n">keywords_encode</span>
+<span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Directory</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/directory/</span><span class="si">{name}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_directory</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">DirectoryCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">DirectoryEntryCollection</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/directories/</span><span class="si">{directory_name}</span><span class="s1">&#39;</span><span class="p">,</span>
+    <span class="n">converters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="n">keywords_converter</span><span class="p">})</span>
+<span class="k">def</span> <span class="nf">get_directory_entries</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">directory_name</span><span class="p">,</span> <span class="n">keywords</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="n">directory</span> <span class="o">=</span> <span class="n">DirectoryCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">directory_name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="n">collection</span> <span class="o">=</span> <span class="n">DirectoryEntryCollection</span><span class="p">(</span>
+            <span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;extended&#39;</span><span class="p">,</span>
+            <span class="n">keywords</span><span class="o">=</span><span class="n">keywords</span><span class="p">,</span>
+            <span class="n">page</span><span class="o">=</span><span class="n">page</span>
+        <span class="p">)</span>
+
+        <span class="n">collection</span><span class="o">.</span><span class="n">is_hidden_from_public</span> <span class="o">=</span> <span class="n">directory</span><span class="o">.</span><span class="n">is_hidden_from_public</span>
+
+        <span class="k">return</span> <span class="n">collection</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">DirectoryEntry</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/directories/</span><span class="si">{directory_name}</span><span class="s1">/</span><span class="si">{name}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_directory_entry</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">directory_name</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="n">directory</span> <span class="o">=</span> <span class="n">DirectoryCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">directory_name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">DirectoryEntryCollection</span><span class="p">(</span>
+            <span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;extended&#39;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,568 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.org.views.reservation &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.org.views.reservation</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">morepath</span>
+<span class="kn">import</span> <span class="nn">sedate</span>
+<span class="kn">import</span> <span class="nn">transaction</span>
+
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">time</span>
+<span class="kn">from</span> <span class="nn">libres.modules.errors</span> <span class="k">import</span> <span class="n">LibresError</span>
+<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span><span class="p">,</span> <span class="n">Private</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormCollection</span><span class="p">,</span> <span class="n">merge_forms</span>
+<span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span><span class="p">,</span> <span class="n">OrgApp</span>
+<span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">Link</span>
+<span class="kn">from</span> <span class="nn">onegov.org.forms</span> <span class="k">import</span> <span class="n">ReservationForm</span>
+<span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">ReservationLayout</span>
+<span class="kn">from</span> <span class="nn">onegov.org.mail</span> <span class="k">import</span> <span class="n">send_html_mail</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">TicketMessage</span><span class="p">,</span> <span class="n">ReservationMessage</span>
+<span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Allocation</span><span class="p">,</span> <span class="n">Reservation</span><span class="p">,</span> <span class="n">Resource</span>
+<span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">TicketCollection</span>
+<span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm.attributes</span> <span class="k">import</span> <span class="n">flag_modified</span>
+<span class="kn">from</span> <span class="nn">webob</span> <span class="k">import</span> <span class="n">exc</span>
+
+
+<div class="viewcode-block" id="assert_anonymous_access_only_temporary"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.reservation.assert_anonymous_access_only_temporary">[docs]</a><span class="k">def</span> <span class="nf">assert_anonymous_access_only_temporary</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">reservation</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Raises exceptions if the current user is anonymous and no longer</span>
+<span class="sd">    should be given access to the reservation models.</span>
+
+<span class="sd">    This could probably be done using morepath&#39;s security system, but it would</span>
+<span class="sd">    not be quite as straight-forward. This approach is, though we have</span>
+<span class="sd">    to manually add this function to all reservation views the anonymous user</span>
+<span class="sd">    should be able to access when creating a new reservatin, but not anymore</span>
+<span class="sd">    after that.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">is_manager</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">reservation</span><span class="o">.</span><span class="n">session_id</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">HTTPForbidden</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">reservation</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;approved&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">HTTPForbidden</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">reservation</span><span class="o">.</span><span class="n">session_id</span> <span class="o">!=</span> <span class="n">resource</span><span class="o">.</span><span class="n">bound_session_id</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">HTTPForbidden</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="assert_access_only_if_there_are_reservations"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.reservation.assert_access_only_if_there_are_reservations">[docs]</a><span class="k">def</span> <span class="nf">assert_access_only_if_there_are_reservations</span><span class="p">(</span><span class="n">reservations</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Raises an exception if no reservations are available. &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">reservations</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">HTTPForbidden</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="reserve_allocation"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.reservation.reserve_allocation">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Allocation</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;reserve&#39;</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+             <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">reserve_allocation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds a single reservation to the list of reservations bound to the</span>
+<span class="sd">    current browser session.</span>
+
+<span class="sd">    Does not actually reserve anything, just keeps a list of things to</span>
+<span class="sd">    reserve later. Though it will still check if the reservation is</span>
+<span class="sd">    feasable.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># the reservation is defined through query parameters</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;start&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;{:%H:%M}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;{:%H:%M}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+    <span class="n">quota</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;quota&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">whole_day</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;whole_day&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">partly_available</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">whole_day</span> <span class="ow">and</span> <span class="n">whole_day</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="mi">23</span><span class="p">,</span> <span class="mi">59</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">sedate</span><span class="o">.</span><span class="n">parse_time</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">sedate</span><span class="o">.</span><span class="n">parse_time</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
+
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">sedate</span><span class="o">.</span><span class="n">get_date_range</span><span class="p">(</span>
+            <span class="n">sedate</span><span class="o">.</span><span class="n">to_timezone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">),</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span>
+
+    <span class="n">resource</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">libres_resources</span><span class="o">.</span><span class="n">by_allocation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">resource</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">reserve</span><span class="p">(</span>
+            <span class="n">email</span><span class="o">=</span><span class="s1">&#39;0xdeadbeef@example.org&#39;</span><span class="p">,</span>  <span class="c1"># will be set later</span>
+            <span class="n">dates</span><span class="o">=</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span>
+            <span class="n">quota</span><span class="o">=</span><span class="n">quota</span><span class="p">,</span>
+            <span class="n">session_id</span><span class="o">=</span><span class="n">resource</span><span class="o">.</span><span class="n">bound_session_id</span><span class="p">(</span><span class="n">request</span><span class="p">),</span>
+            <span class="n">single_token_per_session</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="n">LibresError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;message&#39;</span><span class="p">:</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_libres_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">request</span><span class="p">),</span>
+            <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">False</span>
+        <span class="p">}</span>
+
+        <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+        <span class="k">def</span> <span class="nf">trigger_calendar_update</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;rc-reservation-error&#39;</span><span class="p">)</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger-Data&#39;</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">message</span>
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+        <span class="k">def</span> <span class="nf">trigger_calendar_update</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;rc-reservations-changed&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">True</span>
+        <span class="p">}</span></div>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Reservation</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">delete_reservation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+    <span class="c1"># anonymous users do not get a csrf token (it&#39;s bound to the identity)</span>
+    <span class="c1"># therefore we can&#39;t check for it -&gt; this is not a problem since</span>
+    <span class="c1"># anonymous users do not really have much to lose here</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">is_logged_in</span><span class="p">:</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
+
+    <span class="n">resource</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">libres_resources</span><span class="o">.</span><span class="n">by_reservation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="c1"># this view is public, but only for a limited time</span>
+    <span class="n">assert_anonymous_access_only_temporary</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">resource</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">remove_reservation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">LibresError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;message&#39;</span><span class="p">:</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_libres_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">request</span><span class="p">),</span>
+            <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">False</span>
+        <span class="p">}</span>
+
+        <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+        <span class="k">def</span> <span class="nf">trigger_calendar_update</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;rc-reservation-error&#39;</span><span class="p">)</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger-Data&#39;</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">message</span>
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+        <span class="k">def</span> <span class="nf">trigger_calendar_update</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;rc-reservations-changed&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">True</span>
+        <span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">get_reservation_form_class</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">resource</span><span class="o">.</span><span class="n">definition</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">merge_forms</span><span class="p">(</span><span class="n">ReservationForm</span><span class="p">,</span> <span class="n">resource</span><span class="o">.</span><span class="n">form_class</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ReservationForm</span>
+
+
+<div class="viewcode-block" id="handle_reservation_form"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.reservation.handle_reservation_form">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;form&#39;</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;reservation_form.pt&#39;</span><span class="p">,</span>
+             <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">get_reservation_form_class</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_reservation_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Asks the user for the form data required to complete one or many</span>
+<span class="sd">    reservations on a resource.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">reservations_query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bound_reservations</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">reservations</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">reservations_query</span><span class="p">)</span>
+
+    <span class="n">assert_access_only_if_there_are_reservations</span><span class="p">(</span><span class="n">reservations</span><span class="p">)</span>
+
+    <span class="c1"># all reservations share a single token</span>
+    <span class="n">token</span> <span class="o">=</span> <span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">token</span>
+
+    <span class="c1"># the submission shares the reservation token</span>
+    <span class="n">forms</span> <span class="o">=</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+    <span class="n">submission</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+
+    <span class="c1"># update the data if the form is submitted (even if invalid)</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">:</span>
+
+        <span class="c1"># update the e-mail data</span>
+        <span class="k">for</span> <span class="n">reservation</span> <span class="ow">in</span> <span class="n">reservations</span><span class="p">:</span>
+            <span class="n">reservation</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">data</span>
+
+        <span class="c1"># while we re at it, remove all expired sessions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_expired_reservation_sessions</span><span class="p">()</span>
+
+        <span class="c1"># add the submission if it doesn&#39;t yet exist</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">definition</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">submission</span><span class="p">:</span>
+            <span class="n">submission</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">add_external</span><span class="p">(</span>
+                <span class="n">form</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">form_class</span><span class="p">(),</span>
+                <span class="n">state</span><span class="o">=</span><span class="s1">&#39;pending&#39;</span><span class="p">,</span>
+                <span class="nb">id</span><span class="o">=</span><span class="n">token</span>
+            <span class="p">)</span>
+
+        <span class="c1"># update the data on the submission</span>
+        <span class="k">if</span> <span class="n">submission</span><span class="p">:</span>
+            <span class="n">forms</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="n">submission</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">reserved_fields</span>
+            <span class="p">)</span>
+
+    <span class="c1"># go to the next step if the submitted data is valid</span>
+    <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;confirmation&#39;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># the email is the same for all reservations</span>
+        <span class="k">if</span> <span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="s1">&#39;0xdeadbeef@example.org&#39;</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;email&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">email</span>
+
+        <span class="k">if</span> <span class="n">submission</span><span class="p">:</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">submission</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">form</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ReservationLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="n">layout</span><span class="o">.</span><span class="n">breadcrumbs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reserve&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">))</span>
+
+    <span class="n">title</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;New dates for $</span><span class="si">{title}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+    <span class="p">})</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">title</span><span class="p">,</span>
+        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
+        <span class="s1">&#39;reservation_infos&#39;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">ReservationInfo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">reservations</span>
+        <span class="p">],</span>
+        <span class="s1">&#39;resource&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+        <span class="s1">&#39;button_text&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Continue&quot;</span><span class="p">)</span>
+    <span class="p">}</span></div>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;confirmation&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">,</span>
+             <span class="n">template</span><span class="o">=</span><span class="s1">&#39;reservation_confirmation.pt&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">confirm_reservation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">reservations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bound_reservations</span><span class="p">(</span><span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="n">assert_access_only_if_there_are_reservations</span><span class="p">(</span><span class="n">reservations</span><span class="p">)</span>
+
+    <span class="n">token</span> <span class="o">=</span> <span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">token</span><span class="o">.</span><span class="n">hex</span>
+
+    <span class="n">forms</span> <span class="o">=</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+    <span class="n">submission</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">submission</span><span class="p">:</span>
+        <span class="n">form</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_form</span><span class="p">(</span><span class="n">submission</span><span class="o">.</span><span class="n">form_class</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">submission</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">form</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ReservationLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="n">layout</span><span class="o">.</span><span class="n">breadcrumbs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Confirm&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">))</span>
+
+    <span class="n">failed_reservations</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">failed</span><span class="p">)</span> <span class="k">for</span> <span class="n">failed</span>
+        <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;failed_reservations&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">failed</span>
+    <span class="p">)</span>
+
+    <span class="n">price</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">adjust_price</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">price_of_reservation</span><span class="p">(</span>
+        <span class="n">token</span><span class="p">,</span> <span class="n">submission</span> <span class="ow">and</span> <span class="n">submission</span><span class="o">.</span><span class="n">form_obj</span><span class="o">.</span><span class="n">total</span><span class="p">()))</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Confirm your reservation&quot;</span><span class="p">),</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
+        <span class="s1">&#39;resource&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+        <span class="s1">&#39;reservation_infos&#39;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">ReservationInfo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">reservations</span>
+        <span class="p">],</span>
+        <span class="s1">&#39;failed_reservations&#39;</span><span class="p">:</span> <span class="n">failed_reservations</span><span class="p">,</span>
+        <span class="s1">&#39;complete_link&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;finish&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;edit_link&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;form&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;price&#39;</span><span class="p">:</span> <span class="n">price</span><span class="p">,</span>
+        <span class="s1">&#39;checkout_button&#39;</span><span class="p">:</span> <span class="n">price</span> <span class="ow">and</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">checkout_button</span><span class="p">(</span>
+            <span class="n">button_label</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Pay Online and Complete&quot;</span><span class="p">)),</span>
+            <span class="n">title</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+            <span class="n">price</span><span class="o">=</span><span class="n">price</span><span class="p">,</span>
+            <span class="n">email</span><span class="o">=</span><span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">email</span><span class="p">,</span>
+            <span class="n">locale</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span>
+        <span class="p">)</span>
+    <span class="p">}</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;finish&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">,</span>
+             <span class="n">template</span><span class="o">=</span><span class="s1">&#39;layout.pt&#39;</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">finalize_reservation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">reservations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bound_reservations</span><span class="p">(</span><span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="n">assert_access_only_if_there_are_reservations</span><span class="p">(</span><span class="n">reservations</span><span class="p">)</span>
+
+    <span class="n">session_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bound_session_id</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">token</span> <span class="o">=</span> <span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">token</span><span class="o">.</span><span class="n">hex</span>
+
+    <span class="n">forms</span> <span class="o">=</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+    <span class="n">submission</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">provider</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">default_payment_provider</span>
+        <span class="n">payment_token</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;payment_token&#39;</span><span class="p">)</span>
+
+        <span class="n">price</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">adjust_price</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">price_of_reservation</span><span class="p">(</span>
+            <span class="n">token</span><span class="p">,</span> <span class="n">submission</span> <span class="ow">and</span> <span class="n">submission</span><span class="o">.</span><span class="n">form_obj</span><span class="o">.</span><span class="n">total</span><span class="p">()))</span>
+
+        <span class="n">payment</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_payment</span><span class="p">(</span><span class="n">price</span><span class="p">,</span> <span class="n">provider</span><span class="p">,</span> <span class="n">payment_token</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">payment</span><span class="p">:</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your payment could not be processed&quot;</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="n">payment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">reservation</span> <span class="ow">in</span> <span class="n">reservations</span><span class="p">:</span>
+                <span class="n">reservation</span><span class="o">.</span><span class="n">payment</span> <span class="o">=</span> <span class="n">payment</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">queries</span><span class="o">.</span><span class="n">confirm_reservations_for_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">approve_reservations</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="n">LibresError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">transaction</span><span class="o">.</span><span class="n">abort</span><span class="p">()</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">show_libres_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="n">URL</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;confirmation&#39;</span><span class="p">))</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">query_param</span><span class="p">(</span><span class="s1">&#39;failed_reservations&#39;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">reservation</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">as_string</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">submission</span><span class="p">:</span>
+            <span class="n">forms</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">complete_submission</span><span class="p">(</span><span class="n">submission</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">forms</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">no_autoflush</span><span class="p">:</span>
+            <span class="n">ticket</span> <span class="o">=</span> <span class="n">TicketCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">open_ticket</span><span class="p">(</span>
+                <span class="n">handler_code</span><span class="o">=</span><span class="s1">&#39;RSV&#39;</span><span class="p">,</span> <span class="n">handler_id</span><span class="o">=</span><span class="n">token</span>
+            <span class="p">)</span>
+            <span class="n">TicketMessage</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">ticket</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;opened&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">:</span>
+            <span class="n">send_html_mail</span><span class="p">(</span>
+                <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
+                <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_ticket_opened.pt&#39;</span><span class="p">,</span>
+                <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;A ticket has been opened&quot;</span><span class="p">),</span>
+                <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="p">),</span>
+                <span class="n">content</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">ticket</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Thank you for your reservation!&quot;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">ticket</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">))</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Reservation</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;accept&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">accept_reservation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;accepted&#39;</span><span class="p">):</span>
+        <span class="n">resource</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">libres_resources</span><span class="o">.</span><span class="n">by_reservation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">reservations</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">reservations_by_token</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">)</span>
+        <span class="n">reservations</span> <span class="o">=</span> <span class="n">reservations</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Reservation</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">:</span>
+            <span class="n">send_html_mail</span><span class="p">(</span>
+                <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
+                <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_reservation_accepted.pt&#39;</span><span class="p">,</span>
+                <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your reservations were accepted&quot;</span><span class="p">),</span>
+                <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="p">),</span>
+                <span class="n">content</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+                    <span class="s1">&#39;resource&#39;</span><span class="p">:</span> <span class="n">resource</span><span class="p">,</span>
+                    <span class="s1">&#39;reservations&#39;</span><span class="p">:</span> <span class="n">reservations</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">reservation</span> <span class="ow">in</span> <span class="n">reservations</span><span class="p">:</span>
+            <span class="n">reservation</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">reservation</span><span class="o">.</span><span class="n">data</span> <span class="ow">or</span> <span class="p">{}</span>
+            <span class="n">reservation</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;accepted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="c1"># libres does not automatically detect changes yet</span>
+            <span class="n">flag_modified</span><span class="p">(</span><span class="n">reservation</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">)</span>
+
+        <span class="n">tickets</span> <span class="o">=</span> <span class="n">TicketCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+        <span class="n">ticket</span> <span class="o">=</span> <span class="n">tickets</span><span class="o">.</span><span class="n">by_handler_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
+
+        <span class="n">ReservationMessage</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+            <span class="n">reservations</span><span class="p">,</span> <span class="n">ticket</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;accepted&#39;</span><span class="p">)</span>
+
+        <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The reservations were accepted&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The reservations have already been accepted&quot;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Reservation</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;reject&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">reject_reservation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">resource</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">libres_resources</span><span class="o">.</span><span class="n">by_reservation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    <span class="n">token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="o">.</span><span class="n">hex</span>
+    <span class="n">reservation_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;reservation-id&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">))</span> <span class="ow">or</span> <span class="kc">None</span>
+
+    <span class="n">all_reservations</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">reservations_by_token</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+    <span class="n">all_reservations</span> <span class="o">=</span> <span class="n">all_reservations</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Reservation</span><span class="o">.</span><span class="n">start</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="n">targeted</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">all_reservations</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">reservation_id</span><span class="p">)</span>
+    <span class="n">targeted</span> <span class="o">=</span> <span class="n">targeted</span> <span class="ow">or</span> <span class="n">all_reservations</span>
+    <span class="n">excluded</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">all_reservations</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">targeted</span>
+    <span class="p">})</span>
+
+    <span class="n">forms</span> <span class="o">=</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+    <span class="n">submission</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+
+    <span class="n">tickets</span> <span class="o">=</span> <span class="n">TicketCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+    <span class="n">ticket</span> <span class="o">=</span> <span class="n">tickets</span><span class="o">.</span><span class="n">by_handler_id</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+
+    <span class="c1"># if there&#39;s a acptured payment we cannot continue</span>
+    <span class="n">payment</span> <span class="o">=</span> <span class="n">ticket</span><span class="o">.</span><span class="n">handler</span><span class="o">.</span><span class="n">payment</span>
+    <span class="k">if</span> <span class="n">payment</span> <span class="ow">and</span> <span class="n">payment</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;paid&#39;</span><span class="p">:</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="n">_</span><span class="p">(</span>
+            <span class="s2">&quot;The payment associated with this reservation needs &quot;</span>
+            <span class="s2">&quot;to be refunded before the reservation can be rejected&quot;</span>
+        <span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X-IC-Request&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># we need to delete the payment at the same time</span>
+    <span class="k">if</span> <span class="n">payment</span><span class="p">:</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">payment</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">:</span>
+        <span class="n">send_html_mail</span><span class="p">(</span>
+            <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
+            <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_reservation_rejected.pt&#39;</span><span class="p">,</span>
+            <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The following reservations were rejected&quot;</span><span class="p">),</span>
+            <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="p">),</span>
+            <span class="n">content</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+                <span class="s1">&#39;resource&#39;</span><span class="p">:</span> <span class="n">resource</span><span class="p">,</span>
+                <span class="s1">&#39;reservations&#39;</span><span class="p">:</span> <span class="n">targeted</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+    <span class="n">ReservationMessage</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">targeted</span><span class="p">,</span> <span class="n">ticket</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;rejected&#39;</span><span class="p">)</span>
+
+    <span class="c1"># create a snapshot of the ticket to keep the useful information</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">excluded</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">ticket</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">reservation</span> <span class="ow">in</span> <span class="n">targeted</span><span class="p">:</span>
+        <span class="n">resource</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">remove_reservation</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">reservation</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">excluded</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">submission</span><span class="p">:</span>
+        <span class="n">forms</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">submission</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">targeted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The reservations were rejected&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The reservation was rejected&quot;</span><span class="p">))</span>
+
+    <span class="c1"># return none on intercooler js requests</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X-IC-Request&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

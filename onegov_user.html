@@ -46,14 +46,136 @@
 <div class="section" id="collection">
 <h2>Collection<a class="headerlink" href="#collection" title="Permalink to this headline">¶</a></h2>
 </div>
-<div class="section" id="commandline-interface">
-<h2>Commandline Interface<a class="headerlink" href="#commandline-interface" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.user.cli">
+<span id="commandline-interface"></span><h2>Commandline Interface<a class="headerlink" href="#module-onegov.user.cli" title="Permalink to this headline">¶</a></h2>
+<p>Provides commands used to manage users.</p>
+<p>Examples:</p>
+<p>To add a user called <code class="docutils literal"><span class="pre">admin&#64;example.org</span></code> to the <code class="docutils literal"><span class="pre">towns-govikon</span></code> schema,
+with the role ‘admin’:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>dsn=postgres://user:password@localhost:5432/database
+schema=towns-govikon
+onegov-user --dsn $dsn --schema $schema add admin admin@example.org
+</pre></div>
 </div>
-<div class="section" id="forms">
-<h2>Forms<a class="headerlink" href="#forms" title="Permalink to this headline">¶</a></h2>
+<p>This command will ask for a password if none was provided with <code class="docutils literal"><span class="pre">--password</span></code>.</p>
+<p>To delete a user:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>dsn=postgres://user:password@localhost:5432/database
+schema=towns-govikon
+onegov-user --dsn $dsn --schema $schema delete admin@example.org
+</pre></div>
 </div>
-<div class="section" id="errors">
-<h2>Errors<a class="headerlink" href="#errors" title="Permalink to this headline">¶</a></h2>
+<p>To check if a user exists:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>dsn=postgres://user:password@localhost:5432/database
+schema=towns-govikon
+onegov-user --dsn $dsn --schema $schema exists admin@example.org
+</pre></div>
+</div>
+<p>To change a users password:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>dsn=postgres://user:password@localhost:5432/database
+schema=towns-govikon
+onegov-user --dsn $dsn --schema $schema change-password admin@example.org
+</pre></div>
+</div>
+<p>This command will also ask for a password if none was provided with
+<code class="docutils literal"><span class="pre">--password</span></code>.</p>
+</div>
+<div class="section" id="module-onegov.user.forms">
+<span id="forms"></span><h2>Forms<a class="headerlink" href="#module-onegov.user.forms" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.user.forms.LoginForm">
+<em class="property">class </em><code class="descclassname">onegov.user.forms.</code><code class="descname">LoginForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/forms/login.html#LoginForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.forms.LoginForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic login form for onegov.user</p>
+<dl class="attribute">
+<dt id="onegov.user.forms.LoginForm.login_data">
+<code class="descname">login_data</code><a class="headerlink" href="#onegov.user.forms.LoginForm.login_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the data required to be passed to the
+<code class="xref py py-class docutils literal"><span class="pre">onegov.user.auth.Auth</span></code> methods.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.user.forms.PasswordResetForm">
+<em class="property">class </em><code class="descclassname">onegov.user.forms.</code><code class="descname">PasswordResetForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/forms/reset_password.html#PasswordResetForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.forms.PasswordResetForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic password reset form for onegov.user.</p>
+<dl class="method">
+<dt id="onegov.user.forms.PasswordResetForm.update_password">
+<code class="descname">update_password</code><span class="sig-paren">(</span><em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/forms/reset_password.html#PasswordResetForm.update_password"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.forms.PasswordResetForm.update_password" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the password using the form data (if permitted to do so).</p>
+<p>Returns True if successful, False if not successful.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.user.forms.RegistrationForm">
+<em class="property">class </em><code class="descclassname">onegov.user.forms.</code><code class="descname">RegistrationForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/forms/registration.html#RegistrationForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.forms.RegistrationForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic registration form for onegov.user</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.user.forms.RequestPasswordResetForm">
+<em class="property">class </em><code class="descclassname">onegov.user.forms.</code><code class="descname">RequestPasswordResetForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/forms/reset_password.html#RequestPasswordResetForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.forms.RequestPasswordResetForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic password reset request form for onegov.user.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.user.forms.SignupLinkForm">
+<em class="property">class </em><code class="descclassname">onegov.user.forms.</code><code class="descname">SignupLinkForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/forms/signup_link.html#SignupLinkForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.forms.SignupLinkForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>A form to generate signup links for specific roles.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.user.forms.UserGroupForm">
+<em class="property">class </em><code class="descclassname">onegov.user.forms.</code><code class="descname">UserGroupForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/forms/group.html#UserGroupForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.forms.UserGroupForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic user group form for onegov.user</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.user.errors">
+<span id="errors"></span><h2>Errors<a class="headerlink" href="#module-onegov.user.errors" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="onegov.user.errors.OnegovUserError">
+<em class="property">exception </em><code class="descclassname">onegov.user.errors.</code><code class="descname">OnegovUserError</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/errors.html#OnegovUserError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.errors.OnegovUserError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for all errors raised by onegov.user.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="onegov.user.errors.UnknownUserError">
+<em class="property">exception </em><code class="descclassname">onegov.user.errors.</code><code class="descname">UnknownUserError</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/errors.html#UnknownUserError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.errors.UnknownUserError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a user was not found.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="onegov.user.errors.InvalidActivationTokenError">
+<em class="property">exception </em><code class="descclassname">onegov.user.errors.</code><code class="descname">InvalidActivationTokenError</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/errors.html#InvalidActivationTokenError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.errors.InvalidActivationTokenError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when the given activation token doesn’t match.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="onegov.user.errors.ExistingUserError">
+<em class="property">exception </em><code class="descclassname">onegov.user.errors.</code><code class="descname">ExistingUserError</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/errors.html#ExistingUserError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.errors.ExistingUserError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a new user already exists.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="onegov.user.errors.AlreadyActivatedError">
+<em class="property">exception </em><code class="descclassname">onegov.user.errors.</code><code class="descname">AlreadyActivatedError</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/errors.html#AlreadyActivatedError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.errors.AlreadyActivatedError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a user was already activated.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="onegov.user.errors.ExpiredSignupLinkError">
+<em class="property">exception </em><code class="descclassname">onegov.user.errors.</code><code class="descname">ExpiredSignupLinkError</code><a class="reference internal" href="_modules/onegov/user/errors.html#ExpiredSignupLinkError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.errors.ExpiredSignupLinkError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when the signup link in use has expired.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="onegov.user.errors.InsecurePasswordError">
+<em class="property">exception </em><code class="descclassname">onegov.user.errors.</code><code class="descname">InsecurePasswordError</code><a class="reference internal" href="_modules/onegov/user/errors.html#InsecurePasswordError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.errors.InsecurePasswordError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a user’s password is not secure enough.</p>
+</dd></dl>
+
 </div>
 </div>
 

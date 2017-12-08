@@ -1,0 +1,283 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.org.models.traitinfo &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.org.models.traitinfo</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
+<span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">DeleteLink</span><span class="p">,</span> <span class="n">Link</span><span class="p">,</span> <span class="n">LinkGroup</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models.clipboard</span> <span class="k">import</span> <span class="n">Clipboard</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models.editor</span> <span class="k">import</span> <span class="n">Editor</span>
+
+<span class="c1">#: Contains the messages that differ for each trait (the handling of all traits</span>
+<span class="c1">#: is the same). New traits need to adapt the same messages as the others.</span>
+<span class="n">TRAIT_MESSAGES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;link&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Link&quot;</span><span class="p">),</span>
+        <span class="n">new_page_title</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;New Link&quot;</span><span class="p">),</span>
+        <span class="n">new_page_added</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Added a new link&quot;</span><span class="p">),</span>
+        <span class="n">edit_page_title</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit Link&quot;</span><span class="p">),</span>
+        <span class="n">delete_message</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The link was deleted&quot;</span><span class="p">),</span>
+        <span class="n">delete_button</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete link&quot;</span><span class="p">),</span>
+        <span class="n">delete_question</span><span class="o">=</span><span class="n">_</span><span class="p">(</span>
+            <span class="s2">&quot;Do you really want to delete the link </span><span class="se">\&quot;</span><span class="s2">$</span><span class="si">{title}</span><span class="se">\&quot;</span><span class="s2">?&quot;</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="s1">&#39;page&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Topic&quot;</span><span class="p">),</span>
+        <span class="n">new_page_title</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;New Topic&quot;</span><span class="p">),</span>
+        <span class="n">new_page_added</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Added a new topic&quot;</span><span class="p">),</span>
+        <span class="n">edit_page_title</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit Topic&quot;</span><span class="p">),</span>
+        <span class="n">delete_message</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The topic was deleted&quot;</span><span class="p">),</span>
+        <span class="n">delete_button</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete topic&quot;</span><span class="p">),</span>
+        <span class="n">delete_question</span><span class="o">=</span><span class="n">_</span><span class="p">(</span>
+            <span class="s2">&quot;Do you really want to delete the topic </span><span class="se">\&quot;</span><span class="s2">$</span><span class="si">{title}</span><span class="se">\&quot;</span><span class="s2">?&quot;</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="s1">&#39;news&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;News&quot;</span><span class="p">),</span>
+        <span class="n">new_page_title</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Add News&quot;</span><span class="p">),</span>
+        <span class="n">new_page_added</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Added news&quot;</span><span class="p">),</span>
+        <span class="n">edit_page_title</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit News&quot;</span><span class="p">),</span>
+        <span class="n">delete_message</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The news was deleted&quot;</span><span class="p">),</span>
+        <span class="n">delete_button</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete news&quot;</span><span class="p">),</span>
+        <span class="n">delete_question</span><span class="o">=</span><span class="n">_</span><span class="p">(</span>
+            <span class="s2">&quot;Do you really want to delete the news </span><span class="se">\&quot;</span><span class="s2">$</span><span class="si">{title}</span><span class="se">\&quot;</span><span class="s2">?&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="TraitInfo"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.traitinfo.TraitInfo">[docs]</a><span class="k">class</span> <span class="nc">TraitInfo</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;&quot; Typically used as a mixin for adjacency list based models,</span>
+<span class="sd">    this class provides access to the trait related methods.</span>
+
+<span class="sd">    Traits are like subtypes of models. For example, the Page model has</span>
+<span class="sd">    a page trait and a link trait. Both are managed under the same tree as</span>
+<span class="sd">    the same type (Page), but one is rendered as a redirect, the other as</span>
+<span class="sd">    a normal page.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">trait</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets the trait of the page. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;trait&#39;</span><span class="p">)</span>
+
+    <span class="nd">@trait</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">trait</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trait</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sets the trait of the page. &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;trait&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trait</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">trait_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns all trait_messages. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">TRAIT_MESSAGES</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">allowed_subtraits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a list of traits that this page may contain. &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">paste_target</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the page that should be used as parent for the content</span>
+<span class="sd">        pasting if paste is called on the current page (self).</span>
+
+<span class="sd">        This is usually just self. If the paste action should put the content</span>
+<span class="sd">        alongside the current page, it would be the parent.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+<div class="viewcode-block" id="TraitInfo.is_supported_trait"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.traitinfo.TraitInfo.is_supported_trait">[docs]</a>    <span class="k">def</span> <span class="nf">is_supported_trait</span><span class="p">(</span><span class="n">trait</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns true if the given trait is supported by this type This</span>
+<span class="sd">        doesn&#39;t mean that the trait may be added to this page, it serves</span>
+<span class="sd">        as a simple sanity check, returning True if the combination of the</span>
+<span class="sd">        type and the trait make any sense at all.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="TraitInfo.get_form_class"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.traitinfo.TraitInfo.get_form_class">[docs]</a>    <span class="k">def</span> <span class="nf">get_form_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trait</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the form class for the given trait. &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="TraitInfo.get_editbar_links"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.traitinfo.TraitInfo.get_editbar_links">[docs]</a>    <span class="k">def</span> <span class="nf">get_editbar_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the editbar links on the private view of this trait. &quot;&quot;&quot;</span>
+        <span class="n">links</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_edit_links</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
+        <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">LinkGroup</span><span class="p">(</span>
+                <span class="n">title</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Add&#39;</span><span class="p">),</span>
+                <span class="n">links</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_add_links</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">links</span></div>
+
+<div class="viewcode-block" id="TraitInfo.get_add_links"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.traitinfo.TraitInfo.get_add_links">[docs]</a>    <span class="k">def</span> <span class="nf">get_add_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Yields the add links shown on the private view of this trait. &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">trait</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_subtraits</span><span class="p">:</span>
+
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trait_messages</span><span class="p">[</span><span class="n">trait</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+
+            <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
+                <span class="n">name</span><span class="p">,</span>
+                <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">Editor</span><span class="p">(</span><span class="s1">&#39;new&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">trait</span><span class="p">)),</span>
+                <span class="n">classes</span><span class="o">=</span><span class="p">(</span>
+                    <span class="s1">&#39;new-</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trait</span><span class="p">),</span>
+                    <span class="s1">&#39;show-new-content-placeholder&#39;</span>
+                <span class="p">)</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TraitInfo.get_edit_links"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.traitinfo.TraitInfo.get_edit_links">[docs]</a>    <span class="k">def</span> <span class="nf">get_edit_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Yields the edit links shown on the private view of this trait. &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">editable</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
+                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit&quot;</span><span class="p">),</span>
+                <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">Editor</span><span class="p">(</span><span class="s1">&#39;edit&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)),</span>
+                <span class="n">classes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;edit-link&#39;</span><span class="p">,</span> <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
+                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Copy&quot;</span><span class="p">),</span>
+                <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">Clipboard</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">path_info</span><span class="p">)),</span>
+                <span class="n">classes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;copy-link&#39;</span><span class="p">,</span> <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">browser_session</span><span class="o">.</span><span class="n">has</span><span class="p">(</span><span class="s1">&#39;clipboard_url&#39;</span><span class="p">):</span>
+
+            <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
+                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Paste&quot;</span><span class="p">),</span>
+                <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">Editor</span><span class="p">(</span><span class="s1">&#39;paste&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">paste_target</span><span class="p">)),</span>
+                <span class="n">classes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;paste-link&#39;</span><span class="p">,</span> <span class="s1">&#39;show-new-content-placeholder&#39;</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deletable</span><span class="p">:</span>
+
+            <span class="n">trait_messages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trait_messages</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">trait</span><span class="p">]</span>
+            <span class="n">safe_delete</span> <span class="o">=</span> <span class="kc">False</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span> <span class="k">else</span> <span class="kc">True</span>
+
+            <span class="k">if</span> <span class="n">safe_delete</span> <span class="ow">or</span> <span class="n">request</span><span class="o">.</span><span class="n">current_role</span> <span class="o">==</span> <span class="s1">&#39;admin&#39;</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">safe_delete</span><span class="p">:</span>
+                    <span class="n">extra_warning</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span>
+                        <span class="s2">&quot;Please note that this page has subpages &quot;</span>
+                        <span class="s2">&quot;which will also be deleted!&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">extra_warning</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+                <span class="k">yield</span> <span class="n">DeleteLink</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete&quot;</span><span class="p">),</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                    <span class="n">confirm</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="n">trait_messages</span><span class="p">[</span><span class="s1">&#39;delete_question&#39;</span><span class="p">],</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+                        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span>
+                    <span class="p">}),</span>
+                    <span class="n">yes_button_text</span><span class="o">=</span><span class="n">trait_messages</span><span class="p">[</span><span class="s1">&#39;delete_button&#39;</span><span class="p">],</span>
+                    <span class="n">extra_information</span><span class="o">=</span><span class="n">extra_warning</span><span class="p">,</span>
+                    <span class="n">redirect_after</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">DeleteLink</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete&quot;</span><span class="p">),</span>
+                    <span class="n">url</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                    <span class="n">confirm</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;This page can&#39;t be deleted.&quot;</span><span class="p">),</span>
+                    <span class="n">extra_information</span><span class="o">=</span><span class="n">_</span><span class="p">(</span>
+                        <span class="s2">&quot;This page has subpages. Only administrators can &quot;</span>
+                        <span class="s2">&quot;delete pages with subpages. To delete this page, &quot;</span>
+                        <span class="s2">&quot;delete all subpages first or ask an administrator &quot;</span>
+                        <span class="s2">&quot;to do it for you.&quot;</span>
+                    <span class="p">)</span>
+                <span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,239 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.search.mixins &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.search.mixins</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">onegov.search.utils</span> <span class="k">import</span> <span class="n">classproperty</span>
+
+
+<div class="viewcode-block" id="Searchable"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.mixins.Searchable">[docs]</a><span class="k">class</span> <span class="nc">Searchable</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Defines the interface required for an object to be searchable.</span>
+
+<span class="sd">    Note that ``es_id ``, ``es_properties`` and ``es_type_name`` must be class</span>
+<span class="sd">    properties, not instance properties. So do this::</span>
+
+<span class="sd">        class X(Searchable):</span>
+
+<span class="sd">            es_properties = {}</span>
+<span class="sd">            es_type_name = &#39;x&#39;</span>
+
+<span class="sd">    But do not do this::</span>
+
+<span class="sd">        class X(Searchable):</span>
+
+<span class="sd">            @property</span>
+<span class="sd">            def es_properties(self):</span>
+<span class="sd">                return {}</span>
+
+<span class="sd">            @property</span>
+<span class="sd">            def es_type_name(self):</span>
+<span class="sd">                return &#39;x&#39;</span>
+
+<span class="sd">    The rest of the properties may be normal properties.</span>
+
+<span class="sd">    **Polymorphic Identities**</span>
+
+<span class="sd">    If SQLAlchemy&#39;s Polymorphic Identities are used, each identity must</span>
+<span class="sd">    have it&#39;s own unqiue ``es_type_name``. Though such models may share</span>
+<span class="sd">    the ``es_properties`` from the base class, we don&#39;t assume anything and</span>
+<span class="sd">    store each polymorphic identity in its own index.</span>
+
+<span class="sd">    From the point of view of elasticsearch, each different polymorphic</span>
+<span class="sd">    identity is a completely different model.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@classproperty</span>
+    <span class="k">def</span> <span class="nf">es_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the type mapping of this model. Each property in the</span>
+<span class="sd">        mapping will be read from the model instance.</span>
+
+<span class="sd">        The returned object needs to be a dict or an object that provides</span>
+<span class="sd">        a ``to_dict`` method.</span>
+
+<span class="sd">        Internally, onegov.search stores differing languages in different</span>
+<span class="sd">        indices. It does this automatically through langauge detection, or</span>
+<span class="sd">        by manually specifying a language.</span>
+
+<span class="sd">        Note that objects with multiple languages are not supported</span>
+<span class="sd">        (each object is supposed to have exactly one language).</span>
+
+<span class="sd">        Onegov.search will automatically insert the right analyzer for</span>
+<span class="sd">        types like these.</span>
+
+<span class="sd">        There&#39;s currently only limited support for properties here, namely</span>
+<span class="sd">        objects and nested mappings do not work! This is going to be added</span>
+<span class="sd">        in the future though.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@classproperty</span>
+    <span class="k">def</span> <span class="nf">es_type_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the unique type name of the model. &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@classproperty</span>
+    <span class="k">def</span> <span class="nf">es_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The name of the id attribute (not the actual value!).</span>
+
+<span class="sd">        If you use this on an ORM model, be sure to use a primary key, all</span>
+<span class="sd">        other properties are not available during deletion.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_language</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Defines the language of the object. By default &#39;auto&#39; is used,</span>
+<span class="sd">        which triggers automatic language detection. Automatic language</span>
+<span class="sd">        detection is reasonably accurate if provided with enough text. Short</span>
+<span class="sd">        texts are not detected easily.</span>
+
+<span class="sd">        When &#39;auto&#39; is used, expect some content to be misclassified. You</span>
+<span class="sd">        should then search over all languages, not just the epxected one.</span>
+
+<span class="sd">        This property can be used to manually set the language.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s1">&#39;auto&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_public</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns True if the model is available to be found by the public.</span>
+<span class="sd">        If false, only editors/admins will see this object in the search</span>
+<span class="sd">        results.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_skip</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns True if the indexing of this specific model instance</span>
+<span class="sd">        should be skipped. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_suggestion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns suggest-as-you-type value of the document.</span>
+<span class="sd">        The field used for this property should also be indexed, or the</span>
+<span class="sd">        suggestion will lead to nowhere.</span>
+
+<span class="sd">        If a single string is returned, the completion input equals the</span>
+<span class="sd">        completion output. (My Title -&gt; My Title)</span>
+
+<span class="sd">        If an array of strings is returned, all values are possible inputs and</span>
+<span class="sd">        the first value is the output. (My Title/Title My -&gt; My Title)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span></div>
+
+
+<div class="viewcode-block" id="ORMSearchable"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.mixins.ORMSearchable">[docs]</a><span class="k">class</span> <span class="nc">ORMSearchable</span><span class="p">(</span><span class="n">Searchable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends the default :class:`Searchable` class with sensible defaults</span>
+<span class="sd">    for SQLAlchemy orm models.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@classproperty</span>
+    <span class="k">def</span> <span class="nf">es_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;id&#39;</span>
+
+    <span class="nd">@classproperty</span>
+    <span class="k">def</span> <span class="nf">es_type_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tablename__</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

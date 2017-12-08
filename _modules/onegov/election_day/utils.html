@@ -1,0 +1,335 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.election_day.utils &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.election_day.utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">sha256</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Ballot</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ComplexVote</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Vote</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.models</span> <span class="k">import</span> <span class="n">ArchivedResult</span>
+
+
+<div class="viewcode-block" id="add_last_modified_header"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.add_last_modified_header">[docs]</a><span class="k">def</span> <span class="nf">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">last_modified</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds the give date to the response as Last-Modified header. &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">last_modified</span><span class="p">:</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+            <span class="s1">&#39;Last-Modified&#39;</span><span class="p">,</span>
+            <span class="n">last_modified</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%a, </span><span class="si">%d</span><span class="s2"> %b %Y %H:%M:%S GMT&quot;</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_election_summary"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.get_election_summary">[docs]</a><span class="k">def</span> <span class="nf">get_election_summary</span><span class="p">(</span><span class="n">election</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns some basic informations about the given election as a JSON</span>
+<span class="sd">    seriazable dict. &quot;&quot;&quot;</span>
+
+    <span class="n">last_modified</span> <span class="o">=</span> <span class="n">election</span><span class="o">.</span><span class="n">last_modified</span>
+    <span class="k">if</span> <span class="n">last_modified</span><span class="p">:</span>
+        <span class="n">last_modified</span> <span class="o">=</span> <span class="n">last_modified</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;completed&#39;</span><span class="p">:</span> <span class="n">election</span><span class="o">.</span><span class="n">completed</span><span class="p">,</span>
+        <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="n">election</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="s1">&#39;domain&#39;</span><span class="p">:</span> <span class="n">election</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span>
+        <span class="s1">&#39;elected&#39;</span><span class="p">:</span> <span class="n">election</span><span class="o">.</span><span class="n">elected_candidates</span><span class="p">,</span>
+        <span class="s1">&#39;last_modified&#39;</span><span class="p">:</span> <span class="n">last_modified</span><span class="p">,</span>
+        <span class="s1">&#39;progress&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;counted&#39;</span><span class="p">:</span> <span class="n">election</span><span class="o">.</span><span class="n">counted_entities</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;total&#39;</span><span class="p">:</span> <span class="n">election</span><span class="o">.</span><span class="n">total_entities</span> <span class="ow">or</span> <span class="mi">0</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">election</span><span class="o">.</span><span class="n">title_translations</span><span class="p">,</span>
+        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;election&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">url</span> <span class="ow">or</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">election</span><span class="p">),</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="get_vote_summary"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.get_vote_summary">[docs]</a><span class="k">def</span> <span class="nf">get_vote_summary</span><span class="p">(</span><span class="n">vote</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns some basic informations about the given vote as a JSON</span>
+<span class="sd">    seriazable dict. &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">divider</span> <span class="o">=</span> <span class="n">vote</span><span class="o">.</span><span class="n">ballots</span><span class="o">.</span><span class="n">count</span><span class="p">()</span> <span class="ow">or</span> <span class="mi">1</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="n">divider</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="n">last_modified</span> <span class="o">=</span> <span class="n">vote</span><span class="o">.</span><span class="n">last_modified</span>
+    <span class="k">if</span> <span class="n">last_modified</span><span class="p">:</span>
+        <span class="n">last_modified</span> <span class="o">=</span> <span class="n">last_modified</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+
+    <span class="n">counted</span> <span class="o">=</span> <span class="n">vote</span><span class="o">.</span><span class="n">progress</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="mi">0</span>
+    <span class="n">nays_percentage</span> <span class="o">=</span> <span class="n">vote</span><span class="o">.</span><span class="n">nays_percentage</span> <span class="k">if</span> <span class="n">counted</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">yeas_percentage</span> <span class="o">=</span> <span class="n">vote</span><span class="o">.</span><span class="n">yeas_percentage</span> <span class="k">if</span> <span class="n">counted</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">summary</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;answer&#39;</span><span class="p">:</span> <span class="n">vote</span><span class="o">.</span><span class="n">answer</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;completed&#39;</span><span class="p">:</span> <span class="n">vote</span><span class="o">.</span><span class="n">completed</span><span class="p">,</span>
+        <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="n">vote</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="s1">&#39;domain&#39;</span><span class="p">:</span> <span class="n">vote</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span>
+        <span class="s1">&#39;last_modified&#39;</span><span class="p">:</span> <span class="n">last_modified</span><span class="p">,</span>
+        <span class="s1">&#39;nays_percentage&#39;</span><span class="p">:</span> <span class="n">nays_percentage</span><span class="p">,</span>
+        <span class="s1">&#39;progress&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;counted&#39;</span><span class="p">:</span> <span class="n">counted</span> <span class="o">/</span> <span class="n">divider</span><span class="p">,</span>
+            <span class="s1">&#39;total&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">vote</span><span class="o">.</span><span class="n">progress</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">divider</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">vote</span><span class="o">.</span><span class="n">title_translations</span><span class="p">,</span>
+        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;vote&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">url</span> <span class="ow">or</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">vote</span><span class="p">),</span>
+        <span class="s1">&#39;yeas_percentage&#39;</span><span class="p">:</span> <span class="n">yeas_percentage</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="s1">&#39;local&#39;</span> <span class="ow">in</span> <span class="p">(</span><span class="n">vote</span><span class="o">.</span><span class="n">meta</span> <span class="ow">or</span> <span class="p">{}):</span>
+        <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;local&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;answer&#39;</span><span class="p">:</span> <span class="n">vote</span><span class="o">.</span><span class="n">local_answer</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;nays_percentage&#39;</span><span class="p">:</span> <span class="n">vote</span><span class="o">.</span><span class="n">local_nays_percentage</span><span class="p">,</span>
+            <span class="s1">&#39;yeas_percentage&#39;</span><span class="p">:</span> <span class="n">vote</span><span class="o">.</span><span class="n">local_yeas_percentage</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="k">return</span> <span class="n">summary</span></div>
+
+
+<div class="viewcode-block" id="get_summary"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.get_summary">[docs]</a><span class="k">def</span> <span class="nf">get_summary</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns some basic informations about the given election/vote as a JSON</span>
+<span class="sd">    seriazable dict. &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Election</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">get_election_summary</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Vote</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">get_vote_summary</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">ArchivedResult</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;election&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">get_election_summary</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;vote&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">get_vote_summary</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+        <span class="s2">&quot;get_summary can&#39;t handle type </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_summaries"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.get_summaries">[docs]</a><span class="k">def</span> <span class="nf">get_summaries</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Converts the given list of election/votes to a JSON seriazable</span>
+<span class="sd">    list of summaries.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">get_summary</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="get_archive_links"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.get_archive_links">[docs]</a><span class="k">def</span> <span class="nf">get_archive_links</span><span class="p">(</span><span class="n">archive</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns a JSON seriazable dict of available archive links. &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">year</span><span class="p">):</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">archive</span><span class="o">.</span><span class="n">for_date</span><span class="p">(</span><span class="n">year</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="n">archive</span><span class="o">.</span><span class="n">get_years</span><span class="p">()</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="add_local_results"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.add_local_results">[docs]</a><span class="k">def</span> <span class="nf">add_local_results</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">principal</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds the result of the principal.</span>
+
+<span class="sd">    Municipalities are interested in their own result rather than the</span>
+<span class="sd">    cantonal end result of votes. We query the result of the municipality</span>
+<span class="sd">    within the given vote (source) and add it to the target.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">adjust</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">principal</span><span class="o">.</span><span class="n">domain</span> <span class="o">==</span> <span class="s1">&#39;municipality&#39;</span> <span class="ow">and</span>
+        <span class="n">principal</span><span class="o">.</span><span class="n">municipality</span> <span class="ow">and</span>
+        <span class="n">source</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;vote&#39;</span> <span class="ow">and</span>
+        <span class="n">source</span><span class="o">.</span><span class="n">external_id</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">adjust</span><span class="p">:</span>
+        <span class="n">entity_id</span> <span class="o">=</span> <span class="n">principal</span><span class="o">.</span><span class="n">municipality</span>
+        <span class="n">vote</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Vote</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Vote</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">source</span><span class="o">.</span><span class="n">external_id</span><span class="p">)</span>
+        <span class="n">vote</span> <span class="o">=</span> <span class="n">vote</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">vote</span> <span class="ow">and</span> <span class="n">vote</span><span class="o">.</span><span class="n">proposal</span><span class="p">:</span>
+            <span class="n">yeas</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">nays</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">answer</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">proposal</span> <span class="o">=</span> <span class="n">vote</span><span class="o">.</span><span class="n">proposal</span><span class="o">.</span><span class="n">results</span>
+            <span class="n">proposal</span> <span class="o">=</span> <span class="n">proposal</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">)</span>
+            <span class="n">proposal</span> <span class="o">=</span> <span class="n">proposal</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">proposal</span> <span class="ow">and</span> <span class="n">proposal</span><span class="o">.</span><span class="n">counted</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">vote</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;complex&#39;</span><span class="p">:</span>
+                    <span class="n">counter</span> <span class="o">=</span> <span class="n">vote</span><span class="o">.</span><span class="n">counter_proposal</span><span class="o">.</span><span class="n">results</span>
+                    <span class="n">counter</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">)</span>
+                    <span class="n">counter</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+                    <span class="n">tie</span> <span class="o">=</span> <span class="n">vote</span><span class="o">.</span><span class="n">tie_breaker</span><span class="o">.</span><span class="n">results</span>
+                    <span class="n">tie</span> <span class="o">=</span> <span class="n">tie</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">)</span>
+                    <span class="n">tie</span> <span class="o">=</span> <span class="n">tie</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+                    <span class="n">answer</span> <span class="o">=</span> <span class="n">ComplexVote</span><span class="o">.</span><span class="n">get_answer</span><span class="p">(</span>
+                        <span class="n">counter</span><span class="o">.</span><span class="n">counted</span><span class="p">,</span>
+                        <span class="n">proposal</span><span class="p">,</span>
+                        <span class="n">counter</span><span class="p">,</span>
+                        <span class="n">tie</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">answer</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">answer</span> <span class="o">==</span> <span class="s1">&#39;counter-proposal&#39;</span><span class="p">:</span>
+                            <span class="n">yeas</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">yeas</span>
+                            <span class="n">nays</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">nays</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">yeas</span> <span class="o">=</span> <span class="n">proposal</span><span class="o">.</span><span class="n">yeas</span>
+                            <span class="n">nays</span> <span class="o">=</span> <span class="n">proposal</span><span class="o">.</span><span class="n">nays</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">yeas</span> <span class="o">=</span> <span class="n">proposal</span><span class="o">.</span><span class="n">yeas</span>
+                    <span class="n">nays</span> <span class="o">=</span> <span class="n">proposal</span><span class="o">.</span><span class="n">nays</span>
+                    <span class="n">answer</span> <span class="o">=</span> <span class="s1">&#39;accepted&#39;</span> <span class="k">if</span> <span class="n">proposal</span><span class="o">.</span><span class="n">accepted</span> <span class="k">else</span> <span class="s1">&#39;rejected&#39;</span>
+
+            <span class="k">if</span> <span class="n">yeas</span> <span class="ow">and</span> <span class="n">nays</span> <span class="ow">and</span> <span class="n">answer</span><span class="p">:</span>
+                <span class="n">yeas</span> <span class="o">=</span> <span class="n">yeas</span> <span class="o">/</span> <span class="p">((</span><span class="n">yeas</span> <span class="o">+</span> <span class="n">nays</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+                <span class="n">target</span><span class="o">.</span><span class="n">local_answer</span> <span class="o">=</span> <span class="n">answer</span>
+                <span class="n">target</span><span class="o">.</span><span class="n">local_yeas_percentage</span> <span class="o">=</span> <span class="n">yeas</span>
+                <span class="n">target</span><span class="o">.</span><span class="n">local_nays_percentage</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">-</span> <span class="n">yeas</span></div>
+
+
+<div class="viewcode-block" id="pdf_filename"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.pdf_filename">[docs]</a><span class="k">def</span> <span class="nf">pdf_filename</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">locale</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Generates a filename from an election or vote:</span>
+
+<span class="sd">        [&#39;election&#39; or &#39;vote&#39;]-[hash of id].[timestamp].[locale].pdf</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.pdf&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="s1">&#39;election&#39;</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Election</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;vote&#39;</span><span class="p">,</span>
+        <span class="n">sha256</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">last_modified</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()),</span>
+        <span class="n">locale</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="svg_filename"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.svg_filename">[docs]</a><span class="k">def</span> <span class="nf">svg_filename</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="n">locale</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Generates a filename from an election, ballot or vote:</span>
+
+<span class="sd">        [&#39;election&#39; or &#39;vote&#39;]-[hash of id].[type_].[timestamp].[locale].svg</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Ballot</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;ballot&#39;</span>
+        <span class="nb">hash</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">vote</span><span class="o">.</span><span class="n">last_modified</span><span class="o">.</span><span class="n">timestamp</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;election&#39;</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Election</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;vote&#39;</span>
+        <span class="nb">hash</span> <span class="o">=</span> <span class="n">sha256</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">last_modified</span><span class="o">.</span><span class="n">timestamp</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.svg&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">hash</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="n">locale</span> <span class="ow">or</span> <span class="s1">&#39;any&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="guessed_group"><a class="viewcode-back" href="../../../onegov_election_day.html#onegov.election_day.utils.guessed_group">[docs]</a><span class="k">def</span> <span class="nf">guessed_group</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Guess the grouping from another group name.</span>
+
+<span class="sd">    This should become soon obsolete</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">other</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;/&#39;</span> <span class="ow">in</span> <span class="n">other</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">group</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;district&#39;</span><span class="p">),</span>
+                    <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+                <span class="p">)</span> <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

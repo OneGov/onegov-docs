@@ -1,0 +1,337 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.core.orm.abstract.associable &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.core.orm.abstract.associable</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Generic associations are an interesting SQLAlchemy design pattern</span>
+<span class="sd">that allow for collections of records to be attached to other models by</span>
+<span class="sd">mere inheritance.</span>
+
+<span class="sd">Generic associations are useful in situations where a model should be</span>
+<span class="sd">attachable to a number of third-party models. For example, we might say that</span>
+<span class="sd">a comment model should be attacheable to any other model (say a page or a</span>
+<span class="sd">ticket). In such an instance generic associations offer the benefit of</span>
+<span class="sd">being simple to integrate on the third-party model.</span>
+
+<span class="sd">Additionally we can define generic methods that work on all third-party</span>
+<span class="sd">models that inherit from the associated model (in our example imagine a</span>
+<span class="sd">&quot;Commentable&quot; class that leads to the automatic attachment of comments to</span>
+<span class="sd">Page/Ticket models).</span>
+
+<span class="sd">See also:</span>
+<span class="sd">https://github.com/zzzeek/sqlalchemy/blob/master/examples/</span>
+<span class="sd">generic_associations/table_per_association.py</span>
+
+<span class="sd">Note that you do not want to use these associations in lieue of simple</span>
+<span class="sd">relationships between two models. The standard way of doing this leads to a</span>
+<span class="sd">strong relationship on the database and is easier to change and reason about.</span>
+
+<span class="sd">Generic associations are meant for generic usecases. These currently include</span>
+<span class="sd">payments (any model may be payable) and files (any model may have files</span>
+<span class="sd">attached). Other generic associations should be introduced along these</span>
+<span class="sd">lines.</span>
+
+<span class="sd">A single model may be associated to any number of other models. For example::</span>
+
+<span class="sd">                            ┌─────────────┐</span>
+<span class="sd">                      ┌─────│ Reservation │</span>
+<span class="sd">    ┌────────────┐    │     └─────────────┘</span>
+<span class="sd">    │  Payment   │◀───┤</span>
+<span class="sd">    └────────────┘    │     ┌─────────────┐</span>
+<span class="sd">                      └─────│    Form     │</span>
+<span class="sd">                            └─────────────┘</span>
+
+<span class="sd">Here, ``Payment`` is associable (through the ``Payable`` mixin).</span>
+<span class="sd">``Reservation`` and ``Form`` in turn inherit from ``Payable``.</span>
+
+<span class="sd">This all is probably best understood in an example:</span>
+
+<span class="sd">        class Payment(Base, Associable):</span>
+<span class="sd">            __tablename__ == &#39;payments&#39;</span>
+
+<span class="sd">        class Payable(object):</span>
+<span class="sd">            payment = associated(Address, &#39;address&#39;, &#39;one-to-one&#39;)</span>
+
+<span class="sd">        class Product(Base, Payable):</span>
+<span class="sd">            __tablename__ == &#39;products&#39;</span>
+
+<span class="sd">This results in a product model which has a payment attribute attached to it.</span>
+<span class="sd">The payments are stored in the ``payments`` table, products in the ``products``</span>
+<span class="sd">table. The link between the two is established in the automatically created</span>
+<span class="sd">``payments_for_products`` table.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.utils</span> <span class="k">import</span> <span class="n">QueryChain</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">ForeignKey</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.ext.declarative</span> <span class="k">import</span> <span class="n">declared_attr</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">joinedload</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
+
+
+<span class="k">class</span> <span class="nc">RegisteredLink</span><span class="p">(</span><span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;RegisteredLink&quot;</span><span class="p">,</span> <span class="p">(</span>
+    <span class="s1">&#39;cls&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;table&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;key&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;attribute&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;cardinality&#39;</span><span class="p">,</span>
+<span class="p">))):</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">class_attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribute</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="associated"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.associable.associated">[docs]</a><span class="k">def</span> <span class="nf">associated</span><span class="p">(</span><span class="n">associated_cls</span><span class="p">,</span> <span class="n">attribute_name</span><span class="p">,</span> <span class="n">cardinality</span><span class="o">=</span><span class="s1">&#39;one-to-many&#39;</span><span class="p">,</span>
+               <span class="n">uselist</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Creates an associated attribute. This attribute is supposed to be</span>
+<span class="sd">    defined on the mixin class that will establish the generic association</span>
+<span class="sd">    if inherited by a model.</span>
+
+<span class="sd">    :param associated_cls:</span>
+<span class="sd">        The class which the model will be associated with.</span>
+
+<span class="sd">    :param attribute_name:</span>
+<span class="sd">        The name of the attribute used on the mixin class.</span>
+
+<span class="sd">    :param cardinality:</span>
+<span class="sd">        May be &#39;one-to-one&#39;, &#39;one-to-many&#39; or &#39;many-to-many&#39;. Cascades are</span>
+<span class="sd">        used automatically, unless &#39;many-to-many&#39; is used, in which case</span>
+<span class="sd">        cascades are disabled.</span>
+
+<span class="sd">    :param uselist:</span>
+<span class="sd">        True if the attribute on the inheriting model is a list. Use &#39;auto&#39;</span>
+<span class="sd">        if this should be automatically decided depending on the cardinality.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        class Adress(Base, Associable):</span>
+<span class="sd">            pass</span>
+
+<span class="sd">        class Addressable(object):</span>
+<span class="sd">            address = associated(Address, &#39;address&#39;, &#39;one-to-one&#39;)</span>
+
+<span class="sd">        class Company(Base, Addressable):</span>
+<span class="sd">            pass</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">cardinality</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;one-to-one&#39;</span><span class="p">,</span> <span class="s1">&#39;one-to-many&#39;</span><span class="p">,</span> <span class="s1">&#39;many-to-many&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">cardinality</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;one-to-one&#39;</span><span class="p">,</span> <span class="s1">&#39;one-to-many&#39;</span><span class="p">):</span>
+        <span class="n">cascade</span> <span class="o">=</span> <span class="s1">&#39;all, delete-orphan&#39;</span>
+        <span class="n">single_parent</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">passive_deletes</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cascade</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">single_parent</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">passive_deletes</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="n">uselist</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+        <span class="n">uselist</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">cardinality</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;to-one&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">descriptor</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;_for_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">associated_cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">))</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_id&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">)</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.id&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">)</span>
+        <span class="n">backref</span> <span class="o">=</span> <span class="s1">&#39;linked_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">)</span>
+
+        <span class="n">association_key</span> <span class="o">=</span> <span class="n">associated_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;_id&#39;</span>
+        <span class="n">association_id</span> <span class="o">=</span> <span class="n">associated_cls</span><span class="o">.</span><span class="n">id</span>
+
+        <span class="n">association</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+            <span class="n">name</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
+            <span class="n">Column</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">target</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="n">association_key</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">association_id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">associated_cls</span><span class="p">,</span> <span class="n">Associable</span><span class="p">)</span>
+
+        <span class="n">associated_cls</span><span class="o">.</span><span class="n">register_link</span><span class="p">(</span>
+            <span class="n">backref</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">association</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">attribute_name</span><span class="p">,</span> <span class="n">cardinality</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">relationship</span><span class="p">(</span>
+            <span class="n">argument</span><span class="o">=</span><span class="n">associated_cls</span><span class="p">,</span>
+            <span class="n">secondary</span><span class="o">=</span><span class="n">association</span><span class="p">,</span>
+            <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">,</span>
+            <span class="n">single_parent</span><span class="o">=</span><span class="n">single_parent</span><span class="p">,</span>
+            <span class="n">cascade</span><span class="o">=</span><span class="n">cascade</span><span class="p">,</span>
+            <span class="n">uselist</span><span class="o">=</span><span class="n">uselist</span><span class="p">,</span>
+            <span class="n">passive_deletes</span><span class="o">=</span><span class="n">passive_deletes</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">declared_attr</span><span class="p">(</span><span class="n">descriptor</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Associable"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.associable.Associable">[docs]</a><span class="k">class</span> <span class="nc">Associable</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Mixin to enable associations on a model. Only models which are</span>
+<span class="sd">    associable may be targeted by :func:`associated`_</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">registered_links</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Associable.association_base"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.associable.Associable.association_base">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">association_base</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the model which directly inherits from Associable. &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__bases__</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="n">Associable</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">cls</span>
+            <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">Associable</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">parent</span><span class="o">.</span><span class="n">association_base</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">cls</span></div>
+
+<div class="viewcode-block" id="Associable.register_link"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.associable.Associable.register_link">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">register_link</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">link_name</span><span class="p">,</span> <span class="n">linked_class</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span>
+                      <span class="n">attribute</span><span class="p">,</span> <span class="n">cardinality</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; All associated classes are registered through this method. This</span>
+<span class="sd">        yields the following benefits:</span>
+
+<span class="sd">        1. We gain the ability to query all the linked records in one query.</span>
+<span class="sd">           This is hard otherwise as each ``Payable`` class leads to its own</span>
+<span class="sd">           association table which needs to be queried separately.</span>
+
+<span class="sd">        2. We are able to reset all created backreferences. This is necessary</span>
+<span class="sd">           during tests. SQLAlchemy keeps these references around and won&#39;t</span>
+<span class="sd">           let us re-register the same model multiple times (which outside</span>
+<span class="sd">           of tests is completely reasonable).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">association_base</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">base</span><span class="o">.</span><span class="n">registered_links</span><span class="p">:</span>
+            <span class="n">base</span><span class="o">.</span><span class="n">registered_links</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">base</span><span class="o">.</span><span class="n">registered_links</span><span class="p">[</span><span class="n">link_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">RegisteredLink</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="o">=</span><span class="n">linked_class</span><span class="p">,</span>
+            <span class="n">table</span><span class="o">=</span><span class="n">table</span><span class="p">,</span>
+            <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+            <span class="n">attribute</span><span class="o">=</span><span class="n">attribute</span><span class="p">,</span>
+            <span class="n">cardinality</span><span class="o">=</span><span class="n">cardinality</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">links</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a query chain with all records of all models which attach</span>
+<span class="sd">        to the associable model.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="n">link</span><span class="p">):</span>
+            <span class="n">column</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">link</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">link</span><span class="o">.</span><span class="n">attribute</span><span class="p">)</span>
+
+            <span class="n">q</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">link</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">column</span><span class="o">.</span><span class="n">property</span><span class="o">.</span><span class="n">uselist</span><span class="p">:</span>
+                <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">column</span> <span class="o">==</span> <span class="bp">self</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">q</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">joinedload</span><span class="p">(</span><span class="n">column</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">QueryChain</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">query</span><span class="p">(</span><span class="n">link</span><span class="p">)</span> <span class="k">for</span> <span class="n">link</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">registered_links</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">))</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../../index.html">
+    <img class="logo" src="../../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

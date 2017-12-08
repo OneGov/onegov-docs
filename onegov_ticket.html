@@ -40,11 +40,168 @@
             
   <div class="section" id="onegov-ticket-api">
 <h1>Onegov Ticket API<a class="headerlink" href="#onegov-ticket-api" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="models">
-<h2>Models<a class="headerlink" href="#models" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.ticket.model">
+<span id="models"></span><h2>Models<a class="headerlink" href="#module-onegov.ticket.model" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.ticket.model.Ticket">
+<em class="property">class </em><code class="descclassname">onegov.ticket.model.</code><code class="descname">Ticket</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/ticket/model.html#Ticket"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.ticket.model.Ticket" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a ticket.</p>
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.id">
+<code class="descname">id</code><a class="headerlink" href="#onegov.ticket.model.Ticket.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>the internal number of the ticket -&gt; may be used as an access key
+for anonymous users</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.number">
+<code class="descname">number</code><a class="headerlink" href="#onegov.ticket.model.Ticket.number" title="Permalink to this definition">¶</a></dt>
+<dd><p>the unique ticket number known to the end-user -&gt; do <em>not</em> use this to
+access the ticket as an anonymous user, the number is unique, but it’s
+not unguessable!</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.title">
+<code class="descname">title</code><a class="headerlink" href="#onegov.ticket.model.Ticket.title" title="Permalink to this definition">¶</a></dt>
+<dd><p>the title of the ticket</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.subtitle">
+<code class="descname">subtitle</code><a class="headerlink" href="#onegov.ticket.model.Ticket.subtitle" title="Permalink to this definition">¶</a></dt>
+<dd><p>the subtitle of the ticket for extra information about it’s content</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.group">
+<code class="descname">group</code><a class="headerlink" href="#onegov.ticket.model.Ticket.group" title="Permalink to this definition">¶</a></dt>
+<dd><p>the group this ticket belongs to. used to differentiate tickets
+belonging to one specific handler (handler -&gt; group -&gt; title)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.handler_code">
+<code class="descname">handler_code</code><a class="headerlink" href="#onegov.ticket.model.Ticket.handler_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>the name of the handler associated with this ticket, may be used to
+create custom polymorphic subclasses of this class. See
+<a class="reference external" href="http://docs.sqlalchemy.org/en/improve_toc/ orm/extensions/declarative/inheritance.html">http://docs.sqlalchemy.org/en/improve_toc/ orm/extensions/declarative/inheritance.html</a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.handler_id">
+<code class="descname">handler_id</code><a class="headerlink" href="#onegov.ticket.model.Ticket.handler_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>a unique id for the handler record</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.handler_data">
+<code class="descname">handler_data</code><a class="headerlink" href="#onegov.ticket.model.Ticket.handler_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>the data associated with the handler, not meant to be loaded in a list,
+therefore deferred.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.snapshot">
+<code class="descname">snapshot</code><a class="headerlink" href="#onegov.ticket.model.Ticket.snapshot" title="Permalink to this definition">¶</a></dt>
+<dd><p>a snapshot of the ticket containing the last summary that made any sense
+use this before deleting the model behind a ticket, lest your ticket
+becomes nothing more than a number.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.last_state_change">
+<code class="descname">last_state_change</code><a class="headerlink" href="#onegov.ticket.model.Ticket.last_state_change" title="Permalink to this definition">¶</a></dt>
+<dd><p>a timestamp recorded every time the state changes</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.reaction_time">
+<code class="descname">reaction_time</code><a class="headerlink" href="#onegov.ticket.model.Ticket.reaction_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>the time in seconds between the ticket’s creation and the time it
+got accepted (changed from open to pending)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.process_time">
+<code class="descname">process_time</code><a class="headerlink" href="#onegov.ticket.model.Ticket.process_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>the time in seconds a ticket was in the pending state -
+may be a moving target, so use <code class="xref py py-attr docutils literal"><span class="pre">current_process_time</span></code> to get the
+adjusted process_time based on the current time.
+<code class="docutils literal"><span class="pre">process_time</span></code> itself is only accurate if the ticket is closed, so in
+reports make sure to account for the ticket state.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.muted">
+<code class="descname">muted</code><a class="headerlink" href="#onegov.ticket.model.Ticket.muted" title="Permalink to this definition">¶</a></dt>
+<dd><p>true if the notifications for this ticket should be muted</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.state">
+<code class="descname">state</code><a class="headerlink" href="#onegov.ticket.model.Ticket.state" title="Permalink to this definition">¶</a></dt>
+<dd><p>the state of this ticket (open, pending, closed)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.user_id">
+<code class="descname">user_id</code><a class="headerlink" href="#onegov.ticket.model.Ticket.user_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>the user that owns this ticket with this ticket (optional)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.extra_localized_text">
+<code class="descname">extra_localized_text</code><a class="headerlink" href="#onegov.ticket.model.Ticket.extra_localized_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maybe used by child-classes to return localized extra data that
+should be indexed as well.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.model.Ticket.handler">
+<code class="descname">handler</code><a class="headerlink" href="#onegov.ticket.model.Ticket.handler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an instance of the handler associated with this ticket.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.ticket.model.Ticket.create_snapshot">
+<code class="descname">create_snapshot</code><span class="sig-paren">(</span><em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/ticket/model.html#Ticket.create_snapshot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.ticket.model.Ticket.create_snapshot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the current handler and stores the output of the summary
+as a snapshot.</p>
+<p>TODO: This doesn’t support multiple langauges at this point. The
+language of the user creating the snapshot will be what’s stored.</p>
+<p>In the future we might change this by iterating over all supported
+languages and creating the summary for each language.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="collection">
-<h2>Collection<a class="headerlink" href="#collection" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.ticket.collection">
+<span id="collection"></span><h2>Collection<a class="headerlink" href="#module-onegov.ticket.collection" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.ticket.collection.TicketCount">
+<em class="property">class </em><code class="descclassname">onegov.ticket.collection.</code><code class="descname">TicketCount</code><span class="sig-paren">(</span><em>open</em>, <em>pending</em>, <em>closed</em><span class="sig-paren">)</span><a class="headerlink" href="#onegov.ticket.collection.TicketCount" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="onegov.ticket.collection.TicketCount.closed">
+<code class="descname">closed</code><a class="headerlink" href="#onegov.ticket.collection.TicketCount.closed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.collection.TicketCount.open">
+<code class="descname">open</code><a class="headerlink" href="#onegov.ticket.collection.TicketCount.open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ticket.collection.TicketCount.pending">
+<code class="descname">pending</code><a class="headerlink" href="#onegov.ticket.collection.TicketCount.pending" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-onegov.ticket.handler">
 <span id="handler"></span><h2>Handler<a class="headerlink" href="#module-onegov.ticket.handler" title="Permalink to this headline">¶</a></h2>

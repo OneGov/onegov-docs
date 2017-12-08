@@ -1,0 +1,216 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.election_day.views.election.lists &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.election_day.views.election.lists</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">morepath.request</span> <span class="k">import</span> <span class="n">Response</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">DefaultLayout</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">ElectionLayout</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">add_last_modified_header</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">desc</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
+
+
+<div class="viewcode-block" id="get_list_results"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.lists.get_list_results">[docs]</a><span class="k">def</span> <span class="nf">get_list_results</span><span class="p">(</span><span class="n">election</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; Returns the aggregated list results as list. &quot;&quot;&quot;</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="n">List</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">List</span><span class="o">.</span><span class="n">votes</span><span class="p">,</span> <span class="n">List</span><span class="o">.</span><span class="n">list_id</span><span class="p">,</span> <span class="n">List</span><span class="o">.</span><span class="n">number_of_mandates</span>
+    <span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">desc</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">votes</span><span class="p">))</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="n">election</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="view_election_lists_data"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.lists.view_election_lists_data">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Election</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;lists-data&#39;</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_election_lists_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;&quot; View the lists as JSON. Used to for the lists bar chart. &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;majorz&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;majority&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span>
+        <span class="p">}</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[{</span>
+            <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="s1">&#39;value2&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+            <span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;active&#39;</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="k">else</span> <span class="s1">&#39;inactive&#39;</span><span class="p">,</span>
+        <span class="p">}</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">get_list_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">))],</span>
+        <span class="s1">&#39;majority&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="view_election_lists_chart"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.lists.view_election_lists_chart">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Election</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;lists-chart&#39;</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="s1">&#39;embed.pt&#39;</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_election_lists_chart</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;&quot; View the lists as bar chart. &quot;&quot;&quot;</span>
+
+    <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+    <span class="k">def</span> <span class="nf">add_last_modified</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">),</span>
+        <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;bar&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;lists-data&#39;</span><span class="p">)</span>
+        <span class="p">}</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="view_election_lists"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.lists.view_election_lists">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Election</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;lists&#39;</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="s1">&#39;election/lists.pt&#39;</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_election_lists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;&quot; The main view. &quot;&quot;&quot;</span>
+
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;lists&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;election&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="s1">&#39;lists&#39;</span><span class="p">:</span> <span class="n">get_list_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="view_election_lists_svg"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.lists.view_election_lists_svg">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Election</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;lists-svg&#39;</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_election_lists_svg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; View the lists as SVG. &quot;&quot;&quot;</span>
+
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;lists&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">layout</span><span class="o">.</span><span class="n">svg_path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;503 Service Unavailable&#39;</span><span class="p">)</span>
+
+    <span class="n">content</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">with</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">filestorage</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">svg_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
+        <span class="n">content</span><span class="p">,</span>
+        <span class="n">content_type</span><span class="o">=</span><span class="s1">&#39;application/svg; charset=utf-8&#39;</span><span class="p">,</span>
+        <span class="n">content_disposition</span><span class="o">=</span><span class="s1">&#39;inline; filename=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">svg_name</span><span class="p">)</span>
+    <span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../../index.html">
+    <img class="logo" src="../../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

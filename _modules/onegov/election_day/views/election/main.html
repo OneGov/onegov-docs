@@ -1,0 +1,307 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.election_day.views.election.main &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.election_day.views.election.main</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">morepath</span> <span class="k">import</span> <span class="n">redirect</span>
+<span class="kn">from</span> <span class="nn">morepath.request</span> <span class="k">import</span> <span class="n">Response</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span>
+<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">ElectionLayout</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">add_last_modified_header</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">get_election_summary</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.views.election</span> <span class="k">import</span> <span class="n">get_candidates_results</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.views.election</span> <span class="k">import</span> <span class="n">get_connection_results</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.views.election.lists</span> <span class="k">import</span> <span class="n">get_list_results</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
+
+
+<div class="viewcode-block" id="view_election"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.main.view_election">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Election</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_election</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;&quot; The main view. &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">main_view</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="view_election_json"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.main.view_election_json">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Election</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_election_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;&quot; The main view as JSON. &quot;&quot;&quot;</span>
+
+    <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+    <span class="k">def</span> <span class="nf">add_last_modified</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="p">)</span>
+
+    <span class="n">media</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;charts&#39;</span><span class="p">:</span> <span class="p">{}}</span>
+    <span class="k">if</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">pdf_path</span><span class="p">:</span>
+        <span class="n">media</span><span class="p">[</span><span class="s1">&#39;pdf&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;pdf&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">tab</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;candidates&#39;</span><span class="p">,</span> <span class="s1">&#39;lists&#39;</span><span class="p">,</span> <span class="s1">&#39;connections&#39;</span><span class="p">,</span> <span class="s1">&#39;panachage&#39;</span><span class="p">,</span> <span class="s1">&#39;parties&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">tab</span><span class="o">=</span><span class="n">tab</span><span class="p">)</span><span class="o">.</span><span class="n">svg_path</span><span class="p">:</span>
+            <span class="n">media</span><span class="p">[</span><span class="s1">&#39;charts&#39;</span><span class="p">][</span><span class="n">tab</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-svg&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tab</span><span class="p">))</span>
+
+    <span class="n">embed</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;candidates&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;candidates-chart&#39;</span><span class="p">)}</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;lists&#39;</span><span class="p">,</span> <span class="s1">&#39;connections&#39;</span><span class="p">,</span> <span class="s1">&#39;panachage&#39;</span><span class="p">,</span> <span class="s1">&#39;parties&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">visible</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+            <span class="n">embed</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-chart&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;completed&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">completed</span><span class="p">,</span>
+        <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="s1">&#39;domain&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span>
+        <span class="s1">&#39;last_modified&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="s1">&#39;mandates&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;allocated&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">allocated_mandates</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;total&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_of_mandates</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;progress&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;counted&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">counted_entities</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;total&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_entities</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;related_link&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_link</span><span class="p">,</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title_translations</span><span class="p">,</span>
+        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;election&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;statistics&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;total&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;elegible_voters&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">elegible_voters</span><span class="p">,</span>
+                <span class="s1">&#39;received_ballots&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">received_ballots</span><span class="p">,</span>
+                <span class="s1">&#39;accounted_ballots&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">accounted_ballots</span><span class="p">,</span>
+                <span class="s1">&#39;blank_ballots&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank_ballots</span><span class="p">,</span>
+                <span class="s1">&#39;invalid_ballots&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid_ballots</span><span class="p">,</span>
+                <span class="s1">&#39;accounted_votes&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">accounted_votes</span><span class="p">,</span>
+                <span class="s1">&#39;turnout&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">turnout</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;districts&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s1">&#39;elegible_voters&#39;</span><span class="p">:</span> <span class="n">district</span><span class="o">.</span><span class="n">elegible_voters</span><span class="p">,</span>
+                    <span class="s1">&#39;received_ballots&#39;</span><span class="p">:</span> <span class="n">district</span><span class="o">.</span><span class="n">received_ballots</span><span class="p">,</span>
+                    <span class="s1">&#39;accounted_ballots&#39;</span><span class="p">:</span> <span class="n">district</span><span class="o">.</span><span class="n">accounted_ballots</span><span class="p">,</span>
+                    <span class="s1">&#39;blank_ballots&#39;</span><span class="p">:</span> <span class="n">district</span><span class="o">.</span><span class="n">blank_ballots</span><span class="p">,</span>
+                    <span class="s1">&#39;invalid_ballots&#39;</span><span class="p">:</span> <span class="n">district</span><span class="o">.</span><span class="n">invalid_ballots</span><span class="p">,</span>
+                    <span class="s1">&#39;accounted_votes&#39;</span><span class="p">:</span> <span class="n">district</span><span class="o">.</span><span class="n">accounted_votes</span><span class="p">,</span>
+                    <span class="s1">&#39;turnout&#39;</span><span class="p">:</span> <span class="n">district</span><span class="o">.</span><span class="n">turnout</span><span class="p">,</span>
+                    <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">district</span><span class="o">.</span><span class="n">group</span> <span class="k">if</span> <span class="n">district</span><span class="o">.</span><span class="n">entity_id</span> <span class="k">else</span> <span class="s1">&#39;Expats&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">district</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span>
+                <span class="p">}</span> <span class="k">for</span> <span class="n">district</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span>
+            <span class="p">],</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;election_type&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+        <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+        <span class="s1">&#39;embed&#39;</span><span class="p">:</span> <span class="n">embed</span><span class="p">,</span>
+        <span class="s1">&#39;media&#39;</span><span class="p">:</span> <span class="n">media</span><span class="p">,</span>
+        <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;json&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;data-json&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;csv&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;data-csv&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;xlsx&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;data-xlsx&#39;</span><span class="p">),</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;majorz&#39;</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;absolute_majority&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">absolute_majority</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;candidates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;family_name&#39;</span><span class="p">:</span> <span class="n">candidate</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s1">&#39;first_name&#39;</span><span class="p">:</span> <span class="n">candidate</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="s1">&#39;elected&#39;</span><span class="p">:</span> <span class="n">candidate</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="s1">&#39;party&#39;</span><span class="p">:</span> <span class="n">candidate</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                <span class="s1">&#39;votes&#39;</span><span class="p">:</span> <span class="n">candidate</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+            <span class="p">}</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">get_candidates_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;proporz&#39;</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;candidates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;family_name&#39;</span><span class="p">:</span> <span class="n">candidate</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s1">&#39;first_name&#39;</span><span class="p">:</span> <span class="n">candidate</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="s1">&#39;elected&#39;</span><span class="p">:</span> <span class="n">candidate</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="s1">&#39;party&#39;</span><span class="p">:</span> <span class="n">candidate</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                <span class="s1">&#39;votes&#39;</span><span class="p">:</span> <span class="n">candidate</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                <span class="s1">&#39;list_name&#39;</span><span class="p">:</span> <span class="n">candidate</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                <span class="s1">&#39;list_list_id&#39;</span><span class="p">:</span> <span class="n">candidate</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+            <span class="p">}</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">get_candidates_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;lists&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s1">&#39;votes&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+            <span class="p">}</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">get_list_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;list_connections&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">connection</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s1">&#39;votes&#39;</span><span class="p">:</span> <span class="n">connection</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="s1">&#39;lists&#39;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="s1">&#39;votes&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                    <span class="p">}</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">connection</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="p">],</span>
+                <span class="s1">&#39;subconnections&#39;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">subconnection</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="s1">&#39;votes&#39;</span><span class="p">:</span> <span class="n">subconnection</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="s1">&#39;lists&#39;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="p">{</span>
+                                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                <span class="s1">&#39;votes&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                            <span class="p">}</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">subconnection</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                        <span class="p">],</span>
+                    <span class="p">}</span> <span class="k">for</span> <span class="n">subconnection</span> <span class="ow">in</span> <span class="n">connection</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+                <span class="p">],</span>
+            <span class="p">}</span> <span class="k">for</span> <span class="n">connection</span> <span class="ow">in</span> <span class="n">get_connection_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="view_election_summary"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.main.view_election_summary">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Election</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;summary&#39;</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_election_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; View the summary of the election as JSON. &quot;&quot;&quot;</span>
+
+    <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+    <span class="k">def</span> <span class="nf">add_last_modified</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">get_election_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="view_election_pdf"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.main.view_election_pdf">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Election</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;pdf&#39;</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_election_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; View the generated PDF. &quot;&quot;&quot;</span>
+
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">layout</span><span class="o">.</span><span class="n">pdf_path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;503 Service Unavailable&#39;</span><span class="p">)</span>
+
+    <span class="n">content</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">with</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">filestorage</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">pdf_path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
+        <span class="n">content</span><span class="p">,</span>
+        <span class="n">content_type</span><span class="o">=</span><span class="s1">&#39;application/pdf&#39;</span><span class="p">,</span>
+        <span class="n">content_disposition</span><span class="o">=</span><span class="s1">&#39;inline; filename=</span><span class="si">{}</span><span class="s1">.pdf&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">normalize_for_url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../../index.html">
+    <img class="logo" src="../../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

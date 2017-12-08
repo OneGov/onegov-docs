@@ -1,0 +1,349 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.core.cronjobs &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.core.cronjobs</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Provides a way to specify cronjobs which should be called at an exact time.</span>
+
+<span class="sd">Example::</span>
+
+<span class="sd">    @App.cronjob(hour=8, minute=0, timezone=&#39;Europe/Zurich&#39;)</span>
+<span class="sd">    def cleanup_stuff(request):</span>
+<span class="sd">        pass</span>
+
+<span class="sd">Functions registered like this will be called through a regular request. That</span>
+<span class="sd">means they are just like any other view and have all the power associated with</span>
+<span class="sd">it.</span>
+
+<span class="sd">WARNING: The function is called ONCE for EACH application id. So at the given</span>
+<span class="sd">time there might be a number of calls more or less at the same time, run</span>
+<span class="sd">against your function.</span>
+
+<span class="sd">In terms of operations this means that there should be more processes than</span>
+<span class="sd">application ids (tennants). In terms of development this means that you</span>
+<span class="sd">should keep the time spent in a cronjob to an absolute minimum! Long running</span>
+<span class="sd">jobs (more than 30 seconds) are reported.</span>
+
+<span class="sd">This feature should really be used sparingly and only for things where the</span>
+<span class="sd">exact time is relevant. Cleanup jobs for example should be combined with</span>
+<span class="sd">delete/update/add jobs for example, not pushed off to a cronjob.</span>
+
+<span class="sd">We also make sure that there&#39;s only one job each 5 minutes (at 00:00, 00:05,</span>
+<span class="sd">and so on) and that there are no two jobs run at the same time.</span>
+
+<span class="sd">For now cronjobs are furthermore limited to be run once a day. In the future</span>
+<span class="sd">we might add a model more akin to classic cronjobs.</span>
+
+<span class="sd">Finally note that cronjobs for any given application id are only run once the</span>
+<span class="sd">first request to the application with that id has been made. The reason for</span>
+<span class="sd">this is the fact that the background thread needs a real request to be</span>
+<span class="sd">initialized.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">pycurl</span>
+
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">suppress</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">onegov.core.framework</span> <span class="k">import</span> <span class="n">Framework</span><span class="p">,</span> <span class="n">log</span>
+<span class="kn">from</span> <span class="nn">onegov.core.locking</span> <span class="k">import</span> <span class="n">lock</span><span class="p">,</span> <span class="n">AlreadyLockedError</span>
+<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
+<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">ensure_timezone</span><span class="p">,</span> <span class="n">replace_timezone</span>
+<span class="kn">from</span> <span class="nn">threading</span> <span class="k">import</span> <span class="n">Thread</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">sleep</span>
+<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">quote_plus</span><span class="p">,</span> <span class="n">unquote_plus</span>
+
+
+<span class="c1"># the number of seconds the cronjob thread waits between polls, 45 was chosen</span>
+<span class="c1"># because it means that each thread is run at least once a minute</span>
+<span class="n">CRONJOB_POLL_RESOLUTION</span> <span class="o">=</span> <span class="mi">45</span>
+
+<span class="c1"># a job that takes longer than this (seconds) will be reported</span>
+<span class="n">CRONJOB_MAX_DURATION</span> <span class="o">=</span> <span class="mi">30</span>
+
+
+<div class="viewcode-block" id="Job"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cronjobs.Job">[docs]</a><span class="k">class</span> <span class="nc">Job</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A single cron job. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="p">,</span> <span class="n">timezone</span><span class="p">):</span>
+        <span class="c1"># the name is used to make sure the job is only run by one process</span>
+        <span class="c1"># at a time in multi process environment. It needs to be unqiue</span>
+        <span class="c1"># for each process but the same in all processes.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">function</span><span class="o">.</span><span class="vm">__qualname__</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">function</span> <span class="o">=</span> <span class="n">function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hour</span> <span class="o">=</span> <span class="n">hour</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">minute</span> <span class="o">=</span> <span class="n">minute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span> <span class="o">=</span> <span class="n">ensure_timezone</span><span class="p">(</span><span class="n">timezone</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Internal id signed by the application. Used to access the job</span>
+<span class="sd">        through an url which must be unguessable, but the same over many</span>
+<span class="sd">        processes.</span>
+
+<span class="sd">        The signature is only possible if ``self.app`` is present, which</span>
+<span class="sd">        can only be set after the instance has already been created.</span>
+
+<span class="sd">        See :meth:`as_request_call`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span>
+        <span class="k">return</span> <span class="n">quote_plus</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+
+<div class="viewcode-block" id="Job.as_request_call"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cronjobs.Job.as_request_call">[docs]</a>    <span class="k">def</span> <span class="nf">as_request_call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a new job which does the same as the old job, but it does</span>
+<span class="sd">        so by calling an url which will execute the original job.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">execute</span><span class="p">():</span>
+            <span class="c1"># use curl for this because the urllib randomly hangs if we</span>
+            <span class="c1"># use threads (it&#39;s fine with procsesses). requests has the same</span>
+            <span class="c1"># problem because it uses urllib internally. My guess is there&#39;s</span>
+            <span class="c1"># a race condition between code listening for new connections</span>
+            <span class="c1"># and urllib. In any case, using pycurl gets rid of this problem</span>
+            <span class="c1"># without introducing a rather expensive subprocess.</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">pycurl</span><span class="o">.</span><span class="n">Curl</span><span class="p">()</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">setopt</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">URL</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">setopt</span><span class="p">(</span><span class="n">pycurl</span><span class="o">.</span><span class="n">WRITEFUNCTION</span><span class="p">,</span> <span class="k">lambda</span> <span class="nb">bytes</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="nb">bytes</span><span class="p">))</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">execute</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Job.is_scheduled_at"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cronjobs.Job.is_scheduled_at">[docs]</a>    <span class="k">def</span> <span class="nf">is_scheduled_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">,</span> <span class="n">timezone</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns True if the job is scheduled to run at the given date.</span>
+
+<span class="sd">        :point:</span>
+<span class="sd">            The point in time. Needs to be a timezone aware datetime object,</span>
+<span class="sd">            unless ``timezone`` is passed as well.</span>
+
+<span class="sd">        :timezone:</span>
+<span class="sd">            Optional. If the passed date is not timezone aware, the date is</span>
+<span class="sd">            assumed to be from this timezone.</span>
+
+<span class="sd">        :returns:</span>
+<span class="sd">            True if the job is scheduled at this date. The maximum</span>
+<span class="sd">            resolution is one minute. That means if the date given</span>
+<span class="sd">            falls within the minute of the scheduled time it is assumed</span>
+<span class="sd">            to be a match (i.e anywhere within 0&#39; - 59&#39;999.99999)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="n">point</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">or</span> <span class="n">timezone</span>
+        <span class="n">point</span> <span class="o">=</span> <span class="n">point</span> <span class="k">if</span> <span class="n">point</span><span class="o">.</span><span class="n">tzinfo</span> <span class="k">else</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">timezone</span><span class="p">)</span>
+
+        <span class="n">start</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span> <span class="n">time</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">minute</span><span class="p">))</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">point</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="ApplicationBoundCronjobs"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cronjobs.ApplicationBoundCronjobs">[docs]</a><span class="k">class</span> <span class="nc">ApplicationBoundCronjobs</span><span class="p">(</span><span class="n">Thread</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A daemon thread which runs the cronjobs it is given in the background.</span>
+
+<span class="sd">    The cronjobs are not actually run in the same thread. Instead a request to</span>
+<span class="sd">    the actual cronjob is made. This way the thread is pretty much limited to</span>
+<span class="sd">    basic IO work (GET request) and the actual cronjob is called with a normal</span>
+<span class="sd">    request.</span>
+
+<span class="sd">    Basically there is no difference between calling the url of the cronjob</span>
+<span class="sd">    at a scheduled time and using this cronjob.</span>
+
+<span class="sd">    This also avoids any and all locking problems as we don&#39;t have to write</span>
+<span class="sd">    OneGov applications in a thread safe way. The actual work is always done</span>
+<span class="sd">    on the main thread.</span>
+
+<span class="sd">    Each application id is meant to have its own thread. To avoid extra</span>
+<span class="sd">    work we make sure that only one thread per application exists on each</span>
+<span class="sd">    server. This is accomplished by holding a postgres advisory lock during</span>
+<span class="sd">    the lifetime of the thread.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">jobs</span><span class="p">,</span> <span class="n">session_manager</span><span class="p">):</span>
+        <span class="n">Thread</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">application_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jobs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">as_request_call</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span> <span class="o">=</span> <span class="n">session_manager</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Cronjob Thread for </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Enabling Cronjob </span><span class="si">{}</span><span class="s2"> (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">job</span><span class="p">))</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
+        <span class="n">previous_check</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">min</span>
+
+        <span class="c1"># the lock ensures that only one thread per application id is</span>
+        <span class="c1"># in charge of running the scheduled jobs. If another thread already</span>
+        <span class="c1"># has the lock, this thread will end immediately and be GC&#39;d.</span>
+        <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="n">AlreadyLockedError</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">lock</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="s1">&#39;cronjobs-thread&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="p">):</span>
+                <span class="k">while</span> <span class="ow">not</span> <span class="n">sleep</span><span class="p">(</span><span class="n">CRONJOB_POLL_RESOLUTION</span><span class="p">):</span>
+
+                    <span class="c1"># make sure we only run the jobs once a minute (we poll</span>
+                    <span class="c1"># for it more often than that because we are not</span>
+                    <span class="c1"># guaranteed to run in precise intervals)</span>
+                    <span class="n">this_check</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+
+                    <span class="k">if</span> <span class="n">this_check</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="o">==</span> <span class="n">previous_check</span><span class="o">.</span><span class="n">date</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">this_check</span><span class="o">.</span><span class="n">hour</span> <span class="o">==</span> <span class="n">previous_check</span><span class="o">.</span><span class="n">hour</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">this_check</span><span class="o">.</span><span class="n">minute</span> <span class="o">==</span> <span class="n">previous_check</span><span class="o">.</span><span class="n">minute</span><span class="p">:</span>
+                                <span class="k">continue</span>
+
+                    <span class="n">previous_check</span> <span class="o">=</span> <span class="n">this_check</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">run_scheduled_jobs</span><span class="p">()</span>
+
+        <span class="c1"># we need to close the session again or it will stay open forever</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stopping Cronjob Thread for </span><span class="si">{}</span><span class="s2">, already locked!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span>
+        <span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">run_scheduled_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">point</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">(),</span> <span class="s1">&#39;UTC&#39;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">is_scheduled_at</span><span class="p">(</span><span class="n">point</span><span class="p">):</span>
+
+                <span class="n">start</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+                <span class="n">job</span><span class="o">.</span><span class="n">function</span><span class="p">()</span>
+                <span class="n">duration</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">duration</span> <span class="o">&gt;</span> <span class="n">CRONJOB_MAX_DURATION</span><span class="p">:</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;The job for </span><span class="si">{}</span><span class="s2"> at </span><span class="si">{}</span><span class="s2">:</span><span class="si">{}</span><span class="s2"> took too long (</span><span class="si">{}</span><span class="s2">s)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span> <span class="n">duration</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_job"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cronjobs.get_job">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Job</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/cronjobs/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_job</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The internal path to the cronjob. The id can&#39;t be guessed. &quot;&quot;&quot;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">unsign</span><span class="p">(</span><span class="n">unquote_plus</span><span class="p">(</span><span class="nb">id</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">cronjob_registry</span><span class="p">,</span> <span class="s1">&#39;cronjobs&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="run_job"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cronjobs.run_job">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Job</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">run_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Executes the job. &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">request</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">register_cronjob</span><span class="p">(</span><span class="n">registry</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="p">,</span> <span class="n">timezone</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">minute</span> <span class="o">%</span> <span class="mi">5</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;The cronjobs must be added in 5 minute increments&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">registry</span><span class="p">,</span> <span class="s1">&#39;cronjobs&#39;</span><span class="p">):</span>
+        <span class="n">registry</span><span class="o">.</span><span class="n">cronjobs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">registry</span><span class="o">.</span><span class="n">cronjob_threads</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">job</span> <span class="o">=</span> <span class="n">Job</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="p">,</span> <span class="n">timezone</span><span class="p">)</span>
+    <span class="n">registry</span><span class="o">.</span><span class="n">cronjobs</span><span class="p">[</span><span class="n">job</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">job</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,329 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.core.directives &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.core.directives</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os.path</span>
+
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">dectate</span> <span class="k">import</span> <span class="n">Action</span><span class="p">,</span> <span class="n">Query</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="k">import</span> <span class="n">isfunction</span>
+<span class="kn">from</span> <span class="nn">morepath.directive</span> <span class="k">import</span> <span class="n">HtmlAction</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">Bunch</span>
+<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">to_timezone</span><span class="p">,</span> <span class="n">replace_timezone</span>
+
+
+<div class="viewcode-block" id="HtmlHandleFormAction"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.HtmlHandleFormAction">[docs]</a><span class="k">class</span> <span class="nc">HtmlHandleFormAction</span><span class="p">(</span><span class="n">HtmlAction</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Register Form view.</span>
+
+<span class="sd">    Basically wraps the Morepath&#39;s ``html`` directive, registering both</span>
+<span class="sd">    POST and GET (if no specific request method is given) and wrapping the</span>
+<span class="sd">    view handler with :func:`wrap_with_generic_form_handler`.</span>
+
+<span class="sd">    The form is either a class or a function. If it&#39;s a function, it is</span>
+<span class="sd">    expected to return a form class when given an instance of the model.</span>
+
+<span class="sd">    The form may also be None, which is useful under special circumstances.</span>
+<span class="sd">    Generally you don&#39;t want that though.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        @App.form(model=Root, template=&#39;form.pt&#39;,</span>
+<span class="sd">                  permission=Public, form=LoginForm)</span>
+<span class="sd">        def handle_form(self, request, form):</span>
+<span class="sd">            if form.submitted():</span>
+<span class="sd">                # do something if the form was submitted with valid data</span>
+<span class="sd">            else:</span>
+<span class="sd">                # do something if the form was not submitted or not</span>
+<span class="sd">                # submitted correctly</span>
+
+<span class="sd">            return {}  # template variables</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">render</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">load</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">permission</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">internal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">predicates</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">=</span> <span class="n">form</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">render</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">load</span><span class="p">,</span> <span class="n">permission</span><span class="p">,</span> <span class="n">internal</span><span class="p">,</span>
+                         <span class="o">**</span><span class="n">predicates</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">wrap_with_generic_form_handler</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span><span class="p">)</span>
+
+        <span class="c1"># if a request method is given explicitly, we honor it</span>
+        <span class="k">if</span> <span class="s1">&#39;request_method&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">predicates</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">perform</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># otherwise we register ourselves twice, once for each method</span>
+        <span class="n">predicates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predicates</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">predicates</span><span class="p">[</span><span class="s1">&#39;request_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;GET&#39;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">perform</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">predicates</span><span class="p">[</span><span class="s1">&#39;request_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;POST&#39;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">perform</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">predicates</span> <span class="o">=</span> <span class="n">predicates</span></div>
+
+
+<div class="viewcode-block" id="fetch_form_class"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.fetch_form_class">[docs]</a><span class="k">def</span> <span class="nf">fetch_form_class</span><span class="p">(</span><span class="n">form_class</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Given the form_class defined with the form action, together with</span>
+<span class="sd">    model and request, this function returns the actual class to be used.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">isfunction</span><span class="p">(</span><span class="n">form_class</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">form_class</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">form_class</span></div>
+
+
+<div class="viewcode-block" id="query_form_class"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.query_form_class">[docs]</a><span class="k">def</span> <span class="nf">query_form_class</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Queries the app configuration for the form class associated with</span>
+<span class="sd">    the given model and name. Take this configuration for example::</span>
+
+<span class="sd">        @App.form(model=Model, form_class=Form, name=&#39;foobar&#39;)</span>
+<span class="sd">        ...</span>
+
+<span class="sd">    The form class defined here can be retrieved as follows:</span>
+
+<span class="sd">        query_form_class(request, model=Model, name=&#39;foobar&#39;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">appcls</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="vm">__class__</span>
+    <span class="n">action</span> <span class="o">=</span> <span class="n">appcls</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">action_factory</span>
+
+    <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">Query</span><span class="p">(</span><span class="n">action</span><span class="p">)(</span><span class="n">appcls</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">key_dict</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">fetch_form_class</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">form</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="wrap_with_generic_form_handler"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.wrap_with_generic_form_handler">[docs]</a><span class="k">def</span> <span class="nf">wrap_with_generic_form_handler</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">form_class</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Wraps a view handler with generic form handling.</span>
+
+<span class="sd">    This includes instantiatng the form with translations/csrf protection</span>
+<span class="sd">    and setting the correct action.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">handle_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+
+        <span class="n">_class</span> <span class="o">=</span> <span class="n">fetch_form_class</span><span class="p">(</span><span class="n">form_class</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">_class</span><span class="p">:</span>
+            <span class="n">form</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_form</span><span class="p">(</span><span class="n">_class</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+            <span class="n">form</span><span class="o">.</span><span class="n">action</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">url</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">form</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">handle_form</span></div>
+
+
+<div class="viewcode-block" id="CronjobAction"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.CronjobAction">[docs]</a><span class="k">class</span> <span class="nc">CronjobAction</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Register a cronjob. &quot;&quot;&quot;</span>
+
+    <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;cronjob_registry&#39;</span><span class="p">:</span> <span class="n">Bunch</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="p">,</span> <span class="n">timezone</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hour</span> <span class="o">=</span> <span class="n">hour</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">minute</span> <span class="o">=</span> <span class="n">minute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span> <span class="o">=</span> <span class="n">timezone</span>
+
+    <span class="k">def</span> <span class="nf">identifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cronjob_registry</span><span class="p">):</span>
+        <span class="c1"># return a key to the hour/minute on a fixed day, this way it&#39;s</span>
+        <span class="c1"># impossible to have two cronjobs running at the exact same time.</span>
+        <span class="k">return</span> <span class="n">to_timezone</span><span class="p">(</span>
+            <span class="n">replace_timezone</span><span class="p">(</span>
+                <span class="n">datetime</span><span class="p">(</span><span class="mi">2016</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">minute</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span>
+            <span class="p">),</span> <span class="s1">&#39;UTC&#39;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">cronjob_registry</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">onegov.core.cronjobs</span> <span class="k">import</span> <span class="n">register_cronjob</span>
+
+        <span class="n">register_cronjob</span><span class="p">(</span>
+            <span class="n">cronjob_registry</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="StaticDirectoryAction"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.StaticDirectoryAction">[docs]</a><span class="k">class</span> <span class="nc">StaticDirectoryAction</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Registers a static files directory. &quot;&quot;&quot;</span>
+
+    <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;staticdirectory_registry&#39;</span><span class="p">:</span> <span class="n">Bunch</span>
+    <span class="p">}</span>
+
+    <span class="n">counter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">123456789</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">counter</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">identifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">staticdirectory_registry</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">staticdirectory_registry</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">staticdirectory_registry</span><span class="p">,</span> <span class="s1">&#39;paths&#39;</span><span class="p">):</span>
+            <span class="n">staticdirectory_registry</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">path</span> <span class="o">=</span> <span class="n">func</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">code_info</span><span class="o">.</span><span class="n">path</span><span class="p">),</span> <span class="n">path</span><span class="p">)</span>
+
+        <span class="n">staticdirectory_registry</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">TemplateVariablesRegistry</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;callbacks&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">get_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">base</span> <span class="ow">or</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">callback</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="p">:</span>
+            <span class="n">base</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">callback</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">base</span>
+
+
+<div class="viewcode-block" id="TemplateVariablesAction"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.TemplateVariablesAction">[docs]</a><span class="k">class</span> <span class="nc">TemplateVariablesAction</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Registers a set of global template variables for chameleon templates.</span>
+
+<span class="sd">    Only exists once per application. Template variables with conflicting</span>
+<span class="sd">    keys defined in child applications override the keys with the same</span>
+<span class="sd">    name in the parent application. Non-conflicting keys are kept individually.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        @App.template_variables()</span>
+<span class="sd">        def get_template_variables(request):</span>
+<span class="sd">            return {</span>
+<span class="sd">                &#39;foo&#39;: &#39;bar&#39;</span>
+<span class="sd">            }</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;templatevariables_registry&#39;</span><span class="p">:</span> <span class="n">TemplateVariablesRegistry</span>
+    <span class="p">}</span>
+
+    <span class="n">counter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">123456789</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># XXX I would expect this to work with a static name (and it does in</span>
+        <span class="c1"># tests), but in real world usage the same name leads to overriden</span>
+        <span class="c1"># paths</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">counter</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">identifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">templatevariables_registry</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">templatevariables_registry</span><span class="p">):</span>
+        <span class="n">templatevariables_registry</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">func</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

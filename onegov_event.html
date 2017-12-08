@@ -40,14 +40,305 @@
             
   <div class="section" id="onegov-event-api">
 <h1>Onegov Event API<a class="headerlink" href="#onegov-event-api" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="models">
-<h2>Models<a class="headerlink" href="#models" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.event.models">
+<span id="models"></span><h2>Models<a class="headerlink" href="#module-onegov.event.models" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.event.models.OccurrenceMixin">
+<em class="property">class </em><code class="descclassname">onegov.event.models.</code><code class="descname">OccurrenceMixin</code><a class="reference internal" href="_modules/onegov/event/models.html#OccurrenceMixin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.models.OccurrenceMixin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains all attributes events and ocurrences share.</p>
+<p>The <code class="docutils literal"><span class="pre">start</span></code> and <code class="docutils literal"><span class="pre">end</span></code> date and times are stored in UTC - that is, they
+are stored internally without a timezone and are converted to UTC when
+getting or setting, see <code class="xref py py-class docutils literal"><span class="pre">UTCDateTime</span></code>. Use the properties
+<code class="docutils literal"><span class="pre">localized_start</span></code> and <code class="docutils literal"><span class="pre">localized_end</span></code> to get the localized version of
+the date and times.</p>
+<dl class="attribute">
+<dt id="onegov.event.models.OccurrenceMixin.title">
+<code class="descname">title</code><em class="property"> = Column(None, Text(), table=None, nullable=False)</em><a class="headerlink" href="#onegov.event.models.OccurrenceMixin.title" title="Permalink to this definition">¶</a></dt>
+<dd><p>Title of the event</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.OccurrenceMixin.name">
+<code class="descname">name</code><em class="property"> = Column(None, Text(), table=None)</em><a class="headerlink" href="#onegov.event.models.OccurrenceMixin.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>A nice id for the url, readable by humans</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.OccurrenceMixin.location">
+<code class="descname">location</code><em class="property"> = Column(None, Text(), table=None)</em><a class="headerlink" href="#onegov.event.models.OccurrenceMixin.location" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description of the location of the event</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.OccurrenceMixin.tags">
+<code class="descname">tags</code><a class="headerlink" href="#onegov.event.models.OccurrenceMixin.tags" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tags/Categories of the event.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.OccurrenceMixin.timezone">
+<code class="descname">timezone</code><em class="property"> = Column(None, String(), table=None, nullable=False)</em><a class="headerlink" href="#onegov.event.models.OccurrenceMixin.timezone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Timezone of the event</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.OccurrenceMixin.start">
+<code class="descname">start</code><em class="property"> = Column(None, UTCDateTime(), table=None, nullable=False)</em><a class="headerlink" href="#onegov.event.models.OccurrenceMixin.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start date and time of the event (of the first event if recurring)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.OccurrenceMixin.localized_start">
+<code class="descname">localized_start</code><a class="headerlink" href="#onegov.event.models.OccurrenceMixin.localized_start" title="Permalink to this definition">¶</a></dt>
+<dd><p>The localized version of the start date/time.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.OccurrenceMixin.end">
+<code class="descname">end</code><em class="property"> = Column(None, UTCDateTime(), table=None, nullable=False)</em><a class="headerlink" href="#onegov.event.models.OccurrenceMixin.end" title="Permalink to this definition">¶</a></dt>
+<dd><p>End date and time of the event (of the first event if recurring)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.OccurrenceMixin.localized_end">
+<code class="descname">localized_end</code><a class="headerlink" href="#onegov.event.models.OccurrenceMixin.localized_end" title="Permalink to this definition">¶</a></dt>
+<dd><p>The localized version of the end date/time.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.OccurrenceMixin.coordinates">
+<code class="descname">coordinates</code><em class="property"> = Column(None, JSON(astext_type=Text()), table=None)</em><a class="headerlink" href="#onegov.event.models.OccurrenceMixin.coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>The coordinates of the event</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.models.OccurrenceMixin.as_ical">
+<code class="descname">as_ical</code><span class="sig-paren">(</span><em>description=None</em>, <em>rrule=None</em>, <em>url=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/models.html#OccurrenceMixin.as_ical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.models.OccurrenceMixin.as_ical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the occurrence as iCalendar string.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.event.models.Event">
+<em class="property">class </em><code class="descclassname">onegov.event.models.</code><code class="descname">Event</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/models.html#Event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.models.Event" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines an event.</p>
+<p>Occurrences are stored in a seperate table containing only a minimal set
+of attributes from the event. This could also be archieved using postgres
+directly with dateutil/plpythonu/pg_rrule and materialized views.</p>
+<p>Occurrences are only created/updated, if the event is published.
+Occurrences are created only for this and the next year.</p>
+<dl class="attribute">
+<dt id="onegov.event.models.Event.id">
+<code class="descname">id</code><a class="headerlink" href="#onegov.event.models.Event.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Internal number of the event</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.Event.state">
+<code class="descname">state</code><a class="headerlink" href="#onegov.event.models.Event.state" title="Permalink to this definition">¶</a></dt>
+<dd><p>State of the event</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.Event.description">
+<code class="descname">description</code><a class="headerlink" href="#onegov.event.models.Event.description" title="Permalink to this definition">¶</a></dt>
+<dd><p>description of the event</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.Event.organizer">
+<code class="descname">organizer</code><a class="headerlink" href="#onegov.event.models.Event.organizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>the event organizer</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.Event.recurrence">
+<code class="descname">recurrence</code><a class="headerlink" href="#onegov.event.models.Event.recurrence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recurrence of the event (RRULE, see RFC2445)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.Event.occurrences">
+<code class="descname">occurrences</code><a class="headerlink" href="#onegov.event.models.Event.occurrences" title="Permalink to this definition">¶</a></dt>
+<dd><p>Occurences of the event</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.models.Event.occurrence_dates">
+<code class="descname">occurrence_dates</code><span class="sig-paren">(</span><em>limit=True</em>, <em>localize=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/models.html#Event.occurrence_dates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.models.Event.occurrence_dates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the start dates of all occurrences.</p>
+<p>Returns non-localized dates per default. Limits the occurrences per
+default to this and the next year.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.models.Event.submit">
+<code class="descname">submit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/models.html#Event.submit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.models.Event.submit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Submit the event.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.models.Event.publish">
+<code class="descname">publish</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/models.html#Event.publish"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.models.Event.publish" title="Permalink to this definition">¶</a></dt>
+<dd><p>Publish the event.</p>
+<p>Publishing the event will generate the occurrences.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.models.Event.withdraw">
+<code class="descname">withdraw</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/models.html#Event.withdraw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.models.Event.withdraw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Withdraw the event.</p>
+<p>Withdraw the event will delete the occurrences.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.models.Event.as_ical">
+<code class="descname">as_ical</code><span class="sig-paren">(</span><em>url=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/models.html#Event.as_ical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.models.Event.as_ical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the event and all its occurrences as iCalendar string.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.event.models.Occurrence">
+<em class="property">class </em><code class="descclassname">onegov.event.models.</code><code class="descname">Occurrence</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/models.html#Occurrence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.models.Occurrence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines an occurrence of an event.</p>
+<dl class="attribute">
+<dt id="onegov.event.models.Occurrence.id">
+<code class="descname">id</code><a class="headerlink" href="#onegov.event.models.Occurrence.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Internal number of the occurence</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.models.Occurrence.event_id">
+<code class="descname">event_id</code><a class="headerlink" href="#onegov.event.models.Occurrence.event_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Event this occurrence belongs to</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.models.Occurrence.as_ical">
+<code class="descname">as_ical</code><span class="sig-paren">(</span><em>url=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/models.html#Occurrence.as_ical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.models.Occurrence.as_ical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the occurrence as iCalendar string.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="collections">
-<h2>Collections<a class="headerlink" href="#collections" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.event.collections">
+<span id="collections"></span><h2>Collections<a class="headerlink" href="#module-onegov.event.collections" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.event.collections.EventCollection">
+<em class="property">class </em><code class="descclassname">onegov.event.collections.</code><code class="descname">EventCollection</code><span class="sig-paren">(</span><em>session</em>, <em>page=0</em>, <em>state='submitted'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections.html#EventCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.EventCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manage a list of events.</p>
+<dl class="method">
+<dt id="onegov.event.collections.EventCollection.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>title</em>, <em>start</em>, <em>end</em>, <em>timezone</em>, <em>autoclean=True</em>, <em>**optional</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections.html#EventCollection.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.EventCollection.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a new event.</p>
+<p>A unique, URL-friendly name is created automatically for this event
+using the title and optionally numbers for duplicate names.</p>
+<p>Every time a new event is added, old, stale events are deleted unless
+disabled with the <code class="docutils literal"><span class="pre">autoclean</span></code> option.</p>
+<p>Returns the created event or None if already automatically deleted.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.collections.EventCollection.delete">
+<code class="descname">delete</code><span class="sig-paren">(</span><em>event</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections.html#EventCollection.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.EventCollection.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete an event.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.collections.EventCollection.remove_stale_events">
+<code class="descname">remove_stale_events</code><span class="sig-paren">(</span><em>max_stale=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections.html#EventCollection.remove_stale_events"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.EventCollection.remove_stale_events" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove events which have never been submitted and are created more
+than five days ago.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.collections.EventCollection.by_name">
+<code class="descname">by_name</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections.html#EventCollection.by_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.EventCollection.by_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an event by its URL-friendly name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.collections.EventCollection.by_id">
+<code class="descname">by_id</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections.html#EventCollection.by_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.EventCollection.by_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an event by its id.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.event.collections.OccurrenceCollection">
+<em class="property">class </em><code class="descclassname">onegov.event.collections.</code><code class="descname">OccurrenceCollection</code><span class="sig-paren">(</span><em>session</em>, <em>page=0</em>, <em>start=None</em>, <em>end=None</em>, <em>tags=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections.html#OccurrenceCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.OccurrenceCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manages a list of occurrences.</p>
+<p>Occurrences are read only (no <code class="docutils literal"><span class="pre">add</span></code> method here), they are generated
+automatically when adding a new event.</p>
+<p>Occurrences can be filtered by start and end dates as well as tags.</p>
+<p>By default, only current occurrences are returned.</p>
+<dl class="attribute">
+<dt id="onegov.event.collections.OccurrenceCollection.used_timezones">
+<code class="descname">used_timezones</code><a class="headerlink" href="#onegov.event.collections.OccurrenceCollection.used_timezones" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of all the timezones used by the occurrences.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.event.collections.OccurrenceCollection.used_tags">
+<code class="descname">used_tags</code><a class="headerlink" href="#onegov.event.collections.OccurrenceCollection.used_tags" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of all the tags used by the occurrences.</p>
+<p>This could be solve possibly more effienciently with the skey function
+currently not supported by SQLAlchemy (e.g.
+<code class="docutils literal"><span class="pre">select</span> <span class="pre">distinct(skeys(tags))</span></code>), see
+<a class="reference external" href="http://stackoverflow.com/q/12015942/3690178">http://stackoverflow.com/q/12015942/3690178</a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.collections.OccurrenceCollection.query">
+<code class="descname">query</code><span class="sig-paren">(</span><em>start=None</em>, <em>end=None</em>, <em>tags=None</em>, <em>outdated=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections.html#OccurrenceCollection.query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.OccurrenceCollection.query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Queries occurrences with the given parameters.</p>
+<p>Finds all occurrences with any of the given tags and within the given
+start and end date. Start and end date are assumed to be dates only and
+therefore without a timezone - we search for the given date in the
+timezone of the occurrence!.</p>
+<p>If no start date is given and <code class="docutils literal"><span class="pre">outdated</span></code> is not set, only current
+occurrences are returned.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.event.collections.OccurrenceCollection.by_name">
+<code class="descname">by_name</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections.html#OccurrenceCollection.by_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.OccurrenceCollection.by_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an occurrence by its URL-friendly name.</p>
+<p>The URL-friendly name is automatically constructed as follows:</p>
+<p><code class="docutils literal"><span class="pre">unique</span> <span class="pre">name</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">event</span></code>-<code class="docutils literal"><span class="pre">date</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">occurrence</span></code></p>
+<p>e.g.</p>
+<p><code class="docutils literal"><span class="pre">squirrel-park-visit-6-2015-06-20</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="utils">
-<h2>Utils<a class="headerlink" href="#utils" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.event.utils">
+<span id="utils"></span><h2>Utils<a class="headerlink" href="#module-onegov.event.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="onegov.event.utils.get_json_keys">
+<code class="descclassname">onegov.event.utils.</code><code class="descname">get_json_keys</code><span class="sig-paren">(</span><em>session</em>, <em>column</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/utils.html#get_json_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.utils.get_json_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all keys of a column.</p>
+<p>This could be more efficient with json_object_keys :(.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.event.utils.export_csv">
+<code class="descclassname">onegov.event.utils.</code><code class="descname">export_csv</code><span class="sig-paren">(</span><em>collection</em>, <em>csvfile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/utils.html#export_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.utils.export_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exports the given collection to a CSV file with the given name.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.event.utils.import_csv">
+<code class="descclassname">onegov.event.utils.</code><code class="descname">import_csv</code><span class="sig-paren">(</span><em>collection</em>, <em>csvfile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/utils.html#import_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.utils.import_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Imports the events from the given CSV file to the given collection.</p>
+</dd></dl>
+
 </div>
 </div>
 

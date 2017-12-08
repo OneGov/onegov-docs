@@ -1,0 +1,1048 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.form.parser.core &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.form.parser.core</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; onegov.form includes it&#39;s own markdownish form syntax, inspired by</span>
+<span class="sd">https://github.com/maleldil/wmd</span>
+
+<span class="sd">The goal of this syntax is to enable the creation of forms through the web,</span>
+<span class="sd">without having to use javascript, html or python code.</span>
+
+<span class="sd">Also, just like Markdown, we want this syntax to be readable by humans.</span>
+
+<span class="sd">How it works</span>
+<span class="sd">============</span>
+
+<span class="sd">Internally, the form syntax is converted into a YAML file, which is in turn</span>
+<span class="sd">parsed and turned into a WTForms class. We decided to go for the intermediate</span>
+<span class="sd">YAML file because it&#39;s easy to define a Syntax which correctly supports</span>
+<span class="sd">indentation. Our pyparsing approach was flimsy at best.</span>
+
+<span class="sd">Parser Errors</span>
+<span class="sd">=============</span>
+
+<span class="sd">There&#39;s currently no sophisticated error check. It&#39;s possible that the parser</span>
+<span class="sd">misunderstand something you defined without warning. So be careful to check</span>
+<span class="sd">that what you wanted was actually what you got.</span>
+
+<span class="sd">Syntax</span>
+<span class="sd">======</span>
+
+<span class="sd">Fields</span>
+<span class="sd">------</span>
+
+<span class="sd">Every field is identified by a label, an optional &#39;required&#39; indicator and a</span>
+<span class="sd">field definition. The Label can be any kind of text, not including ``*`` and</span>
+<span class="sd">``=``.</span>
+<span class="sd">The ``*`` indicates that a field is required. The ``=`` separates the</span>
+<span class="sd">identifier from the definition.</span>
+
+<span class="sd">A required field starts like this::</span>
+
+<span class="sd">    My required field * =</span>
+
+<span class="sd">An optional field starts like this::</span>
+
+<span class="sd">    My optional field =</span>
+
+<span class="sd">Following the identifier is the field definition. For example, this defines</span>
+<span class="sd">a textfield::</span>
+
+<span class="sd">    My textfield = ___</span>
+
+<span class="sd">All possible fields are documented further below.</span>
+
+<span class="sd">Fieldsets</span>
+<span class="sd">---------</span>
+
+<span class="sd">Fields are grouped into fieldsets. The fieldset of a field is the fieldset</span>
+<span class="sd">that was last defined::</span>
+
+<span class="sd">    # Fieldset 1</span>
+<span class="sd">    I belong to Fieldset 1 = ___</span>
+
+<span class="sd">    # Fieldset 2</span>
+<span class="sd">    I belong to Fieldset 2 = ___</span>
+
+<span class="sd">If no fieldset is defined, the fields don&#39;t belong to a fieldset. To stop</span>
+<span class="sd">putting fields in a fieldset, define an empty fieldeset::</span>
+
+<span class="sd">    # Fieldset 1</span>
+<span class="sd">    I belong to Fieldset 1 = ___</span>
+
+<span class="sd">    # ...</span>
+<span class="sd">    I don&#39;t belong to a Fieldset = ___</span>
+
+<span class="sd">Available Fields</span>
+<span class="sd">----------------</span>
+
+<span class="sd">Textfield</span>
+<span class="sd">~~~~~~~~~</span>
+
+<span class="sd">A textfield consists of exactly three underscores::</span>
+
+<span class="sd">    I&#39;m a textfield = ___</span>
+
+<span class="sd">If the textfield is limited in length, the length can be given::</span>
+
+<span class="sd">    I&#39;m a limited textfield = ___[50]</span>
+
+<span class="sd">The length of such textfields is validated.</span>
+
+<span class="sd">Additionally, textfields may use regexes to validate their contents::</span>
+
+<span class="sd">    I&#39;m a numbers-only textfield = ___/^[0-9]+$</span>
+
+<span class="sd">You *can* combine the length with a regex, though you probably don&#39;t want to::</span>
+
+<span class="sd">    I&#39;m a length-limited numbers-only textfield = ___[4]/^[0-9]+$</span>
+
+<span class="sd">This could be simplified as follows:</span>
+
+<span class="sd">    I&#39;m a length-limited numbers-only textfield = ___/^[0-9]{0,4}$</span>
+
+<span class="sd">Note that you don&#39;t *need* to specify the beginning (^) and the end ($) of the</span>
+<span class="sd">string, but not doing so might result in unexpected results. For example,</span>
+<span class="sd">while &#39;123abc&#39; is invalid for ``___/^[0-9]+$``, it is perfectly valid for</span>
+<span class="sd">``___/[0-9]+``. The latter only demands that the text starts with a number,</span>
+<span class="sd">not that it only consists of numbers!</span>
+
+<span class="sd">Textarea</span>
+<span class="sd">~~~~~~~~</span>
+
+<span class="sd">A textarea has no limit and consists of exactly three dots::</span>
+
+<span class="sd">    I&#39;m a textarea = ...</span>
+
+<span class="sd">Optionally, the number of rows can be passed to the field. This changes the</span>
+<span class="sd">way the textarea looks, not the way it acts::</span>
+
+<span class="sd">    I&#39;m a textarea with 10 rows = ...[10]</span>
+
+<span class="sd">Password</span>
+<span class="sd">~~~~~~~~</span>
+
+<span class="sd">A password field consists of exactly three stars::</span>
+
+<span class="sd">    I&#39;m a password = ***</span>
+
+<span class="sd">E-Mail</span>
+<span class="sd">~~~~~~</span>
+
+<span class="sd">An e-mail field consists of exactly three ``@``::</span>
+
+<span class="sd">    I&#39;m an e-mail field = @@@</span>
+
+
+<span class="sd">URL</span>
+<span class="sd">~~~</span>
+
+<span class="sd">An url field consists of the http/https prefix::</span>
+
+<span class="sd">    I&#39;m an url field = http://</span>
+<span class="sd">    I&#39;m the exact same = https://</span>
+
+<span class="sd">Whether or not you enter http or https has no bearing on the validation.</span>
+
+<span class="sd">Date</span>
+<span class="sd">~~~~</span>
+
+<span class="sd">A date (without time) is defined by this exact string: ``YYYY.MM.DD``::</span>
+
+<span class="sd">    I&#39;m a date field = YYYY.MM.DD</span>
+
+<span class="sd">Note that this doesn&#39;t mean that the date format can be influenced.</span>
+
+<span class="sd">Datetime</span>
+<span class="sd">~~~~~~~~</span>
+
+<span class="sd">A date (with time) is defined by this exact string: ``YYYY.MM.DD HH:MM``::</span>
+
+<span class="sd">    I&#39;m a datetime field = YYYY.MM.DD HH:MM</span>
+
+<span class="sd">Again, this doesn&#39;t mean that the datetime format can be influenced.</span>
+
+<span class="sd">Time</span>
+<span class="sd">~~~~</span>
+
+<span class="sd">A Time is defined by this exact string: ``HH:MM``::</span>
+
+<span class="sd">    I&#39;m a time field = HH:MM</span>
+
+<span class="sd">One more time, this doesn&#39;t mean that the datetime format can be influenced.</span>
+
+<span class="sd">Numbers</span>
+<span class="sd">~~~~~~~</span>
+
+<span class="sd">There are two types of number fields. An integer and a float field::</span>
+
+<span class="sd">    I&#39;m an integer field = 0..99</span>
+<span class="sd">    I&#39;m an integer field of a different range = -100..100</span>
+
+<span class="sd">    I&#39;m a float field = 0.00..99.00</span>
+<span class="sd">    I&#39;m an float field of a different range = -100.00..100.00</span>
+
+<span class="sd">Files</span>
+<span class="sd">~~~~~</span>
+
+<span class="sd">A file upload is defined like this::</span>
+
+<span class="sd">    I&#39;m a file upload field = *.*</span>
+
+<span class="sd">This particular example would allow any file. To allow only certain files</span>
+<span class="sd">do something like this::</span>
+
+<span class="sd">    I&#39;m a image filed = *.png|*.jpg|*.gif</span>
+<span class="sd">    I&#39;m a document = *.doc</span>
+<span class="sd">    I&#39;m any document = *.doc|*.pdf</span>
+
+<span class="sd">The files are checked against their file extension. Onegov.form also checks</span>
+<span class="sd">that uploaded files have the mimetype they claim to have and it won&#39;t accept</span>
+<span class="sd">obviously dangerous uploads like binaries (unless you really want to).</span>
+
+<span class="sd">Standard Numbers</span>
+<span class="sd">~~~~~~~~~~~~~~~~</span>
+
+<span class="sd">onegov.form uses `python-stdnum \</span>
+<span class="sd">&lt;https://github.com/arthurdejong/python-stdnum&gt;`_ to offer a wide range of</span>
+<span class="sd">standard formats that are guaranteed to be validated.</span>
+
+<span class="sd">To use, simply use a `#`, followed by the stdnum format to use::</span>
+
+<span class="sd">    I&#39;m a valid IBAN (or empty) = # iban</span>
+<span class="sd">    I&#39;m a valid IBAN (required) * = # iban</span>
+
+<span class="sd">The format string after the `#` must be importable from stdnum. In other words,</span>
+<span class="sd">this must work, if you are using ``ch.ssn`` (to use an example)::</span>
+
+<span class="sd">    $ python</span>
+<span class="sd">    &gt;&gt;&gt; from stdnum.ch import ssn</span>
+
+<span class="sd">This is a bit of an advanced feature and since it delegates most work to an</span>
+<span class="sd">external library there&#39;s no guarantee that a format once used may be reused</span>
+<span class="sd">in the future.</span>
+
+<span class="sd">Still, the library should be somewhat stable and the benefit is huge.</span>
+
+<span class="sd">To see the available format, have a look at the docs:</span>
+<span class="sd">`&lt;http://arthurdejong.org/python-stdnum/doc/1.1/index.html#available-formats&gt;`_</span>
+
+<span class="sd">Radio Buttons</span>
+<span class="sd">~~~~~~~~~~~~~</span>
+
+<span class="sd">Radio button fields consist of x radio buttons, out of which one may be</span>
+<span class="sd">preselected. Radio buttons need to be indented on the lines after the</span>
+<span class="sd">definition::</span>
+
+<span class="sd">    Gender =</span>
+<span class="sd">        ( ) Female</span>
+<span class="sd">        ( ) Male</span>
+<span class="sd">        (x) I don&#39;t want to say</span>
+
+<span class="sd">Radio buttons also have the ability to define optional form parts. Those</span>
+<span class="sd">parts are only shown if a question was answered a certain way.</span>
+
+<span class="sd">Form parts are properly nested if they lign up with the label above them.</span>
+
+<span class="sd">For example::</span>
+
+<span class="sd">    Delivery Method =</span>
+<span class="sd">        ( ) Pickup</span>
+<span class="sd">            Pickup Time * = ___</span>
+<span class="sd">        (x) Address</span>
+<span class="sd">            Street * = ___</span>
+<span class="sd">            Town * = ___</span>
+
+<span class="sd">Here, the street and the town only need to be provided, if the delivery method</span>
+<span class="sd">is &#39;Address&#39;. If the user selects a different option, the fields are not</span>
+<span class="sd">shown and they will not be required.</span>
+
+<span class="sd">On the other hand, if &#39;Pickup&#39; is selected, the &#39;Pickup Time&#39; needs to be</span>
+<span class="sd">filled out and the address options are hidden.</span>
+
+<span class="sd">This kind of nesting may continue ad infinitum. Meaning you can nest radio</span>
+<span class="sd">buttons as deeply as you like. Note however, that this is discouraged and that</span>
+<span class="sd">your users will not be too happy if you present them with a deeply nested</span>
+<span class="sd">form.</span>
+
+<span class="sd">More than one level of nesting is a clear indicator that your form is too</span>
+<span class="sd">complex.</span>
+
+<span class="sd">Checkboxes</span>
+<span class="sd">~~~~~~~~~~</span>
+
+<span class="sd">Checkboxes work exactly like radio buttons, just that you can select</span>
+<span class="sd">multiple fields::</span>
+
+<span class="sd">    Extras =</span>
+<span class="sd">        [x] Phone insurance</span>
+<span class="sd">        [ ] Phone case</span>
+<span class="sd">        [x] Extra battery</span>
+
+<span class="sd">Just like radiobuttons, checkboxes may be nested to created dependencies::</span>
+
+<span class="sd">    Additional toppings =</span>
+<span class="sd">        [ ] Salami</span>
+<span class="sd">        [ ] Olives</span>
+<span class="sd">        [ ] Other</span>
+<span class="sd">            Description = ___</span>
+
+<span class="sd">Pricing Information</span>
+<span class="sd">~~~~~~~~~~~~~~~~~~~</span>
+
+<span class="sd">Radio buttons and checkboxes may be priced. For example, the following order</span>
+<span class="sd">form can be modeled::</span>
+
+<span class="sd">    Node Size =</span>
+<span class="sd">        ( ) Small (20 USD)</span>
+<span class="sd">        (x) Medium (30 USD)</span>
+<span class="sd">        ( ) Large (40 USD)</span>
+
+<span class="sd">    Extras =</span>
+<span class="sd">        [x] Second IP Address (20 CHF)</span>
+<span class="sd">        [x] Backup (20 CHF)</span>
+
+<span class="sd">The additional pricing metadata can be used to provide simple order forms.</span>
+<span class="sd">As in any other form, dependencies are taken into account.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">pyparsing</span> <span class="k">as</span> <span class="nn">pp</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+
+<span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
+<span class="kn">from</span> <span class="nn">dateutil</span> <span class="k">import</span> <span class="n">parser</span> <span class="k">as</span> <span class="n">dateutil_parser</span>
+<span class="kn">from</span> <span class="nn">decimal</span> <span class="k">import</span> <span class="n">Decimal</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">Bunch</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">errors</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">checkbox</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">date</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">decimal_range_field</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">email</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">field_identifier</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">fieldset_title</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">fileinput</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">integer_range_field</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">password</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">radio</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">stdnum</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">textarea</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">textfield</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">time</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">url</span>
+<span class="kn">from</span> <span class="nn">onegov.form.utils</span> <span class="k">import</span> <span class="n">as_internal_id</span>
+
+
+<span class="c1"># cache the parser elements</span>
+<span class="k">def</span> <span class="nf">create_parser_elements</span><span class="p">():</span>
+    <span class="n">elements</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">identifier</span> <span class="o">=</span> <span class="n">field_identifier</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">fieldset_title</span> <span class="o">=</span> <span class="n">fieldset_title</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">textfield</span> <span class="o">=</span> <span class="n">textfield</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">textarea</span> <span class="o">=</span> <span class="n">textarea</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="n">email</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">stdnum</span> <span class="o">=</span> <span class="n">stdnum</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">date</span> <span class="o">=</span> <span class="n">date</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">fileinput</span> <span class="o">=</span> <span class="n">fileinput</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">radio</span> <span class="o">=</span> <span class="n">radio</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">checkbox</span> <span class="o">=</span> <span class="n">checkbox</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">integer_range</span> <span class="o">=</span> <span class="n">integer_range_field</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">decimal_range</span> <span class="o">=</span> <span class="n">decimal_range_field</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">boxes</span> <span class="o">=</span> <span class="n">elements</span><span class="o">.</span><span class="n">checkbox</span> <span class="o">|</span> <span class="n">elements</span><span class="o">.</span><span class="n">radio</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">single_line_fields</span> <span class="o">=</span> <span class="n">elements</span><span class="o">.</span><span class="n">identifier</span> <span class="o">+</span> <span class="n">pp</span><span class="o">.</span><span class="n">MatchFirst</span><span class="p">([</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">textfield</span><span class="p">,</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">textarea</span><span class="p">,</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">password</span><span class="p">,</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">email</span><span class="p">,</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">stdnum</span><span class="p">,</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">date</span><span class="p">,</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">fileinput</span><span class="p">,</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">integer_range</span><span class="p">,</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">decimal_range</span><span class="p">,</span>
+    <span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">elements</span>
+
+
+<span class="n">ELEMENTS</span> <span class="o">=</span> <span class="n">create_parser_elements</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="CustomLoader"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.CustomLoader">[docs]</a><span class="k">class</span> <span class="nc">CustomLoader</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">SafeLoader</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extends the default yaml loader with customized constructors. &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="constructor"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.constructor">[docs]</a><span class="k">class</span> <span class="nc">constructor</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds decorated functions to as constructors to the CustomLoader. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tag</span> <span class="o">=</span> <span class="n">tag</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="n">CustomLoader</span><span class="o">.</span><span class="n">add_constructor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fn</span></div>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!text&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_textfield</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">textfield</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!textarea&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_textarea</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">textarea</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!email&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_email</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!url&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_url</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!stdnum&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_stdnum</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">stdnum</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!date&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_date</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!datetime&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_datetime</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!time&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_time</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!radio&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_radio</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">radio</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!checkbox&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_checkbox</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">checkbox</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!fileinput&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_fileinput</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">fileinput</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!password&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_password</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">password</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!decimal_range&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_decimal_range</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">decimal_range</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!integer_range&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_integer_range</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">integer_range</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">flatten_fieldsets</span><span class="p">(</span><span class="n">fieldsets</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">fieldset</span> <span class="ow">in</span> <span class="n">fieldsets</span><span class="p">:</span>
+        <span class="k">yield from</span> <span class="n">flatten_fields</span><span class="p">(</span><span class="n">fieldset</span><span class="o">.</span><span class="n">fields</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">flatten_fields</span><span class="p">(</span><span class="n">fields</span><span class="p">):</span>
+    <span class="n">fields</span> <span class="o">=</span> <span class="n">fields</span> <span class="ow">or</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">field</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="s1">&#39;fields&#39;</span><span class="p">):</span>
+            <span class="k">yield from</span> <span class="n">flatten_fields</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">fields</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="s1">&#39;choices&#39;</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">choice</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">choices</span><span class="p">:</span>
+                <span class="k">yield from</span> <span class="n">flatten_fields</span><span class="p">(</span><span class="n">choice</span><span class="o">.</span><span class="n">fields</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">find_field</span><span class="p">(</span><span class="n">fieldsets</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">as_internal_id</span><span class="p">(</span><span class="nb">id</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">fieldset</span> <span class="ow">in</span> <span class="n">fieldsets</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">fieldset</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="nb">id</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">fieldset</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fieldset</span><span class="o">.</span><span class="n">id</span> <span class="ow">or</span> <span class="nb">id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">fieldset</span><span class="o">.</span><span class="n">id</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">flatten_fields</span><span class="p">(</span><span class="n">fieldset</span><span class="o">.</span><span class="n">fields</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="nb">id</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">field</span>
+
+
+<div class="viewcode-block" id="Fieldset"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.Fieldset">[docs]</a><span class="k">class</span> <span class="nc">Fieldset</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Represents a parsed fieldset. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span> <span class="k">if</span> <span class="n">label</span> <span class="o">!=</span> <span class="s1">&#39;...&#39;</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fields</span> <span class="o">=</span> <span class="n">fields</span> <span class="ow">or</span> <span class="p">[]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">as_internal_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">human_id</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">human_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">find_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">find_field</span><span class="p">((</span><span class="bp">self</span><span class="p">,</span> <span class="p">),</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Choice"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.Choice">[docs]</a><span class="k">class</span> <span class="nc">Choice</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Represents a parsed choice.</span>
+
+<span class="sd">    Note: Choices may have child-fields which are meant to be shown to the</span>
+<span class="sd">    user if the given choice was selected.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">selected</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selected</span> <span class="o">=</span> <span class="n">selected</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fields</span> <span class="o">=</span> <span class="n">fields</span></div>
+
+
+<div class="viewcode-block" id="Field"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.Field">[docs]</a><span class="k">class</span> <span class="nc">Field</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Represents a parsed field. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">required</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">required</span> <span class="o">=</span> <span class="n">required</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fieldset</span> <span class="o">=</span> <span class="n">fieldset</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">as_internal_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">human_id</span><span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">human_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">human_id</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">label</span>
+            <span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fieldset</span><span class="o">.</span><span class="n">human_id</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fieldset</span><span class="o">.</span><span class="n">human_id</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">label</span>
+            <span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">required</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
+            <span class="n">fieldset</span><span class="o">=</span><span class="n">fieldset</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">value</span></div>
+
+
+<span class="k">class</span> <span class="nc">PasswordField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;password&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">EmailField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;email&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">UrlField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;url&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">DateField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;date&#39;</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="c1"># the first int in an ambiguous date is assumed to be a day</span>
+        <span class="c1"># (since our software runs in europe first and foremost)</span>
+        <span class="k">return</span> <span class="n">dateutil_parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">dayfirst</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">DatetimeField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;datetime&#39;</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="c1"># the first int in an ambiguous date is assumed to be a day</span>
+        <span class="c1"># (since our software runs in europe first and foremost)</span>
+        <span class="k">return</span> <span class="n">dateutil_parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">dayfirst</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TimeField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;time&#39;</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">time</span><span class="p">(</span><span class="o">*</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)))</span>
+
+
+<span class="k">class</span> <span class="nc">TextField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;text&#39;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">regex</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">regex</span> <span class="ow">and</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">regex</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">required</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
+            <span class="n">fieldset</span><span class="o">=</span><span class="n">fieldset</span><span class="p">,</span>
+            <span class="n">maxlength</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">length</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">regex</span><span class="o">=</span><span class="n">regex</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TextAreaField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;textarea&#39;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">required</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
+            <span class="n">fieldset</span><span class="o">=</span><span class="n">fieldset</span><span class="p">,</span>
+            <span class="n">rows</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">rows</span> <span class="ow">or</span> <span class="kc">None</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">StdnumField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;stdnum&#39;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">required</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
+            <span class="n">fieldset</span><span class="o">=</span><span class="n">fieldset</span><span class="p">,</span>
+            <span class="nb">format</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">format</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">RangeField</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">required</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
+            <span class="n">fieldset</span><span class="o">=</span><span class="n">fieldset</span><span class="p">,</span>
+            <span class="nb">range</span><span class="o">=</span><span class="n">field</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">IntegerRangeField</span><span class="p">(</span><span class="n">RangeField</span><span class="p">,</span> <span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;integer_range&#39;</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>  <span class="c1"># automatically truncates dots</span>
+
+
+<span class="k">class</span> <span class="nc">DecimalRangeField</span><span class="p">(</span><span class="n">RangeField</span><span class="p">,</span> <span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;decimal_range&#39;</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">FileinputField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;fileinput&#39;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">required</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
+            <span class="n">fieldset</span><span class="o">=</span><span class="n">fieldset</span><span class="p">,</span>
+            <span class="n">extensions</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">extensions</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">OptionsField</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Choice</span><span class="p">(</span>
+                <span class="n">key</span><span class="o">=</span><span class="n">c</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="n">c</span><span class="o">.</span><span class="n">label</span> <span class="o">+</span> <span class="n">format_pricing</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">pricing</span><span class="p">),</span>
+                <span class="n">selected</span><span class="o">=</span><span class="n">c</span><span class="o">.</span><span class="n">checked</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">choices</span>
+        <span class="p">]</span>
+
+        <span class="n">pricing</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="o">.</span><span class="n">label</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">pricing</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">choices</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">pricing</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">required</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
+            <span class="n">fieldset</span><span class="o">=</span><span class="n">fieldset</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="n">choices</span><span class="p">,</span>
+            <span class="n">pricing</span><span class="o">=</span><span class="n">pricing</span> <span class="ow">or</span> <span class="kc">None</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+
+        <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">class</span> <span class="nc">RadioField</span><span class="p">(</span><span class="n">OptionsField</span><span class="p">,</span> <span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;radio&#39;</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">v</span> <span class="ow">and</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="kc">None</span>
+
+
+<span class="k">class</span> <span class="nc">CheckboxField</span><span class="p">(</span><span class="n">OptionsField</span><span class="p">,</span> <span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;checkbox&#39;</span>
+
+
+<div class="viewcode-block" id="parse_formcode"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.parse_formcode">[docs]</a><span class="k">def</span> <span class="nf">parse_formcode</span><span class="p">(</span><span class="n">formcode</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes the given formcode and returns an intermediate representation</span>
+<span class="sd">    that can be used to generate forms or do other things.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parsed</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">translate_to_yaml</span><span class="p">(</span><span class="n">formcode</span><span class="p">)),</span> <span class="n">CustomLoader</span><span class="p">)</span>
+
+    <span class="n">fieldsets</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">field_classes</span> <span class="o">=</span> <span class="p">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">type</span><span class="p">:</span> <span class="bp">cls</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">Field</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">()}</span>
+    <span class="n">used_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">fieldset</span> <span class="ow">in</span> <span class="n">parsed</span><span class="p">:</span>
+
+        <span class="c1"># fieldsets occur only at the top level</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">fieldset</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">fs</span> <span class="o">=</span> <span class="n">Fieldset</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+
+        <span class="n">fs</span><span class="o">.</span><span class="n">fields</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">parse_field_block</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">field_classes</span><span class="p">,</span> <span class="n">used_ids</span><span class="p">,</span> <span class="n">fs</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">fieldset</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
+        <span class="p">]</span>
+
+        <span class="n">fieldsets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fieldsets</span></div>
+
+
+<div class="viewcode-block" id="parse_field_block"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.parse_field_block">[docs]</a><span class="k">def</span> <span class="nf">parse_field_block</span><span class="p">(</span><span class="n">field_block</span><span class="p">,</span> <span class="n">field_classes</span><span class="p">,</span>
+                      <span class="n">used_ids</span><span class="p">,</span> <span class="n">fieldset</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes the given parsed field block and yields the fields from it &quot;&quot;&quot;</span>
+
+    <span class="n">key</span><span class="p">,</span> <span class="n">field</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">field_block</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+    <span class="n">identifier_src</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;= &#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;=&#39;</span>
+    <span class="n">identifier</span> <span class="o">=</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">identifier</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">identifier_src</span><span class="p">)</span>
+
+    <span class="c1"># add the nested options/dependencies in case of radio/checkbox buttons</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="p">[</span><span class="nb">next</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">field</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">choice</span><span class="p">,</span> <span class="n">dependencies</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">:</span>
+            <span class="n">choice</span><span class="o">.</span><span class="n">dependencies</span> <span class="o">=</span> <span class="n">dependencies</span>
+
+        <span class="n">choices</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">]</span>
+
+        <span class="n">field</span> <span class="o">=</span> <span class="n">Bunch</span><span class="p">(</span><span class="n">choices</span><span class="o">=</span><span class="n">choices</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+
+        <span class="c1"># make sure only one type is found (either radio or checkbox)</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="p">{</span><span class="n">f</span><span class="o">.</span><span class="n">type</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">choices</span><span class="p">}</span>
+        <span class="k">assert</span> <span class="n">types</span> <span class="o">&lt;=</span> <span class="p">{</span><span class="s1">&#39;radio&#39;</span><span class="p">,</span> <span class="s1">&#39;checkbox&#39;</span><span class="p">}</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">types</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">field_classes</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">]</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+        <span class="n">field</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">fieldset</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">used_ids</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">DuplicateLabelError</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+
+    <span class="n">used_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="c1"># go through nested blocks and recursively add them</span>
+    <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;radio&#39;</span><span class="p">,</span> <span class="s1">&#39;checkbox&#39;</span><span class="p">}:</span>
+        <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">choice</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">choices</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">choice</span><span class="o">.</span><span class="n">dependencies</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">result</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span><span class="o">.</span><span class="n">fields</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">parse_field_block</span><span class="p">(</span>
+                    <span class="n">field_block</span><span class="o">=</span><span class="n">child</span><span class="p">,</span>
+                    <span class="n">field_classes</span><span class="o">=</span><span class="n">field_classes</span><span class="p">,</span>
+                    <span class="n">used_ids</span><span class="o">=</span><span class="n">used_ids</span><span class="p">,</span>
+                    <span class="n">fieldset</span><span class="o">=</span><span class="n">fieldset</span><span class="p">,</span>
+                    <span class="n">parent</span><span class="o">=</span><span class="n">result</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">choice</span><span class="o">.</span><span class="n">dependencies</span>
+            <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<span class="k">def</span> <span class="nf">format_pricing</span><span class="p">(</span><span class="n">pricing</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pricing</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">return</span> <span class="s1">&#39; (</span><span class="si">{:.2f}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pricing</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pricing</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="match"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.match">[docs]</a><span class="k">def</span> <span class="nf">match</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns true if the given parser expression matches the given text. &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">expr</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">pp</span><span class="o">.</span><span class="n">ParseException</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="try_parse"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.try_parse">[docs]</a><span class="k">def</span> <span class="nf">try_parse</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns the result of the given parser expression and text, or None.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">pp</span><span class="o">.</span><span class="n">ParseException</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="prepare"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.prepare">[docs]</a><span class="k">def</span> <span class="nf">prepare</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes the raw form source and prepares it for the translation into</span>
+<span class="sd">    yaml.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">))</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">((</span><span class="n">ix</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="k">if</span> <span class="n">l</span><span class="p">)</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">((</span><span class="n">ix</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">ensure_a_fieldset</span><span class="p">(</span><span class="n">lines</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">line</span></div>
+
+
+<div class="viewcode-block" id="ensure_a_fieldset"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.ensure_a_fieldset">[docs]</a><span class="k">def</span> <span class="nf">ensure_a_fieldset</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Makes sure that the given lines all belong to a fieldset. That means</span>
+<span class="sd">    adding an empty fieldset before all lines, if none is found first.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">found_fieldset</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">found_fieldset</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">ix</span><span class="p">,</span> <span class="n">line</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">match</span><span class="p">(</span><span class="n">ELEMENTS</span><span class="o">.</span><span class="n">fieldset_title</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+            <span class="n">found_fieldset</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">yield</span> <span class="n">ix</span><span class="p">,</span> <span class="n">line</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">found_fieldset</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">yield</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;# ...&#39;</span>
+            <span class="k">yield</span> <span class="n">ix</span><span class="p">,</span> <span class="n">line</span></div>
+
+
+<div class="viewcode-block" id="translate_to_yaml"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.translate_to_yaml">[docs]</a><span class="k">def</span> <span class="nf">translate_to_yaml</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes the given form text and constructs an easier to parse yaml</span>
+<span class="sd">    string.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">((</span><span class="n">ix</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">prepare</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
+    <span class="n">expect_nested</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">actual_fields</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+
+        <span class="n">indent</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">lstrip</span><span class="p">())))</span>
+
+        <span class="c1"># the top level are the fieldsets</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">(</span><span class="n">ELEMENTS</span><span class="o">.</span><span class="n">fieldset_title</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="s1">&#39;- &quot;</span><span class="si">{}</span><span class="s1">&quot;:&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;# &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">())</span>
+            <span class="n">expect_nested</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># fields are nested lists of dictionaries</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">parse_result</span> <span class="o">=</span> <span class="n">try_parse</span><span class="p">(</span><span class="n">ELEMENTS</span><span class="o">.</span><span class="n">single_line_fields</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">re</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">InvalidFormSyntax</span><span class="p">(</span><span class="n">line</span><span class="o">=</span><span class="n">ix</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">parse_result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="s1">&#39;</span><span class="si">{indent}</span><span class="s1">- &quot;</span><span class="si">{identifier}</span><span class="s1">&quot;: !</span><span class="si">{type}</span><span class="s1"> </span><span class="se">\&#39;</span><span class="si">{definition}</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">indent</span><span class="o">=</span><span class="n">indent</span><span class="p">,</span>
+                <span class="nb">type</span><span class="o">=</span><span class="n">parse_result</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                <span class="n">identifier</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+                <span class="n">definition</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="n">expect_nested</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">indent</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">4</span>
+            <span class="n">actual_fields</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># checkboxes/radios come without identifier</span>
+        <span class="n">parse_result</span> <span class="o">=</span> <span class="n">try_parse</span><span class="p">(</span><span class="n">ELEMENTS</span><span class="o">.</span><span class="n">boxes</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">parse_result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">expect_nested</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">InvalidFormSyntax</span><span class="p">(</span><span class="n">line</span><span class="o">=</span><span class="n">ix</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">yield</span> <span class="s1">&#39;</span><span class="si">{indent}</span><span class="s1">- !</span><span class="si">{type}</span><span class="s1"> </span><span class="se">\&#39;</span><span class="si">{definition}</span><span class="se">\&#39;</span><span class="s1">:&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">indent</span><span class="o">=</span><span class="n">indent</span><span class="p">,</span>
+                <span class="nb">type</span><span class="o">=</span><span class="n">parse_result</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                <span class="n">definition</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># identifiers which are alone contain nested checkboxes/radios</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">(</span><span class="n">ELEMENTS</span><span class="o">.</span><span class="n">identifier</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+
+            <span class="c1"># this should have been matched by the single line field above</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">InvalidFormSyntax</span><span class="p">(</span><span class="n">line</span><span class="o">=</span><span class="n">ix</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">yield</span> <span class="s1">&#39;</span><span class="si">{indent}</span><span class="s1">- &quot;</span><span class="si">{identifier}</span><span class="s1">&quot;:&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">indent</span><span class="o">=</span><span class="n">indent</span><span class="p">,</span>
+                <span class="n">identifier</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="p">)</span>
+
+            <span class="n">expect_nested</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">actual_fields</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">continue</span>
+
+        <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">InvalidFormSyntax</span><span class="p">(</span><span class="n">line</span><span class="o">=</span><span class="n">ix</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">actual_fields</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">InvalidFormSyntax</span><span class="p">(</span><span class="n">line</span><span class="o">=</span><span class="n">ix</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

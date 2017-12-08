@@ -40,53 +40,1317 @@
             
   <div class="section" id="onegov-org-api">
 <h1>Onegov Org API<a class="headerlink" href="#onegov-org-api" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="application">
-<h2>Application<a class="headerlink" href="#application" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.app">
+<span id="application"></span><h2>Application<a class="headerlink" href="#module-onegov.org.app" title="Permalink to this headline">¶</a></h2>
+<p>Contains the base application used by other applications.</p>
 </div>
-<div class="section" id="commandline-interface">
-<h2>Commandline Interface<a class="headerlink" href="#commandline-interface" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.cli">
+<span id="commandline-interface"></span><h2>Commandline Interface<a class="headerlink" href="#module-onegov.org.cli" title="Permalink to this headline">¶</a></h2>
+<p>Provides commands used to initialize org websites.</p>
 </div>
-<div class="section" id="directives">
-<h2>Directives<a class="headerlink" href="#directives" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.directives">
+<span id="directives"></span><h2>Directives<a class="headerlink" href="#module-onegov.org.directives" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.org.directives.HomepageWidgetAction">
+<em class="property">class </em><code class="descclassname">onegov.org.directives.</code><code class="descname">HomepageWidgetAction</code><span class="sig-paren">(</span><em>tag</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/directives.html#HomepageWidgetAction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.directives.HomepageWidgetAction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a cronjob.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.directives.ExportAction">
+<em class="property">class </em><code class="descclassname">onegov.org.directives.</code><code class="descname">ExportAction</code><span class="sig-paren">(</span><em>id</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/directives.html#ExportAction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.directives.ExportAction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register an export.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.directives.UserlinkAction">
+<em class="property">class </em><code class="descclassname">onegov.org.directives.</code><code class="descname">UserlinkAction</code><a class="reference internal" href="_modules/onegov/org/directives.html#UserlinkAction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.directives.UserlinkAction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a user link group.</p>
+</dd></dl>
+
 </div>
-<div class="section" id="homepage-widgets">
-<h2>Homepage Widgets<a class="headerlink" href="#homepage-widgets" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.homepage_widgets.core">
+<span id="homepage-widgets"></span><h2>Homepage Widgets<a class="headerlink" href="#module-onegov.org.homepage_widgets.core" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="onegov.org.homepage_widgets.core.parse_structure">
+<code class="descclassname">onegov.org.homepage_widgets.core.</code><code class="descname">parse_structure</code><span class="sig-paren">(</span><em>widgets</em>, <em>structure</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/homepage_widgets/core.html#parse_structure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.homepage_widgets.core.parse_structure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the XML homepage structure and returns the parsed etree xml.</p>
+<p>Raises a wtforms.ValidationError if there’s an element which is not
+supported.</p>
+<p>We could do this with DTDs but we don’t actually need to, since we only
+care to not include any unknown tags.</p>
+<p>Note that we <em>try</em> to make sure that this is no vector for remote code
+execution, but we ultimately do not guarantee it can’t happen.</p>
+<p>This xml structure is meant to be static or possibly changeable by admins.
+Ordinary users should not be able to influence this structure.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.homepage_widgets.core.transform_homepage_structure">
+<code class="descclassname">onegov.org.homepage_widgets.core.</code><code class="descname">transform_homepage_structure</code><span class="sig-paren">(</span><em>app</em>, <em>structure</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/homepage_widgets/core.html#transform_homepage_structure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.homepage_widgets.core.transform_homepage_structure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the XML homepage structure and transforms it into a
+chameleon template.</p>
+<p>The app is required as it contains the available widgets.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.homepage_widgets.core.inject_widget_variables">
+<code class="descclassname">onegov.org.homepage_widgets.core.</code><code class="descname">inject_widget_variables</code><span class="sig-paren">(</span><em>layout</em>, <em>structure</em>, <em>variables=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/homepage_widgets/core.html#inject_widget_variables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.homepage_widgets.core.inject_widget_variables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the layout, structure and a dict of variables meant for the
+template engine and injects the variables required by the widgets, if
+the widgets are indeed in use.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.homepage_widgets.widgets"></span></div>
+<div class="section" id="module-onegov.org.layout">
+<span id="layout"></span><h2>Layout<a class="headerlink" href="#module-onegov.org.layout" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.org.layout.Layout">
+<em class="property">class </em><code class="descclassname">onegov.org.layout.</code><code class="descname">Layout</code><span class="sig-paren">(</span><em>model</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/layout.html#Layout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.layout.Layout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains methods to render a page inheriting from layout.pt.</p>
+<p>All pages inheriting from layout.pt rely on this class being present
+as ‘layout’ variable:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Example</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;example.pt&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
+   <span class="k">def</span> <span class="nf">view_example</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+       <span class="k">return</span> <span class="p">{</span> <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span> <span class="p">}</span>
+</pre></div>
 </div>
-<div class="section" id="layout">
-<h2>Layout<a class="headerlink" href="#layout" title="Permalink to this headline">¶</a></h2>
+<p>It is meant to be extended for different parts of the site. For example,
+the <a class="reference internal" href="#onegov.org.layout.DefaultLayout" title="onegov.org.layout.DefaultLayout"><code class="xref py py-class docutils literal"><span class="pre">DefaultLayout</span></code></a> includes the top navigation defined by
+onegov.page.</p>
+<p>It’s possible though to have a different part of the website use a
+completely different top navigation. For that, a new Layout class
+inheriting from this one should be added.</p>
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.org">
+<code class="descname">org</code><a class="headerlink" href="#onegov.org.layout.Layout.org" title="Permalink to this definition">¶</a></dt>
+<dd><p>An alias for self.request.app.org.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.page_id">
+<code class="descname">page_id</code><a class="headerlink" href="#onegov.org.layout.Layout.page_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the unique page id of the rendered page. Used to have
+a useful id in the body element for CSS/JS.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.body_classes">
+<code class="descname">body_classes</code><a class="headerlink" href="#onegov.org.layout.Layout.body_classes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yields a list of body classes used on the body.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.top_navigation">
+<code class="descname">top_navigation</code><a class="headerlink" href="#onegov.org.layout.Layout.top_navigation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of <a class="reference internal" href="#onegov.org.elements.Link" title="onegov.org.elements.Link"><code class="xref py py-class docutils literal"><span class="pre">onegov.org.elements.Link</span></code></a> objects.
+Those links are used for the top navigation.</p>
+<p>If nothing is returned, no top navigation is displayed.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.breadcrumbs">
+<code class="descname">breadcrumbs</code><a class="headerlink" href="#onegov.org.layout.Layout.breadcrumbs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of <a class="reference internal" href="#onegov.org.elements.Link" title="onegov.org.elements.Link"><code class="xref py py-class docutils literal"><span class="pre">onegov.org.elements.Link</span></code></a> objects.
+Those links are used for the breadcrumbs.</p>
+<p>If nothing is returned, no top breadcrumbs are displayed.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.sidebar_links">
+<code class="descname">sidebar_links</code><a class="headerlink" href="#onegov.org.layout.Layout.sidebar_links" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of links shown in the sidebar, used for navigation.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.editbar_links">
+<code class="descname">editbar_links</code><a class="headerlink" href="#onegov.org.layout.Layout.editbar_links" title="Permalink to this definition">¶</a></dt>
+<dd><p>A of <a class="reference internal" href="#onegov.org.elements.LinkGroup" title="onegov.org.elements.LinkGroup"><code class="xref py py-class docutils literal"><span class="pre">onegov.org.elements.LinkGroup</span></code></a> classes. Each of them
+will be shown in the top editbar, with the group title being the
+dropdown title.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.file_upload_url">
+<code class="descname">file_upload_url</code><a class="headerlink" href="#onegov.org.layout.Layout.file_upload_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the url to the file upload action.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.file_upload_json_url">
+<code class="descname">file_upload_json_url</code><a class="headerlink" href="#onegov.org.layout.Layout.file_upload_json_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the json url for file uploads.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.file_list_url">
+<code class="descname">file_list_url</code><a class="headerlink" href="#onegov.org.layout.Layout.file_list_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the json url for file lists.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.image_upload_url">
+<code class="descname">image_upload_url</code><a class="headerlink" href="#onegov.org.layout.Layout.image_upload_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the url to the image upload action.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.image_upload_json_url">
+<code class="descname">image_upload_json_url</code><a class="headerlink" href="#onegov.org.layout.Layout.image_upload_json_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the json url for image uploads.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.image_list_url">
+<code class="descname">image_list_url</code><a class="headerlink" href="#onegov.org.layout.Layout.image_list_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the json url for image lists.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.sitecollection_url">
+<code class="descname">sitecollection_url</code><a class="headerlink" href="#onegov.org.layout.Layout.sitecollection_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the json url for internal links lists.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.homepage_url">
+<code class="descname">homepage_url</code><a class="headerlink" href="#onegov.org.layout.Layout.homepage_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the url to the main page.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.search_url">
+<code class="descname">search_url</code><a class="headerlink" href="#onegov.org.layout.Layout.search_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the url to the search page.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.layout.Layout.suggestions_url">
+<code class="descname">suggestions_url</code><a class="headerlink" href="#onegov.org.layout.Layout.suggestions_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the url to the suggestions json view.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.layout.Layout.export_formatter">
+<code class="descname">export_formatter</code><span class="sig-paren">(</span><em>format</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/layout.html#Layout.export_formatter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.layout.Layout.export_formatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a formatter function which takes a value and returns
+the value ready for export.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.layout.Layout.thumbnail_url">
+<code class="descname">thumbnail_url</code><span class="sig-paren">(</span><em>url</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/layout.html#Layout.thumbnail_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.layout.Layout.thumbnail_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the given url and returns the thumbnail url for it.</p>
+<p>Uses some rough heuristic to determine if a url is actually served
+by onegov.file or not. May possibly fail.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.layout.Layout.render_field">
+<code class="descname">render_field</code><span class="sig-paren">(</span><em>field</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/layout.html#Layout.render_field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.layout.Layout.render_field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for <code class="docutils literal"><span class="pre">onegov.form.render_field</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.layout.DefaultLayout">
+<em class="property">class </em><code class="descclassname">onegov.org.layout.</code><code class="descname">DefaultLayout</code><span class="sig-paren">(</span><em>model</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/layout.html#DefaultLayout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.layout.DefaultLayout" title="Permalink to this definition">¶</a></dt>
+<dd><p>The defaut layout meant for the public facing parts of the site.</p>
+<dl class="attribute">
+<dt id="onegov.org.layout.DefaultLayout.breadcrumbs">
+<code class="descname">breadcrumbs</code><a class="headerlink" href="#onegov.org.layout.DefaultLayout.breadcrumbs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the breadcrumbs for the current page.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.layout.DefaultMailLayout">
+<em class="property">class </em><code class="descclassname">onegov.org.layout.</code><code class="descname">DefaultMailLayout</code><span class="sig-paren">(</span><em>model</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/layout.html#DefaultMailLayout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.layout.DefaultMailLayout" title="Permalink to this definition">¶</a></dt>
+<dd><p>A special layout for creating HTML E-Mails.</p>
+<dl class="attribute">
+<dt id="onegov.org.layout.DefaultMailLayout.contact_html">
+<code class="descname">contact_html</code><a class="headerlink" href="#onegov.org.layout.DefaultMailLayout.contact_html" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the contacts html, but instead of breaking it into multiple
+lines (like on the site footer), this version puts it all on one line.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.layout.AdjacencyListLayout">
+<em class="property">class </em><code class="descclassname">onegov.org.layout.</code><code class="descname">AdjacencyListLayout</code><span class="sig-paren">(</span><em>model</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/layout.html#AdjacencyListLayout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.layout.AdjacencyListLayout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides layouts for for models inheriting from
+<code class="xref py py-class docutils literal"><span class="pre">onegov.core.orm.abstract.AdjacencyList</span></code></p>
+<dl class="method">
+<dt id="onegov.org.layout.AdjacencyListLayout.get_breadcrumbs">
+<code class="descname">get_breadcrumbs</code><span class="sig-paren">(</span><em>item</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/layout.html#AdjacencyListLayout.get_breadcrumbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.layout.AdjacencyListLayout.get_breadcrumbs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yields the breadcrumbs for the given adjacency list item.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.layout.AdjacencyListLayout.get_sidebar">
+<code class="descname">get_sidebar</code><span class="sig-paren">(</span><em>type=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/layout.html#AdjacencyListLayout.get_sidebar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.layout.AdjacencyListLayout.get_sidebar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yields the sidebar for the given adjacency list item.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.layout.AllocationEditFormLayout">
+<em class="property">class </em><code class="descclassname">onegov.org.layout.</code><code class="descname">AllocationEditFormLayout</code><span class="sig-paren">(</span><em>model</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/layout.html#AllocationEditFormLayout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.layout.AllocationEditFormLayout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Same as the resource layout, but with different editbar links, because
+there’s not really an allocation view, but there are allocation forms.</p>
+</dd></dl>
+
 </div>
-<div class="section" id="models">
-<h2>Models<a class="headerlink" href="#models" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.models.atoz">
+<span id="models"></span><h2>Models<a class="headerlink" href="#module-onegov.org.models.atoz" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-onegov.org.models.clipboard"></span><dl class="class">
+<dt id="onegov.org.models.clipboard.Clipboard">
+<em class="property">class </em><code class="descclassname">onegov.org.models.clipboard.</code><code class="descname">Clipboard</code><span class="sig-paren">(</span><em>request</em>, <em>token</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/clipboard.html#Clipboard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.clipboard.Clipboard" title="Permalink to this definition">¶</a></dt>
+<dd><p>The clipboard holds a url that should be copied and then pasted.
+The url is expected to be stored in a token that has been created by
+<a class="reference internal" href="onegov_core.html#onegov.core.request.CoreRequest.new_url_safe_token" title="onegov.core.request.CoreRequest.new_url_safe_token"><code class="xref py py-meth docutils literal"><span class="pre">onegov.core.request.CoreRequest.new_url_safe_token()</span></code></a>.</p>
+<p>The reason behind this is that the url is used to fetch the object behind
+the url in an unrestricted fashion.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.models.editor"></span><p>Contains the model describing the page editor.</p>
+<dl class="class">
+<dt id="onegov.org.models.editor.Editor">
+<em class="property">class </em><code class="descclassname">onegov.org.models.editor.</code><code class="descname">Editor</code><span class="sig-paren">(</span><em>action</em>, <em>page</em>, <em>trait=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/editor.html#Editor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.editor.Editor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the model for the page editor. Required because pages need
+to be edited outside their url structure, since their urls are absorbed
+completely and turned into SQL queries.</p>
+<dl class="staticmethod">
+<dt id="onegov.org.models.editor.Editor.is_supported_action">
+<em class="property">static </em><code class="descname">is_supported_action</code><span class="sig-paren">(</span><em>action</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/editor.html#Editor.is_supported_action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.editor.Editor.is_supported_action" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the given action is supported.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.models.editor.Editor.page_id">
+<code class="descname">page_id</code><a class="headerlink" href="#onegov.org.models.editor.Editor.page_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the page id so morepath can create a link to this.</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-onegov.org.models.extensions"></span><dl class="class">
+<dt id="onegov.org.models.extensions.ContentExtension">
+<em class="property">class </em><code class="descclassname">onegov.org.models.extensions.</code><code class="descname">ContentExtension</code><a class="reference internal" href="_modules/onegov/org/models/extensions.html#ContentExtension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.extensions.ContentExtension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extends classes based on <a class="reference internal" href="onegov_core.html#onegov.core.orm.mixins.ContentMixin" title="onegov.core.orm.mixins.ContentMixin"><code class="xref py py-class docutils literal"><span class="pre">onegov.core.orm.mixins.ContentMixin</span></code></a>
+with custom data that is stored in either ‘meta’ or ‘content’.</p>
+<dl class="attribute">
+<dt id="onegov.org.models.extensions.ContentExtension.content_extensions">
+<code class="descname">content_extensions</code><a class="headerlink" href="#onegov.org.models.extensions.ContentExtension.content_extensions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all base classes of the current class which themselves have
+<code class="docutils literal"><span class="pre">ContentExtension</span></code> as baseclass.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.models.extensions.ContentExtension.with_content_extensions">
+<code class="descname">with_content_extensions</code><span class="sig-paren">(</span><em>form_class</em>, <em>request</em>, <em>extensions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/extensions.html#ContentExtension.with_content_extensions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.extensions.ContentExtension.with_content_extensions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the given form and request and extends the form with
+all content extensions in the order in which they occur in the base
+class list.</p>
+<p>In other words, extends the forms with all used extension-fields.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.models.extensions.ContentExtension.extend_form">
+<code class="descname">extend_form</code><span class="sig-paren">(</span><em>form_class</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/extensions.html#ContentExtension.extend_form"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.extensions.ContentExtension.extend_form" title="Permalink to this definition">¶</a></dt>
+<dd><p>Must be implemented by each ContentExtension. Takes the form
+class without extension and adds the required fields to it.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.models.extensions.HiddenFromPublicExtension">
+<em class="property">class </em><code class="descclassname">onegov.org.models.extensions.</code><code class="descname">HiddenFromPublicExtension</code><a class="reference internal" href="_modules/onegov/org/models/extensions.html#HiddenFromPublicExtension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.extensions.HiddenFromPublicExtension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extends any class that has a meta dictionary field with the ability to
+hide it from the public.</p>
+<p>see <a class="reference internal" href="onegov_core.html#onegov.core.security.rules.has_permission_not_logged_in" title="onegov.core.security.rules.has_permission_not_logged_in"><code class="xref py py-func docutils literal"><span class="pre">onegov.core.security.rules.has_permission_not_logged_in()</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.models.extensions.CoordinatesExtension">
+<em class="property">class </em><code class="descclassname">onegov.org.models.extensions.</code><code class="descname">CoordinatesExtension</code><a class="reference internal" href="_modules/onegov/org/models/extensions.html#CoordinatesExtension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.extensions.CoordinatesExtension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extends any class that has a data dictionary field with the ability
+to add coordinates to it.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.models.extensions.VisibleOnHomepageExtension">
+<em class="property">class </em><code class="descclassname">onegov.org.models.extensions.</code><code class="descname">VisibleOnHomepageExtension</code><a class="reference internal" href="_modules/onegov/org/models/extensions.html#VisibleOnHomepageExtension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.extensions.VisibleOnHomepageExtension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extends any class that has a meta dictionary field with the ability to
+a boolean indicating if the page should be shown on the homepage or not.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.models.extensions.ContactExtension">
+<em class="property">class </em><code class="descclassname">onegov.org.models.extensions.</code><code class="descname">ContactExtension</code><a class="reference internal" href="_modules/onegov/org/models/extensions.html#ContactExtension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.extensions.ContactExtension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extends any class that has a content dictionary field with a simple
+contacts field.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.models.extensions.PersonLinkExtension">
+<em class="property">class </em><code class="descclassname">onegov.org.models.extensions.</code><code class="descname">PersonLinkExtension</code><a class="reference internal" href="_modules/onegov/org/models/extensions.html#PersonLinkExtension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.extensions.PersonLinkExtension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extends any class that has a content dictionary field with the ability
+to reference people from <code class="xref py py-class docutils literal"><span class="pre">onegov.people.PersonCollection</span></code>.</p>
+<dl class="attribute">
+<dt id="onegov.org.models.extensions.PersonLinkExtension.people">
+<code class="descname">people</code><a class="headerlink" href="#onegov.org.models.extensions.PersonLinkExtension.people" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the people linked to this content or None.</p>
+<p>The context specific function is temporarily stored on the
+<code class="docutils literal"><span class="pre">context_specific_function</span></code> attribute on each object in the
+resulting list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.models.extensions.PersonLinkExtension.get_selectable_people">
+<code class="descname">get_selectable_people</code><span class="sig-paren">(</span><em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/extensions.html#PersonLinkExtension.get_selectable_people"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.extensions.PersonLinkExtension.get_selectable_people" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of people which may be linked.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.models.extensions.PersonLinkExtension.move_person">
+<code class="descname">move_person</code><span class="sig-paren">(</span><em>subject</em>, <em>target</em>, <em>direction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/extensions.html#PersonLinkExtension.move_person"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.extensions.PersonLinkExtension.move_person" title="Permalink to this definition">¶</a></dt>
+<dd><p>Moves the subject below or above the target.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Subject:</th><td class="field-body">The key of the person to be moved.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Target:</th><td class="field-body">The key of the person above or below which the subject is moved.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Direction:</th><td class="field-body">The direction relative to the target. Either ‘above’ or ‘below’.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-onegov.org.models.file"></span><p>Contains the models describing files and images.</p>
+<dl class="class">
+<dt id="onegov.org.models.file.DateInterval">
+<em class="property">class </em><code class="descclassname">onegov.org.models.file.</code><code class="descname">DateInterval</code><span class="sig-paren">(</span><em>name</em>, <em>start</em>, <em>end</em><span class="sig-paren">)</span><a class="headerlink" href="#onegov.org.models.file.DateInterval" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="onegov.org.models.file.DateInterval.end">
+<code class="descname">end</code><a class="headerlink" href="#onegov.org.models.file.DateInterval.end" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.models.file.DateInterval.name">
+<code class="descname">name</code><a class="headerlink" href="#onegov.org.models.file.DateInterval.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.models.file.DateInterval.start">
+<code class="descname">start</code><a class="headerlink" href="#onegov.org.models.file.DateInterval.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-onegov.org.models.legacy_file"></span><p>Contains the legacy models of files for url redirect support. Going
+forward, onegov.file and onegov.org.models.file is used.</p>
+<dl class="class">
+<dt id="onegov.org.models.legacy_file.LegacyFile">
+<em class="property">class </em><code class="descclassname">onegov.org.models.legacy_file.</code><code class="descname">LegacyFile</code><span class="sig-paren">(</span><em>filename</em>, <em>info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/legacy_file.html#LegacyFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.legacy_file.LegacyFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>A filestorage file that points to an uploaded image or file.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.models.legacy_file.LegacyImage">
+<em class="property">class </em><code class="descclassname">onegov.org.models.legacy_file.</code><code class="descname">LegacyImage</code><span class="sig-paren">(</span><em>filename</em>, <em>info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/legacy_file.html#LegacyImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.legacy_file.LegacyImage" title="Permalink to this definition">¶</a></dt>
+<dd><p>A filestorage file that points to a full image (not a thumbnail).</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.models.form"></span><span class="target" id="module-onegov.org.models.page"></span><span class="target" id="module-onegov.org.models.page_move"></span><dl class="class">
+<dt id="onegov.org.models.page_move.AdjacencyListMove">
+<em class="property">class </em><code class="descclassname">onegov.org.models.page_move.</code><code class="descname">AdjacencyListMove</code><span class="sig-paren">(</span><em>session</em>, <em>subject</em>, <em>target</em>, <em>direction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/page_move.html#AdjacencyListMove"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.page_move.AdjacencyListMove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a single move of an adjacency list item.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.models.person_move"></span><dl class="class">
+<dt id="onegov.org.models.person_move.PersonMove">
+<em class="property">class </em><code class="descclassname">onegov.org.models.person_move.</code><code class="descname">PersonMove</code><span class="sig-paren">(</span><em>session</em>, <em>obj</em>, <em>subject</em>, <em>target</em>, <em>direction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/person_move.html#PersonMove"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.person_move.PersonMove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a single move of a linked person.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.models.person_move.PagePersonMove">
+<em class="property">class </em><code class="descclassname">onegov.org.models.person_move.</code><code class="descname">PagePersonMove</code><span class="sig-paren">(</span><em>session</em>, <em>obj</em>, <em>subject</em>, <em>target</em>, <em>direction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/person_move.html#PagePersonMove"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.person_move.PagePersonMove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a single move of a linked person on a page.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.models.person_move.FormPersonMove">
+<em class="property">class </em><code class="descclassname">onegov.org.models.person_move.</code><code class="descname">FormPersonMove</code><span class="sig-paren">(</span><em>session</em>, <em>obj</em>, <em>subject</em>, <em>target</em>, <em>direction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/person_move.html#FormPersonMove"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.person_move.FormPersonMove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a single move of a linked person on a form definition.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.models.person_move.ResourcePersonMove">
+<em class="property">class </em><code class="descclassname">onegov.org.models.person_move.</code><code class="descname">ResourcePersonMove</code><span class="sig-paren">(</span><em>session</em>, <em>obj</em>, <em>subject</em>, <em>target</em>, <em>direction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/person_move.html#ResourcePersonMove"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.person_move.ResourcePersonMove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a single move of a linked person on a form definition.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.models.resource"></span><span class="target" id="module-onegov.org.models.search"></span><span class="target" id="module-onegov.org.models.sitecollection"></span><span class="target" id="module-onegov.org.models.ticket"></span><span class="target" id="module-onegov.org.models.organisation"></span><p>Contains the model describing the organisation proper.</p>
+<dl class="class">
+<dt id="onegov.org.models.organisation.Organisation">
+<em class="property">class </em><code class="descclassname">onegov.org.models.organisation.</code><code class="descname">Organisation</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/organisation.html#Organisation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.organisation.Organisation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the basic information associated with an organisation.</p>
+<p>It is assumed that there’s only one organisation record in the schema!</p>
+<dl class="attribute">
+<dt id="onegov.org.models.organisation.Organisation.id">
+<code class="descname">id</code><a class="headerlink" href="#onegov.org.models.organisation.Organisation.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>the id of the organisation, an automatically generated uuid</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.models.organisation.Organisation.name">
+<code class="descname">name</code><a class="headerlink" href="#onegov.org.models.organisation.Organisation.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>the name of the organisation</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.models.organisation.Organisation.logo_url">
+<code class="descname">logo_url</code><a class="headerlink" href="#onegov.org.models.organisation.Organisation.logo_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>the logo of the organisation</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.models.organisation.Organisation.theme_options">
+<code class="descname">theme_options</code><a class="headerlink" href="#onegov.org.models.organisation.Organisation.theme_options" title="Permalink to this definition">¶</a></dt>
+<dd><p>the theme options of the organisation</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.models.organisation.Organisation.meta">
+<code class="descname">meta</code><a class="headerlink" href="#onegov.org.models.organisation.Organisation.meta" title="Permalink to this definition">¶</a></dt>
+<dd><p>additional data associated with the organisation</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-onegov.org.models.traitinfo"></span><dl class="data">
+<dt id="onegov.org.models.traitinfo.TRAIT_MESSAGES">
+<code class="descclassname">onegov.org.models.traitinfo.</code><code class="descname">TRAIT_MESSAGES</code><em class="property"> = {'link': {'name': 'Link', 'new_page_title': 'New Link', 'new_page_added': 'Added a new link', 'edit_page_title': 'Edit Link', 'delete_message': 'The link was deleted', 'delete_button': 'Delete link', 'delete_question': 'Do you really want to delete the link &quot;${title}&quot;?'}, 'page': {'name': 'Topic', 'new_page_title': 'New Topic', 'new_page_added': 'Added a new topic', 'edit_page_title': 'Edit Topic', 'delete_message': 'The topic was deleted', 'delete_button': 'Delete topic', 'delete_question': 'Do you really want to delete the topic &quot;${title}&quot;?'}, 'news': {'name': 'News', 'new_page_title': 'Add News', 'new_page_added': 'Added news', 'edit_page_title': 'Edit News', 'delete_message': 'The news was deleted', 'delete_button': 'Delete news', 'delete_question': 'Do you really want to delete the news &quot;${title}&quot;?'}}</em><a class="headerlink" href="#onegov.org.models.traitinfo.TRAIT_MESSAGES" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains the messages that differ for each trait (the handling of all traits
+is the same). New traits need to adapt the same messages as the others.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.models.traitinfo.TraitInfo">
+<em class="property">class </em><code class="descclassname">onegov.org.models.traitinfo.</code><code class="descname">TraitInfo</code><a class="reference internal" href="_modules/onegov/org/models/traitinfo.html#TraitInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.traitinfo.TraitInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>” Typically used as a mixin for adjacency list based models,
+this class provides access to the trait related methods.</p>
+<p>Traits are like subtypes of models. For example, the Page model has
+a page trait and a link trait. Both are managed under the same tree as
+the same type (Page), but one is rendered as a redirect, the other as
+a normal page.</p>
+<dl class="attribute">
+<dt id="onegov.org.models.traitinfo.TraitInfo.trait">
+<code class="descname">trait</code><a class="headerlink" href="#onegov.org.models.traitinfo.TraitInfo.trait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the trait of the page.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.models.traitinfo.TraitInfo.trait_messages">
+<code class="descname">trait_messages</code><a class="headerlink" href="#onegov.org.models.traitinfo.TraitInfo.trait_messages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all trait_messages.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.models.traitinfo.TraitInfo.allowed_subtraits">
+<code class="descname">allowed_subtraits</code><a class="headerlink" href="#onegov.org.models.traitinfo.TraitInfo.allowed_subtraits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of traits that this page may contain.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.models.traitinfo.TraitInfo.paste_target">
+<code class="descname">paste_target</code><a class="headerlink" href="#onegov.org.models.traitinfo.TraitInfo.paste_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the page that should be used as parent for the content
+pasting if paste is called on the current page (self).</p>
+<p>This is usually just self. If the paste action should put the content
+alongside the current page, it would be the parent.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.models.traitinfo.TraitInfo.is_supported_trait">
+<code class="descname">is_supported_trait</code><span class="sig-paren">(</span><em>trait</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/traitinfo.html#TraitInfo.is_supported_trait"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.traitinfo.TraitInfo.is_supported_trait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if the given trait is supported by this type This
+doesn’t mean that the trait may be added to this page, it serves
+as a simple sanity check, returning True if the combination of the
+type and the trait make any sense at all.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.models.traitinfo.TraitInfo.get_form_class">
+<code class="descname">get_form_class</code><span class="sig-paren">(</span><em>trait</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/traitinfo.html#TraitInfo.get_form_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.traitinfo.TraitInfo.get_form_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the form class for the given trait.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.models.traitinfo.TraitInfo.get_editbar_links">
+<code class="descname">get_editbar_links</code><span class="sig-paren">(</span><em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/traitinfo.html#TraitInfo.get_editbar_links"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.traitinfo.TraitInfo.get_editbar_links" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the editbar links on the private view of this trait.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.models.traitinfo.TraitInfo.get_add_links">
+<code class="descname">get_add_links</code><span class="sig-paren">(</span><em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/traitinfo.html#TraitInfo.get_add_links"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.traitinfo.TraitInfo.get_add_links" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yields the add links shown on the private view of this trait.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.models.traitinfo.TraitInfo.get_edit_links">
+<code class="descname">get_edit_links</code><span class="sig-paren">(</span><em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/models/traitinfo.html#TraitInfo.get_edit_links"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.models.traitinfo.TraitInfo.get_edit_links" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yields the edit links shown on the private view of this trait.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="paths">
-<h2>Paths<a class="headerlink" href="#paths" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.path">
+<span id="paths"></span><h2>Paths<a class="headerlink" href="#module-onegov.org.path" title="Permalink to this headline">¶</a></h2>
+<p>Contains the paths to the different models served by onegov.org.</p>
+<dl class="function">
+<dt id="onegov.org.path.get_file_for_org">
+<code class="descclassname">onegov.org.path.</code><code class="descname">get_file_for_org</code><span class="sig-paren">(</span><em>request</em>, <em>app</em>, <em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/path.html#get_file_for_org"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.path.get_file_for_org" title="Permalink to this definition">¶</a></dt>
+<dd><p>Form files are kept private and out of any caches.</p>
+<p>This approach is not all that morepath-y, as we could override the views
+instead to change the required permissions, but this approach has the
+advantage that we don’t need to overwrite multiple views and we do not
+have to care for additional views added in the future.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.path.keywords_decode">
+<code class="descclassname">onegov.org.path.</code><code class="descname">keywords_decode</code><span class="sig-paren">(</span><em>s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/path.html#keywords_decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.path.keywords_decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deocdes the directory entry collection keywords.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.path.keywords_encode">
+<code class="descclassname">onegov.org.path.</code><code class="descname">keywords_encode</code><span class="sig-paren">(</span><em>d</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/path.html#keywords_encode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.path.keywords_encode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encodes the directory entry collection keywords.</p>
+</dd></dl>
+
 </div>
-<div class="section" id="form-models">
-<h2>Form Models<a class="headerlink" href="#form-models" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.forms.allocation">
+<span id="form-models"></span><h2>Form Models<a class="headerlink" href="#module-onegov.org.forms.allocation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.org.forms.allocation.AllocationForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.allocation.</code><code class="descname">AllocationForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/allocation.html#AllocationForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.allocation.AllocationForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Baseform for all allocation forms. Allocation forms are expected
+to implement the methods above (which contain a NotImplementedException).</p>
+<p>Have a look at <a class="reference external" href="http://libres.readthedocs.io/en/latest/api.html#libres.db.scheduler.Scheduler.allocate" title="(in Libres v0.0.2)"><code class="xref py py-meth docutils literal"><span class="pre">libres.db.scheduler.Scheduler.allocate()</span></code></a> to find out
+more about those values.</p>
+<dl class="attribute">
+<dt id="onegov.org.forms.allocation.AllocationForm.weekdays">
+<code class="descname">weekdays</code><a class="headerlink" href="#onegov.org.forms.allocation.AllocationForm.weekdays" title="Permalink to this definition">¶</a></dt>
+<dd><p>The rrule weekdays derived from the except_for field.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.forms.allocation.AllocationForm.dates">
+<code class="descname">dates</code><a class="headerlink" href="#onegov.org.forms.allocation.AllocationForm.dates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Passed to <a class="reference external" href="http://libres.readthedocs.io/en/latest/api.html#libres.db.scheduler.Scheduler.allocate" title="(in Libres v0.0.2)"><code class="xref py py-meth docutils literal"><span class="pre">libres.db.scheduler.Scheduler.allocate()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.forms.allocation.AllocationForm.whole_day">
+<code class="descname">whole_day</code><a class="headerlink" href="#onegov.org.forms.allocation.AllocationForm.whole_day" title="Permalink to this definition">¶</a></dt>
+<dd><p>Passed to <a class="reference external" href="http://libres.readthedocs.io/en/latest/api.html#libres.db.scheduler.Scheduler.allocate" title="(in Libres v0.0.2)"><code class="xref py py-meth docutils literal"><span class="pre">libres.db.scheduler.Scheduler.allocate()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.forms.allocation.AllocationForm.partly_available">
+<code class="descname">partly_available</code><a class="headerlink" href="#onegov.org.forms.allocation.AllocationForm.partly_available" title="Permalink to this definition">¶</a></dt>
+<dd><p>Passed to <a class="reference external" href="http://libres.readthedocs.io/en/latest/api.html#libres.db.scheduler.Scheduler.allocate" title="(in Libres v0.0.2)"><code class="xref py py-meth docutils literal"><span class="pre">libres.db.scheduler.Scheduler.allocate()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.forms.allocation.AllocationForm.quota">
+<code class="descname">quota</code><a class="headerlink" href="#onegov.org.forms.allocation.AllocationForm.quota" title="Permalink to this definition">¶</a></dt>
+<dd><p>Passed to <a class="reference external" href="http://libres.readthedocs.io/en/latest/api.html#libres.db.scheduler.Scheduler.allocate" title="(in Libres v0.0.2)"><code class="xref py py-meth docutils literal"><span class="pre">libres.db.scheduler.Scheduler.allocate()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.forms.allocation.AllocationForm.quota_limit">
+<code class="descname">quota_limit</code><a class="headerlink" href="#onegov.org.forms.allocation.AllocationForm.quota_limit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Passed to <a class="reference external" href="http://libres.readthedocs.io/en/latest/api.html#libres.db.scheduler.Scheduler.allocate" title="(in Libres v0.0.2)"><code class="xref py py-meth docutils literal"><span class="pre">libres.db.scheduler.Scheduler.allocate()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.forms.allocation.AllocationForm.data">
+<code class="descname">data</code><a class="headerlink" href="#onegov.org.forms.allocation.AllocationForm.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Passed to <a class="reference external" href="http://libres.readthedocs.io/en/latest/api.html#libres.db.scheduler.Scheduler.allocate" title="(in Libres v0.0.2)"><code class="xref py py-meth docutils literal"><span class="pre">libres.db.scheduler.Scheduler.allocate()</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.forms.allocation.AllocationEditForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.allocation.</code><code class="descname">AllocationEditForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/allocation.html#AllocationEditForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.allocation.AllocationEditForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Baseform for edit forms. Edit forms differ from the base allocation
+form somewhat, since they don’t offer a way to generate more than
+one allocation at a time.</p>
+<p>The dates property is therefore expected to return a single start, end
+dates tuple.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.forms.event"></span><dl class="class">
+<dt id="onegov.org.forms.event.EventForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.event.</code><code class="descname">EventForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/event.html#EventForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.event.EventForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the form for all events.</p>
+<dl class="method">
+<dt id="onegov.org.forms.event.EventForm.validate">
+<code class="descname">validate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/event.html#EventForm.validate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.event.EventForm.validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure a valid RRULE can be generated with the given fields.</p>
+<p>Might be better to group weekly and end_date in an enclosure,
+see See <a class="reference external" href="http://wtforms.readthedocs.org/en/latest/fields.html">http://wtforms.readthedocs.org/en/latest/fields.html</a>
+#field-enclosures.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.forms.event.EventForm.populate_obj">
+<code class="descname">populate_obj</code><span class="sig-paren">(</span><em>model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/event.html#EventForm.populate_obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.event.EventForm.populate_obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores the form values on the model.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.forms.event.EventForm.process_obj">
+<code class="descname">process_obj</code><span class="sig-paren">(</span><em>model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/event.html#EventForm.process_obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.event.EventForm.process_obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores the page values on the form.</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-onegov.org.forms.form_definition"></span><dl class="class">
+<dt id="onegov.org.forms.form_definition.FormDefinitionBaseForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.form_definition.</code><code class="descname">FormDefinitionBaseForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/form_definition.html#FormDefinitionBaseForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.form_definition.FormDefinitionBaseForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Form to edit defined forms.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.forms.newsletter"></span><span class="target" id="module-onegov.org.forms.page"></span><dl class="class">
+<dt id="onegov.org.forms.page.PageBaseForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.page.</code><code class="descname">PageBaseForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/page.html#PageBaseForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.page.PageBaseForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the base form for all pages.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.forms.page.LinkForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.page.</code><code class="descname">LinkForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/page.html#LinkForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.page.LinkForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the form for pages with the ‘link’ trait.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.forms.page.PageForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.page.</code><code class="descname">PageForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/page.html#PageForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.page.PageForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the form for pages with the ‘page’ trait.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.forms.person"></span><dl class="class">
+<dt id="onegov.org.forms.person.PersonForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.person.</code><code class="descname">PersonForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/person.html#PersonForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.person.PersonForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Form to edit people.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.forms.reservation"></span><span class="target" id="module-onegov.org.forms.resource"></span><dl class="class">
+<dt id="onegov.org.forms.resource.ResourceBaseForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.resource.</code><code class="descname">ResourceBaseForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/resource.html#ResourceBaseForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.resource.ResourceBaseForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the form for all resources.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.forms.resource.ResourceCleanupForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.resource.</code><code class="descname">ResourceCleanupForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/resource.html#ResourceCleanupForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.resource.ResourceCleanupForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the form to remove multiple allocations.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.forms.resource.ResourceExportForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.resource.</code><code class="descname">ResourceExportForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/resource.html#ResourceExportForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.resource.ResourceExportForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resource export form with start/end date.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.forms.settings"></span><dl class="class">
+<dt id="onegov.org.forms.settings.SettingsForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.settings.</code><code class="descname">SettingsForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/settings.html#SettingsForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.settings.SettingsForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the settings form for onegov org.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.forms.userprofile"></span><dl class="class">
+<dt id="onegov.org.forms.userprofile.UserProfileForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.userprofile.</code><code class="descname">UserProfileForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/userprofile.html#UserProfileForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.userprofile.UserProfileForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the settings form for user profiles.</p>
+</dd></dl>
+
 </div>
-<div class="section" id="views">
-<h2>Views<a class="headerlink" href="#views" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.views.allocation">
+<span id="views"></span><h2>Views<a class="headerlink" href="#module-onegov.org.views.allocation" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="onegov.org.views.allocation.view_allocations_json">
+<code class="descclassname">onegov.org.views.allocation.</code><code class="descname">view_allocations_json</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/allocation.html#view_allocations_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.allocation.view_allocations_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the allocations in a fullcalendar compatible events feed.</p>
+<p>See <a class="reference external" href="http://fullcalendar.io/docs/event_data/events_json_feed/">http://fullcalendar.io/docs/event_data/events_json_feed/</a> for
+more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.allocation.get_new_allocation_form_class">
+<code class="descclassname">onegov.org.views.allocation.</code><code class="descname">get_new_allocation_form_class</code><span class="sig-paren">(</span><em>resource</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/allocation.html#get_new_allocation_form_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.allocation.get_new_allocation_form_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the form class for new allocations (different resources have
+different allocation forms).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.allocation.get_edit_allocation_form_class">
+<code class="descclassname">onegov.org.views.allocation.</code><code class="descname">get_edit_allocation_form_class</code><span class="sig-paren">(</span><em>allocation</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/allocation.html#get_edit_allocation_form_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.allocation.get_edit_allocation_form_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the form class for existing allocations (different resources
+have different allocation forms).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.allocation.handle_new_allocation">
+<code class="descclassname">onegov.org.views.allocation.</code><code class="descname">handle_new_allocation</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/allocation.html#handle_new_allocation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.allocation.handle_new_allocation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handles new allocations for differing form classes.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.allocation.handle_edit_allocation">
+<code class="descclassname">onegov.org.views.allocation.</code><code class="descname">handle_edit_allocation</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/allocation.html#handle_edit_allocation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.allocation.handle_edit_allocation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handles edit allocation for differing form classes.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.allocation.handle_delete_allocation">
+<code class="descclassname">onegov.org.views.allocation.</code><code class="descname">handle_delete_allocation</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/allocation.html#handle_delete_allocation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.allocation.handle_delete_allocation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the given resource (throwing an error if there are existing
+reservations associated with it).</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.views.atoz"></span><span class="target" id="module-onegov.org.views.auth"></span><p>The authentication views.</p>
+<dl class="function">
+<dt id="onegov.org.views.auth.handle_login">
+<code class="descclassname">onegov.org.views.auth.</code><code class="descname">handle_login</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/auth.html#handle_login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.auth.handle_login" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handles the login requests.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.auth.handle_registration">
+<code class="descclassname">onegov.org.views.auth.</code><code class="descname">handle_registration</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/auth.html#handle_registration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.auth.handle_registration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handles the user registration.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.auth.view_logout">
+<code class="descclassname">onegov.org.views.auth.</code><code class="descname">view_logout</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/auth.html#view_logout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.auth.view_logout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handles the logout requests.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.auth.handle_password_reset_request">
+<code class="descclassname">onegov.org.views.auth.</code><code class="descname">handle_password_reset_request</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/auth.html#handle_password_reset_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.auth.handle_password_reset_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handles the GET and POST password reset requests.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.views.clipboard"></span><span class="target" id="module-onegov.org.views.editor"></span><p>Implements the adding/editing/removing of pages.</p>
+<span class="target" id="module-onegov.org.views.event"></span><p>The onegov org collection of images uploaded to the site.</p>
+<dl class="function">
+<dt id="onegov.org.views.event.assert_anonymous_access_only_temporary">
+<code class="descclassname">onegov.org.views.event.</code><code class="descname">assert_anonymous_access_only_temporary</code><span class="sig-paren">(</span><em>request</em>, <em>event</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/event.html#assert_anonymous_access_only_temporary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.event.assert_anonymous_access_only_temporary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raises exceptions if the current user is anonymous and no longer
+should be given access to the event.</p>
+<p>This could probably be done using morepath’s security system, but it would
+not be quite as straight-forward. This approach is, though we have
+to manually add this function to all public views the anonymous user
+should be able to access when creating a new event, but not anymore
+after that.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.event.publish_event">
+<code class="descclassname">onegov.org.views.event.</code><code class="descname">publish_event</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/event.html#publish_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.event.publish_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>Publish an event.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.event.handle_new_event">
+<code class="descclassname">onegov.org.views.event.</code><code class="descname">handle_new_event</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/event.html#handle_new_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.event.handle_new_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a new event.</p>
+<p>The event is created and the user is redirected to a view where he can
+review his submission and submit it finally.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.event.view_event">
+<code class="descclassname">onegov.org.views.event.</code><code class="descname">view_event</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/event.html#view_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.event.view_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>View an event.</p>
+<p>If the event is not already submitted, the submit form is displayed.</p>
+<p>A logged-in user can view all events and might edit them, an anonymous user
+will be redirected.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.event.handle_edit_event">
+<code class="descclassname">onegov.org.views.event.</code><code class="descname">handle_edit_event</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/event.html#handle_edit_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.event.handle_edit_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>Edit an event.</p>
+<p>An anonymous user might edit an initiated event, a logged in user can also
+edit all events.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.event.handle_delete_event">
+<code class="descclassname">onegov.org.views.event.</code><code class="descname">handle_delete_event</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/event.html#handle_delete_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.event.handle_delete_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete an event.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.event.ical_export_event">
+<code class="descclassname">onegov.org.views.event.</code><code class="descname">ical_export_event</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/event.html#ical_export_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.event.ical_export_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the event with all occurrences as ics.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.event.view_latest_event">
+<code class="descclassname">onegov.org.views.event.</code><code class="descname">view_latest_event</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/event.html#view_latest_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.event.view_latest_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>Redirects to the latest occurrence of an event that is, either the
+next future event or the last event in the past if there are no more
+future events.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.views.exceptionviews"></span><dl class="function">
+<dt id="onegov.org.views.exceptionviews.handle_forbidden">
+<code class="descclassname">onegov.org.views.exceptionviews.</code><code class="descname">handle_forbidden</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/exceptionviews.html#handle_forbidden"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.exceptionviews.handle_forbidden" title="Permalink to this definition">¶</a></dt>
+<dd><p>If a view is forbidden, the request is redirected to the login
+view. There, the user may login to the site and be redirected back
+to the originally forbidden view.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.views.files"></span><p>The onegov org collection of files uploaded to the site.</p>
+<dl class="function">
+<dt id="onegov.org.views.files.handle_file_upload">
+<code class="descclassname">onegov.org.views.files.</code><code class="descname">handle_file_upload</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/files.html#handle_file_upload"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.files.handle_file_upload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores the file given with the request and returns the new file object.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.files.view_old_files_redirect">
+<code class="descclassname">onegov.org.views.files.</code><code class="descname">view_old_files_redirect</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/files.html#view_old_files_redirect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.files.view_old_files_redirect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Redirects to the migrated depot file if possible. As a result, old
+image urls are preserved and will continue to function.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.views.form_collection"></span><p>Lists the custom forms.</p>
+<span class="target" id="module-onegov.org.views.form_definition"></span><span class="target" id="module-onegov.org.views.form_submission"></span><p>Renders and handles defined forms, turning them into submissions.</p>
+<dl class="function">
+<dt id="onegov.org.views.form_submission.handle_defined_form">
+<code class="descclassname">onegov.org.views.form_submission.</code><code class="descname">handle_defined_form</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/form_submission.html#handle_defined_form"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.form_submission.handle_defined_form" title="Permalink to this definition">¶</a></dt>
+<dd><p>Renders the empty form and takes input, even if it’s not valid, stores
+it as a pending submission and redirects the user to the view that handles
+pending submissions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.form_submission.handle_pending_submission">
+<code class="descclassname">onegov.org.views.form_submission.</code><code class="descname">handle_pending_submission</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/form_submission.html#handle_pending_submission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.form_submission.handle_pending_submission" title="Permalink to this definition">¶</a></dt>
+<dd><p>Renders a pending submission, takes it’s input and allows the
+user to turn the submission into a complete submission, once all data
+is valid.</p>
+<p>Takes the following query parameters for customization:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>* ``edit`` no validation is done on the first load if present
+* ``return-to`` the view redirects to this url once complete if present
+* ``title`` a custom title (required if external submission)
+* ``quiet`` no success messages are rendered if present
+</pre></div>
 </div>
-<div class="section" id="elements">
-<h2>Elements<a class="headerlink" href="#elements" title="Permalink to this headline">¶</a></h2>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.views.homepage"></span><p>The onegov organisation homepage.</p>
+<dl class="function">
+<dt id="onegov.org.views.homepage.view_org">
+<code class="descclassname">onegov.org.views.homepage.</code><code class="descname">view_org</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/homepage.html#view_org"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.homepage.view_org" title="Permalink to this definition">¶</a></dt>
+<dd><p>Renders the org’s homepage.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.views.imagesets"></span><span class="target" id="module-onegov.org.views.newsletter"></span><p>The newsletter view.</p>
+<span class="target" id="module-onegov.org.views.occurrence"></span><p>The onegov org collection of images uploaded to the site.</p>
+<dl class="function">
+<dt id="onegov.org.views.occurrence.view_occurrences">
+<code class="descclassname">onegov.org.views.occurrence.</code><code class="descname">view_occurrences</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/occurrence.html#view_occurrences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.occurrence.view_occurrences" title="Permalink to this definition">¶</a></dt>
+<dd><p>View all occurrences of all events.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.occurrence.view_get_occurrence">
+<code class="descclassname">onegov.org.views.occurrence.</code><code class="descname">view_get_occurrence</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/occurrence.html#view_get_occurrence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.occurrence.view_get_occurrence" title="Permalink to this definition">¶</a></dt>
+<dd><p>View a single occurrence of an event.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.occurrence.ical_export_occurence">
+<code class="descclassname">onegov.org.views.occurrence.</code><code class="descname">ical_export_occurence</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/occurrence.html#ical_export_occurence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.occurrence.ical_export_occurence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the occurrence as ics.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.occurrence.view_export">
+<code class="descclassname">onegov.org.views.occurrence.</code><code class="descname">view_export</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/occurrence.html#view_export"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.occurrence.view_export" title="Permalink to this definition">¶</a></dt>
+<dd><p>Export the occurrences in various formats.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.views.page"></span><p>Renders a onegov.page.</p>
+<span class="target" id="module-onegov.org.views.page_move"></span><span class="target" id="module-onegov.org.views.people"></span><span class="target" id="module-onegov.org.views.person_move"></span><span class="target" id="module-onegov.org.views.reservation"></span><dl class="function">
+<dt id="onegov.org.views.reservation.assert_anonymous_access_only_temporary">
+<code class="descclassname">onegov.org.views.reservation.</code><code class="descname">assert_anonymous_access_only_temporary</code><span class="sig-paren">(</span><em>resource</em>, <em>reservation</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/reservation.html#assert_anonymous_access_only_temporary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.reservation.assert_anonymous_access_only_temporary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raises exceptions if the current user is anonymous and no longer
+should be given access to the reservation models.</p>
+<p>This could probably be done using morepath’s security system, but it would
+not be quite as straight-forward. This approach is, though we have
+to manually add this function to all reservation views the anonymous user
+should be able to access when creating a new reservatin, but not anymore
+after that.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.reservation.assert_access_only_if_there_are_reservations">
+<code class="descclassname">onegov.org.views.reservation.</code><code class="descname">assert_access_only_if_there_are_reservations</code><span class="sig-paren">(</span><em>reservations</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/reservation.html#assert_access_only_if_there_are_reservations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.reservation.assert_access_only_if_there_are_reservations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raises an exception if no reservations are available.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.reservation.reserve_allocation">
+<code class="descclassname">onegov.org.views.reservation.</code><code class="descname">reserve_allocation</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/reservation.html#reserve_allocation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.reservation.reserve_allocation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a single reservation to the list of reservations bound to the
+current browser session.</p>
+<p>Does not actually reserve anything, just keeps a list of things to
+reserve later. Though it will still check if the reservation is
+feasable.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.reservation.handle_reservation_form">
+<code class="descclassname">onegov.org.views.reservation.</code><code class="descname">handle_reservation_form</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/reservation.html#handle_reservation_form"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.reservation.handle_reservation_form" title="Permalink to this definition">¶</a></dt>
+<dd><p>Asks the user for the form data required to complete one or many
+reservations on a resource.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.views.resource"></span><dl class="function">
+<dt id="onegov.org.views.resource.handle_cleanup_allocations">
+<code class="descclassname">onegov.org.views.resource.</code><code class="descname">handle_cleanup_allocations</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/resource.html#handle_cleanup_allocations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.resource.handle_cleanup_allocations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes all unused allocations between the given dates.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.views.search"></span><span class="target" id="module-onegov.org.views.settings"></span><p>The settings view, defining things like the logo or color of the org.</p>
+<dl class="function">
+<dt id="onegov.org.views.settings.handle_settings">
+<code class="descclassname">onegov.org.views.settings.</code><code class="descname">handle_settings</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/settings.html#handle_settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.settings.handle_settings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handles the GET and POST login requests.</p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.views.sitecollection"></span><dl class="function">
+<dt id="onegov.org.views.sitecollection.get_site_collection">
+<code class="descclassname">onegov.org.views.sitecollection.</code><code class="descname">get_site_collection</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/sitecollection.html#get_site_collection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.sitecollection.get_site_collection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of internal links to be used by the redactor.</p>
+<p>See <a class="reference external" href="http://imperavi.com/redactor/plugins/predefined-links/">http://imperavi.com/redactor/plugins/predefined-links/</a></p>
+</dd></dl>
+
+<span class="target" id="module-onegov.org.views.ticket"></span><span class="target" id="module-onegov.org.views.userprofile"></span><p>The settings of the logged in user.</p>
+<dl class="function">
+<dt id="onegov.org.views.userprofile.handle_user_profile">
+<code class="descclassname">onegov.org.views.userprofile.</code><code class="descname">handle_user_profile</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/userprofile.html#handle_user_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.userprofile.handle_user_profile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handles the GET and POST login requests.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.views.userprofile.handle_unsubscribe">
+<code class="descclassname">onegov.org.views.userprofile.</code><code class="descname">handle_unsubscribe</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/userprofile.html#handle_unsubscribe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.userprofile.handle_unsubscribe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unsubscribes a user from all <em>regular</em> e-mails.</p>
+<p>To be able to use this method, an url has to be created like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">?token=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">((</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">org</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;unsubscribe&#39;</span><span class="p">),</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">new_url_safe_token</span><span class="p">(</span>
+        <span class="p">{</span><span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="s1">&#39;user@example.org&#39;</span><span class="p">},</span> <span class="s1">&#39;unsubscribe&#39;</span>
+    <span class="p">)</span>
+<span class="p">))</span>
+</pre></div>
 </div>
-<div class="section" id="initial-content">
-<h2>Initial Content<a class="headerlink" href="#initial-content" title="Permalink to this headline">¶</a></h2>
+</dd></dl>
+
 </div>
-<div class="section" id="cronjobs">
-<h2>Cronjobs<a class="headerlink" href="#cronjobs" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.elements">
+<span id="elements"></span><h2>Elements<a class="headerlink" href="#module-onegov.org.elements" title="Permalink to this headline">¶</a></h2>
+<p>Contains small helper classes used as abstraction for various templating
+macros.</p>
+<dl class="class">
+<dt id="onegov.org.elements.Link">
+<em class="property">class </em><code class="descclassname">onegov.org.elements.</code><code class="descname">Link</code><span class="sig-paren">(</span><em>text</em>, <em>url</em>, <em>classes=None</em>, <em>request_method='GET'</em>, <em>attributes={}</em>, <em>active=False</em>, <em>model=None</em>, <em>subtitle=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/elements.html#Link"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.elements.Link" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a link rendered in a template.</p>
+<dl class="attribute">
+<dt id="onegov.org.elements.Link.text">
+<code class="descname">text</code><a class="headerlink" href="#onegov.org.elements.Link.text" title="Permalink to this definition">¶</a></dt>
+<dd><p>The text of the link</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Link.url">
+<code class="descname">url</code><a class="headerlink" href="#onegov.org.elements.Link.url" title="Permalink to this definition">¶</a></dt>
+<dd><p>The fully qualified url of the link</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Link.classes">
+<code class="descname">classes</code><a class="headerlink" href="#onegov.org.elements.Link.classes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classes included in the link</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Link.request_method">
+<code class="descname">request_method</code><a class="headerlink" href="#onegov.org.elements.Link.request_method" title="Permalink to this definition">¶</a></dt>
+<dd><p>The link method, defaults to ‘GET’. Also supported is ‘DELETE’,
+which will lead to the use of XHR</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Link.attributes">
+<code class="descname">attributes</code><a class="headerlink" href="#onegov.org.elements.Link.attributes" title="Permalink to this definition">¶</a></dt>
+<dd><p>HTML attributes (may override other attributes set by this class).
+Attributes which are translatable, are transalted before rendering.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Link.active">
+<code class="descname">active</code><a class="headerlink" href="#onegov.org.elements.Link.active" title="Permalink to this definition">¶</a></dt>
+<dd><p>Indicate if this link is active or not (not used for rendering)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Link.model">
+<code class="descname">model</code><a class="headerlink" href="#onegov.org.elements.Link.model" title="Permalink to this definition">¶</a></dt>
+<dd><p>The model that underlies this link (to check if the link is visible)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Link.subtitle">
+<code class="descname">subtitle</code><a class="headerlink" href="#onegov.org.elements.Link.subtitle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shown as a subtitle below certain links (not automatically rendered)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.elements.Img">
+<em class="property">class </em><code class="descclassname">onegov.org.elements.</code><code class="descname">Img</code><span class="sig-paren">(</span><em>src</em>, <em>alt=None</em>, <em>title=None</em>, <em>url=None</em>, <em>extra=None</em>, <em>width=None</em>, <em>height=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/elements.html#Img"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.elements.Img" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents an img element.</p>
+<dl class="attribute">
+<dt id="onegov.org.elements.Img.src">
+<code class="descname">src</code><a class="headerlink" href="#onegov.org.elements.Img.src" title="Permalink to this definition">¶</a></dt>
+<dd><p>The src of the image</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Img.alt">
+<code class="descname">alt</code><a class="headerlink" href="#onegov.org.elements.Img.alt" title="Permalink to this definition">¶</a></dt>
+<dd><p>The text for people that can’t or won’t look at the picture</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Img.title">
+<code class="descname">title</code><a class="headerlink" href="#onegov.org.elements.Img.title" title="Permalink to this definition">¶</a></dt>
+<dd><p>The title of the image</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Img.url">
+<code class="descname">url</code><a class="headerlink" href="#onegov.org.elements.Img.url" title="Permalink to this definition">¶</a></dt>
+<dd><p>The target of this image</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Img.width">
+<code class="descname">width</code><a class="headerlink" href="#onegov.org.elements.Img.width" title="Permalink to this definition">¶</a></dt>
+<dd><p>The width of the image in pixel</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Img.height">
+<code class="descname">height</code><a class="headerlink" href="#onegov.org.elements.Img.height" title="Permalink to this definition">¶</a></dt>
+<dd><p>The height of the image in pixel</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.elements.Img.extra">
+<code class="descname">extra</code><a class="headerlink" href="#onegov.org.elements.Img.extra" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extra parameters</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.elements.LinkGroup">
+<em class="property">class </em><code class="descclassname">onegov.org.elements.</code><code class="descname">LinkGroup</code><span class="sig-paren">(</span><em>title</em>, <em>links</em>, <em>model=None</em>, <em>right_side=True</em>, <em>classes=None</em>, <em>attributes=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/elements.html#LinkGroup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.elements.LinkGroup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a list of links.</p>
+</dd></dl>
+
 </div>
-<div class="section" id="utils">
-<h2>Utils<a class="headerlink" href="#utils" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.initial_content">
+<span id="initial-content"></span><h2>Initial Content<a class="headerlink" href="#module-onegov.org.initial_content" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="onegov.org.initial_content.builtin_form_definitions">
+<code class="descclassname">onegov.org.initial_content.</code><code class="descname">builtin_form_definitions</code><span class="sig-paren">(</span><em>path=None</em>, <em>locale='de_CH'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/initial_content.html#builtin_form_definitions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.initial_content.builtin_form_definitions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yields the name, title and the form definition of all form definitions
+in the given or the default path.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.initial_content.load_definition">
+<code class="descclassname">onegov.org.initial_content.</code><code class="descname">load_definition</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/initial_content.html#load_definition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.initial_content.load_definition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the title and the form definition from the given file.</p>
+</dd></dl>
+
 </div>
-<div class="section" id="mail">
-<h2>Mail<a class="headerlink" href="#mail" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.cronjobs">
+<span id="cronjobs"></span><h2>Cronjobs<a class="headerlink" href="#module-onegov.org.cronjobs" title="Permalink to this headline">¶</a></h2>
 </div>
-<div class="section" id="translations">
-<h2>Translations<a class="headerlink" href="#translations" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.utils">
+<span id="utils"></span><h2>Utils<a class="headerlink" href="#module-onegov.org.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="onegov.org.utils.djb2_hash">
+<code class="descclassname">onegov.org.utils.</code><code class="descname">djb2_hash</code><span class="sig-paren">(</span><em>text</em>, <em>size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/utils.html#djb2_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.utils.djb2_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implementation of the djb2 hash, a simple hash function with a
+configurable table size.</p>
+<p>** Do NOT use for cryptography! **</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.org.utils.get_user_color">
+<code class="descclassname">onegov.org.utils.</code><code class="descname">get_user_color</code><a class="reference internal" href="_modules/onegov/org/utils.html#get_user_color"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.utils.get_user_color" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets a user color for each username which is used for the
+user-initials-* elements. Each username is mapped to a color.</p>
+<p>Since the colorspace is very limited there are lots of collisions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The user color in an css rgb string.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.utils.add_class_to_node">
+<code class="descclassname">onegov.org.utils.</code><code class="descname">add_class_to_node</code><span class="sig-paren">(</span><em>node</em>, <em>classname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/utils.html#add_class_to_node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.utils.add_class_to_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the given classname to the given lxml node’s class list.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.utils.annotate_html">
+<code class="descclassname">onegov.org.utils.</code><code class="descname">annotate_html</code><span class="sig-paren">(</span><em>html</em>, <em>request=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/utils.html#annotate_html"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.utils.annotate_html" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the given html and annotates the following elements for some
+advanced styling:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Every paragraph containing an img element will be marked with the
+<cite>has-img</cite> class.</li>
+<li>If a link is found which points to a youtube or a vimeo video, the
+link itself as well as the surrounding paragraph is marked
+with the <cite>has-video</cite> class</li>
+</ul>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.utils.parse_fullcalendar_request">
+<code class="descclassname">onegov.org.utils.</code><code class="descname">parse_fullcalendar_request</code><span class="sig-paren">(</span><em>request</em>, <em>timezone</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/utils.html#parse_fullcalendar_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.utils.parse_fullcalendar_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses start and end from the given fullcalendar request. It is
+expected that no timezone is passed (the default).</p>
+<p>See <a class="reference external" href="http://fullcalendar.io/docs/timezone/timezone/">http://fullcalendar.io/docs/timezone/timezone/</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tuple of timezone-aware datetime objects or (None, None).</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.utils.show_libres_error">
+<code class="descclassname">onegov.org.utils.</code><code class="descname">show_libres_error</code><span class="sig-paren">(</span><em>e</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/utils.html#show_libres_error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.utils.show_libres_error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shows a human readable error message for the given libres exception,
+using request.alert.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.utils.predict_next_daterange">
+<code class="descclassname">onegov.org.utils.</code><code class="descname">predict_next_daterange</code><span class="sig-paren">(</span><em>dateranges</em>, <em>min_probability=0.8</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/utils.html#predict_next_daterange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.utils.predict_next_daterange" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a list of dateranges (start, end) and tries to predict the next
+daterange in the list.</p>
+<p>See <a class="reference internal" href="#onegov.org.utils.predict_next_value" title="onegov.org.utils.predict_next_value"><code class="xref py py-func docutils literal"><span class="pre">predict_next_value()</span></code></a> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.org.utils.predict_next_value">
+<code class="descclassname">onegov.org.utils.</code><code class="descname">predict_next_value</code><span class="sig-paren">(</span><em>values</em>, <em>min_probability=0.8</em>, <em>compute_delta=&lt;function &lt;lambda&gt;&gt;</em>, <em>add_delta=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/utils.html#predict_next_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.utils.predict_next_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a list of values and tries to predict the next value in the
+series.</p>
+<p>Meant to work on a small set of ranges (with first predictions
+appearing with only three values), this algorithm will look at all
+possible deltas between the values and keep track of the probability
+of delta y following delta x.</p>
+<p>If the delta between the second last and last value has a high
+probability of being followed by some delta p, then delta p is used to
+predict the next range.</p>
+<p>If the probability is too low (signified by min_probability), then None
+is returned.</p>
+<p>For large ranges better statistical models should be used. Here we are
+concerned with small series of data to answer the question “if a user
+selected three values, what will his fourth be?”</p>
+<p>If we for example know that the user selected 1, 2 and 3, then 4 is the
+next probable value in the series.</p>
+</dd></dl>
+
 </div>
-<div class="section" id="upgrade">
-<h2>Upgrade<a class="headerlink" href="#upgrade" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.org.mail">
+<span id="mail"></span><h2>Mail<a class="headerlink" href="#module-onegov.org.mail" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="onegov.org.mail.send_html_mail">
+<code class="descclassname">onegov.org.mail.</code><code class="descname">send_html_mail</code><span class="sig-paren">(</span><em>request</em>, <em>template</em>, <em>content</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/mail.html#send_html_mail"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.mail.send_html_mail" title="Permalink to this definition">¶</a></dt>
+<dd><p>” Sends an email rendered from the given template.</p>
+<p>Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">send_html_mail</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s1">&#39;mail_template.pt&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">},</span>
+    <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Test subject&quot;</span><span class="p">)</span>
+    <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;recipient@example.org&#39;</span><span class="p">,</span> <span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.org.translations">
+<span id="translations"></span><h2>Translations<a class="headerlink" href="#module-onegov.org.translations" title="Permalink to this headline">¶</a></h2>
+<p>Contains a list of manual translations. Those are usually messages that
+exist in external packages which provide no translations.</p>
+</div>
+<div class="section" id="module-onegov.org.upgrade">
+<span id="upgrade"></span><h2>Upgrade<a class="headerlink" href="#module-onegov.org.upgrade" title="Permalink to this headline">¶</a></h2>
+<p>Contains upgrade tasks that are executed when the application is being
+upgraded on the server. See <a class="reference internal" href="onegov_core.html#onegov.core.upgrade.upgrade_task" title="onegov.core.upgrade.upgrade_task"><code class="xref py py-class docutils literal"><span class="pre">onegov.core.upgrade.upgrade_task</span></code></a>.</p>
 </div>
 </div>
 

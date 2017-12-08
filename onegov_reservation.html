@@ -40,8 +40,48 @@
             
   <div class="section" id="onegov-reservation-api">
 <h1>Onegov Reservation API<a class="headerlink" href="#onegov-reservation-api" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="core">
-<h2>Core<a class="headerlink" href="#core" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.reservation.core">
+<span id="core"></span><h2>Core<a class="headerlink" href="#module-onegov.reservation.core" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.reservation.core.LibresIntegration">
+<em class="property">class </em><code class="descclassname">onegov.reservation.core.</code><code class="descname">LibresIntegration</code><a class="reference internal" href="_modules/onegov/reservation/core.html#LibresIntegration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.reservation.core.LibresIntegration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides libres integration for
+<a class="reference internal" href="onegov_core.html#onegov.core.framework.Framework" title="onegov.core.framework.Framework"><code class="xref py py-class docutils literal"><span class="pre">onegov.core.framework.Framework</span></code></a> based applications.</p>
+<p>The application must be connected to a database</p>
+<p>Usage:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">Framework</span>
+
+<span class="k">class</span> <span class="nc">MyApp</span><span class="p">(</span><span class="n">Framework</span><span class="p">,</span> <span class="n">LibresIntegration</span><span class="p">):</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="onegov.reservation.core.LibresIntegration.configure_libres">
+<code class="descname">configure_libres</code><span class="sig-paren">(</span><em>**cfg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/reservation/core.html#LibresIntegration.configure_libres"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.reservation.core.LibresIntegration.configure_libres" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configures the libres integration and leaves two properties on
+the class:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Libres_context:</th><td class="field-body">The libres context configured for the current application.</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Libres_registrye:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body">The libres registry bound to the current application.</td>
+</tr>
+</tbody>
+</table>
+<p>With those two a scheduler can easily be created:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">libres</span> <span class="k">import</span> <span class="n">new_scheduler</span>
+<span class="n">scheduler</span> <span class="o">=</span> <span class="n">new_scheduler</span><span class="p">(</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">libres_context</span><span class="p">,</span> <span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="s1">&#39;Europe/Zurich&#39;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 </div>
 
