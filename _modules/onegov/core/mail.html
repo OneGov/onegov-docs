@@ -44,7 +44,7 @@
 
 <span class="kn">from</span> <span class="nn">email.mime.multipart</span> <span class="k">import</span> <span class="n">MIMEMultipart</span>
 <span class="kn">from</span> <span class="nn">mailbox</span> <span class="k">import</span> <span class="n">Maildir</span><span class="p">,</span> <span class="n">MaildirMessage</span>
-<span class="kn">from</span> <span class="nn">mailthon.enclosure</span> <span class="k">import</span> <span class="n">HTML</span><span class="p">,</span> <span class="n">PlainText</span><span class="p">,</span> <span class="n">Attachment</span>
+<span class="kn">from</span> <span class="nn">mailthon.enclosure</span> <span class="k">import</span> <span class="n">HTML</span><span class="p">,</span> <span class="n">PlainText</span><span class="p">,</span> <span class="n">Attachment</span><span class="p">,</span> <span class="n">Enclosure</span>
 <span class="kn">from</span> <span class="nn">mailthon.envelope</span> <span class="k">import</span> <span class="n">Envelope</span> <span class="k">as</span> <span class="n">BaseEnvelope</span>
 <span class="kn">from</span> <span class="nn">mailthon.postman</span> <span class="k">import</span> <span class="n">Postman</span>
 <span class="kn">from</span> <span class="nn">onegov.core.html</span> <span class="k">import</span> <span class="n">html_to_text</span>
@@ -59,8 +59,8 @@
 
 <span class="sd">    :param content: HTML content.</span>
 <span class="sd">    :param encoding: Encoding of the email.</span>
-<span class="sd">    :param attachments: List of filenames to</span>
-<span class="sd">        attach to the email.</span>
+<span class="sd">    :param attachments: Either a list of :class:`mailthon.enclosure.Enclosure`</span>
+<span class="sd">        or a list of filenames to attach to the email.</span>
 
 <span class="sd">    Note: this is basically a copy of :func:`mailthon.api.email`, though it</span>
 <span class="sd">    adds the plaintext alternative.</span>
@@ -73,25 +73,33 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">plaintext</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="c1"># According to RFC 2046, the last part of a multipart message, in this case</span>
-    <span class="c1"># the HTML message, is best and preferred</span>
-    <span class="n">enclosure</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">PlainText</span><span class="p">(</span><span class="n">plaintext</span><span class="p">,</span> <span class="n">encoding</span><span class="p">),</span>
-        <span class="n">HTML</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">encoding</span><span class="p">),</span>
+    <span class="n">headers_</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">headers</span><span class="o">.</span><span class="n">subject</span><span class="p">(</span><span class="n">subject</span><span class="p">),</span>
+        <span class="n">headers</span><span class="o">.</span><span class="n">sender</span><span class="p">(</span><span class="n">sender</span><span class="p">),</span>
+        <span class="n">headers</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">receivers</span><span class="p">),</span>
+        <span class="n">headers</span><span class="o">.</span><span class="n">cc</span><span class="p">(</span><span class="o">*</span><span class="n">cc</span><span class="p">),</span>
+        <span class="n">headers</span><span class="o">.</span><span class="n">bcc</span><span class="p">(</span><span class="o">*</span><span class="n">bcc</span><span class="p">),</span>
+        <span class="n">headers</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
+        <span class="n">headers</span><span class="o">.</span><span class="n">message_id</span><span class="p">(),</span>
     <span class="p">]</span>
-    <span class="n">enclosure</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">Attachment</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">attachments</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">Envelope</span><span class="p">(</span>
-        <span class="n">headers</span><span class="o">=</span><span class="p">[</span>
-            <span class="n">headers</span><span class="o">.</span><span class="n">subject</span><span class="p">(</span><span class="n">subject</span><span class="p">),</span>
-            <span class="n">headers</span><span class="o">.</span><span class="n">sender</span><span class="p">(</span><span class="n">sender</span><span class="p">),</span>
-            <span class="n">headers</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">receivers</span><span class="p">),</span>
-            <span class="n">headers</span><span class="o">.</span><span class="n">cc</span><span class="p">(</span><span class="o">*</span><span class="n">cc</span><span class="p">),</span>
-            <span class="n">headers</span><span class="o">.</span><span class="n">bcc</span><span class="p">(</span><span class="o">*</span><span class="n">bcc</span><span class="p">),</span>
-            <span class="n">headers</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
-            <span class="n">headers</span><span class="o">.</span><span class="n">message_id</span><span class="p">(),</span>
-        <span class="p">],</span>
-        <span class="n">enclosure</span><span class="o">=</span><span class="n">enclosure</span><span class="p">,</span>
-    <span class="p">)</span></div>
+
+    <span class="c1"># According to RFC 2046, the last part of a multipart message, in this</span>
+    <span class="c1"># case the HTML message, is best and preferred</span>
+    <span class="n">enclosure</span> <span class="o">=</span> <span class="p">[</span><span class="n">PlainText</span><span class="p">(</span><span class="n">plaintext</span><span class="p">,</span> <span class="n">encoding</span><span class="p">),</span> <span class="n">HTML</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">encoding</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">attachments</span><span class="p">:</span>
+        <span class="c1"># simple &#39;mime-multipart/alternative&#39;</span>
+        <span class="n">envelope</span> <span class="o">=</span> <span class="n">Envelope</span><span class="p">(</span><span class="n">headers</span><span class="o">=</span><span class="n">headers_</span><span class="p">,</span> <span class="n">enclosure</span><span class="o">=</span><span class="n">enclosure</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># &#39;multipart/mixed&#39; with &#39;mime-multipart/alternative&#39; and attachments</span>
+        <span class="n">enclosure</span> <span class="o">=</span> <span class="p">[</span><span class="n">Envelope</span><span class="p">(</span><span class="n">headers</span><span class="o">=</span><span class="p">[],</span> <span class="n">enclosure</span><span class="o">=</span><span class="n">enclosure</span><span class="p">)]</span>
+        <span class="n">enclosure</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+            <span class="n">k</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">Enclosure</span><span class="p">)</span> <span class="k">else</span> <span class="n">Attachment</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">attachments</span>
+        <span class="p">)</span>
+        <span class="n">envelope</span> <span class="o">=</span> <span class="n">BaseEnvelope</span><span class="p">(</span><span class="n">headers</span><span class="o">=</span><span class="n">headers_</span><span class="p">,</span> <span class="n">enclosure</span><span class="o">=</span><span class="n">enclosure</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">envelope</span></div>
 
 
 <div class="viewcode-block" id="Envelope"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.mail.Envelope">[docs]</a><span class="k">class</span> <span class="nc">Envelope</span><span class="p">(</span><span class="n">BaseEnvelope</span><span class="p">):</span>

@@ -1417,6 +1417,35 @@ to the rule…</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="onegov.core.orm.as_selectable">
+<code class="descclassname">onegov.core.orm.</code><code class="descname">as_selectable</code><span class="sig-paren">(</span><em>query</em>, <em>alias=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/sql.html#as_selectable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.as_selectable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a raw SQL query and turns it into a selectable SQLAlchemy
+expression using annotations in comments.</p>
+<p>Expects to find a SELECT statement like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">SELECT</span>
+    <span class="n">foo</span><span class="p">,</span>  <span class="o">--</span> <span class="n">Text</span>
+    <span class="n">bar</span>   <span class="o">--</span> <span class="n">Integer</span>
+<span class="n">FROM</span>
+    <span class="n">foobar</span>
+</pre></div>
+</div>
+<p>The so created selectable can be used by SQLAlchemy:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">select</span>
+
+<span class="n">query</span> <span class="o">=</span> <span class="n">as_selectable</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">    SELECT</span>
+<span class="s1">        foo, -- Text</span>
+<span class="s1">        bar  -- Integer</span>
+<span class="s1">    FROM</span>
+<span class="s1">        foobar</span>
+<span class="s1">&#39;&#39;&#39;</span><span class="p">)</span>
+
+<span class="n">session</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">select</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">foo</span> <span class="o">==</span> <span class="s1">&#39;bar&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
 <dt id="onegov.core.orm.orm_cached">
 <code class="descclassname">onegov.core.orm.</code><code class="descname">orm_cached</code><span class="sig-paren">(</span><em>policy</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/cache.html#orm_cached"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.orm_cached" title="Permalink to this definition">¶</a></dt>
 <dd><p>The decorator use to setup the cache descriptor.</p>
@@ -3736,8 +3765,8 @@ alternative generated from the HTML content.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>content</strong> – HTML content.</li>
 <li><strong>encoding</strong> – Encoding of the email.</li>
-<li><strong>attachments</strong> – List of filenames to
-attach to the email.</li>
+<li><strong>attachments</strong> – Either a list of <code class="xref py py-class docutils literal"><span class="pre">mailthon.enclosure.Enclosure</span></code>
+or a list of filenames to attach to the email.</li>
 </ul>
 </td>
 </tr>
