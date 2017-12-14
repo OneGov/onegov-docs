@@ -655,7 +655,7 @@
 
 <div class="viewcode-block" id="Framework.send_email"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.send_email">[docs]</a>    <span class="k">def</span> <span class="nf">send_email</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reply_to</span><span class="p">,</span> <span class="n">receivers</span><span class="o">=</span><span class="p">(),</span> <span class="n">cc</span><span class="o">=</span><span class="p">(),</span> <span class="n">bcc</span><span class="o">=</span><span class="p">(),</span>
                    <span class="n">subject</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span>
-                   <span class="n">attachments</span><span class="o">=</span><span class="p">()):</span>
+                   <span class="n">attachments</span><span class="o">=</span><span class="p">(),</span> <span class="n">headers</span><span class="o">=</span><span class="p">{}):</span>
         <span class="sd">&quot;&quot;&quot; Sends a plain-text e-mail using :attr:`postman` to the given</span>
 <span class="sd">        recipients. A reply to address is used to enable people to answer</span>
 <span class="sd">        to the e-mail which is usually sent by a noreply kind of e-mail</span>
@@ -696,6 +696,8 @@
 
         <span class="n">envelope</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Sender&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mail_sender</span>
         <span class="n">envelope</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Reply-To&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">formataddr</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">address</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">headers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">envelope</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
         <span class="c1"># send e-mails through the transaction machinery</span>
         <span class="n">MailDataManager</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">postman</span><span class="p">,</span> <span class="n">envelope</span><span class="p">)</span></div>
