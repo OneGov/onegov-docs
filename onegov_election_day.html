@@ -295,15 +295,17 @@ instance by a communal instance.</p>
 <em class="property">class </em><code class="descclassname">onegov.election_day.models.notification.</code><code class="descname">Notification</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/models/notification.html#Notification"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.models.notification.Notification" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stores triggered notifications.</p>
 <dl class="attribute">
-<dt id="onegov.election_day.models.notification.Notification.id">
-<code class="descname">id</code><a class="headerlink" href="#onegov.election_day.models.notification.Notification.id" title="Permalink to this definition">¶</a></dt>
-<dd><p>Identifies the notification</p>
+<dt id="onegov.election_day.models.notification.Notification.type">
+<code class="descname">type</code><a class="headerlink" href="#onegov.election_day.models.notification.Notification.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>the type of the item, this can be used to create custom polymorphic
+subclasses of this class. See
+<a class="reference external" href="http://docs.sqlalchemy.org/en/improve_toc/ orm/extensions/declarative/inheritance.html">http://docs.sqlalchemy.org/en/improve_toc/ orm/extensions/declarative/inheritance.html</a>.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="onegov.election_day.models.notification.Notification.action">
-<code class="descname">action</code><a class="headerlink" href="#onegov.election_day.models.notification.Notification.action" title="Permalink to this definition">¶</a></dt>
-<dd><p>The action made (e.g. the URL called)</p>
+<dt id="onegov.election_day.models.notification.Notification.id">
+<code class="descname">id</code><a class="headerlink" href="#onegov.election_day.models.notification.Notification.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identifies the notification</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -352,7 +354,7 @@ instance by a communal instance.</p>
 
 <span class="target" id="module-onegov.election_day.models.principal"></span><dl class="class">
 <dt id="onegov.election_day.models.principal.Principal">
-<em class="property">class </em><code class="descclassname">onegov.election_day.models.principal.</code><code class="descname">Principal</code><span class="sig-paren">(</span><em>canton=None</em>, <em>municipality=None</em>, <em>name=None</em>, <em>logo=None</em>, <em>color='#000'</em>, <em>base=None</em>, <em>analytics=None</em>, <em>use_maps=False</em>, <em>fetch=None</em>, <em>webhooks=None</em>, <em>sms_notification=None</em>, <em>wabsti_import=False</em>, <em>pdf_signing=None</em>, <em>open_data=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/models/principal.html#Principal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.models.principal.Principal" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">onegov.election_day.models.principal.</code><code class="descname">Principal</code><span class="sig-paren">(</span><em>canton=None</em>, <em>municipality=None</em>, <em>name=None</em>, <em>logo=None</em>, <em>color='#000'</em>, <em>base=None</em>, <em>analytics=None</em>, <em>use_maps=False</em>, <em>fetch=None</em>, <em>webhooks=None</em>, <em>sms_notification=None</em>, <em>email_notification=None</em>, <em>wabsti_import=False</em>, <em>pdf_signing=None</em>, <em>open_data=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/models/principal.html#Principal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.models.principal.Principal" title="Permalink to this definition">¶</a></dt>
 <dd><p>The principal is the political entity running the election day app.</p>
 <p>If the principal is canton:
 * the <code class="docutils literal"><span class="pre">canton</span></code> shortcut must be set to a valid canton shortcut
@@ -491,14 +493,30 @@ day as JSON.</p>
 </dd></dl>
 
 <span class="target" id="module-onegov.election_day.views.subscription"></span><dl class="function">
-<dt id="onegov.election_day.views.subscription.subscribe">
-<code class="descclassname">onegov.election_day.views.subscription.</code><code class="descname">subscribe</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/views/subscription.html#subscribe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.views.subscription.subscribe" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.election_day.views.subscription.subscribe_email">
+<code class="descclassname">onegov.election_day.views.subscription.</code><code class="descname">subscribe_email</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/views/subscription.html#subscribe_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.views.subscription.subscribe_email" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the given email address to the email subscribers.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.election_day.views.subscription.unsubscribe_email">
+<code class="descclassname">onegov.election_day.views.subscription.</code><code class="descname">unsubscribe_email</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/views/subscription.html#unsubscribe_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.views.subscription.unsubscribe_email" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes the email number from the email subscribers.</p>
+<dl class="docutils">
+<dt>Allows one-click unsubscription as defined by RFC-8058:</dt>
+<dd>curl -X POST <a class="reference external" href="http://localhost:8080/xx/zg/unsubscribe-oneclick?opaque=yy">http://localhost:8080/xx/zg/unsubscribe-oneclick?opaque=yy</a></dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.election_day.views.subscription.subscribe_sms">
+<code class="descclassname">onegov.election_day.views.subscription.</code><code class="descname">subscribe_sms</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/views/subscription.html#subscribe_sms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.views.subscription.subscribe_sms" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds the given phone number to the SMS subscribers.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="onegov.election_day.views.subscription.unsubscribe">
-<code class="descclassname">onegov.election_day.views.subscription.</code><code class="descname">unsubscribe</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/views/subscription.html#unsubscribe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.views.subscription.unsubscribe" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.election_day.views.subscription.unsubscribe_sms">
+<code class="descclassname">onegov.election_day.views.subscription.</code><code class="descname">unsubscribe_sms</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/views/subscription.html#unsubscribe_sms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.views.subscription.unsubscribe_sms" title="Permalink to this definition">¶</a></dt>
 <dd><p>Removes the given phone number from the SMS subscribers.</p>
 </dd></dl>
 
@@ -707,8 +725,7 @@ results.</p>
 <dd><p>” The main view.</p>
 </dd></dl>
 
-<span class="target" id="module-onegov.election_day.views.manage.elections"></span><p>The manage views.</p>
-<dl class="function">
+<span class="target" id="module-onegov.election_day.views.manage.elections"></span><dl class="function">
 <dt id="onegov.election_day.views.manage.elections.view_elections">
 <code class="descclassname">onegov.election_day.views.manage.elections.</code><code class="descname">view_elections</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/views/manage/elections.html#view_elections"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.views.manage.elections.view_elections" title="Permalink to this definition">¶</a></dt>
 <dd><p>View a list of all elections.</p>
@@ -744,11 +761,16 @@ results.</p>
 <dd><p>Trigger the notifications related to an election.</p>
 </dd></dl>
 
-<span class="target" id="module-onegov.election_day.views.manage.subscribers"></span><p>The manage subscription views.</p>
+<span class="target" id="module-onegov.election_day.views.manage.subscribers"></span><dl class="function">
+<dt id="onegov.election_day.views.manage.subscribers.view_sms_subscribers">
+<code class="descclassname">onegov.election_day.views.manage.subscribers.</code><code class="descname">view_sms_subscribers</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/views/manage/subscribers.html#view_sms_subscribers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.views.manage.subscribers.view_sms_subscribers" title="Permalink to this definition">¶</a></dt>
+<dd><p>View a list with all SMS subscribers.</p>
+</dd></dl>
+
 <dl class="function">
-<dt id="onegov.election_day.views.manage.subscribers.view_subscribers">
-<code class="descclassname">onegov.election_day.views.manage.subscribers.</code><code class="descname">view_subscribers</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/views/manage/subscribers.html#view_subscribers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.views.manage.subscribers.view_subscribers" title="Permalink to this definition">¶</a></dt>
-<dd><p>View a list with all subscribers.</p>
+<dt id="onegov.election_day.views.manage.subscribers.view_email_subscribers">
+<code class="descclassname">onegov.election_day.views.manage.subscribers.</code><code class="descname">view_email_subscribers</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/views/manage/subscribers.html#view_email_subscribers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.views.manage.subscribers.view_email_subscribers" title="Permalink to this definition">¶</a></dt>
+<dd><p>View a list with all email subscribers.</p>
 </dd></dl>
 
 <dl class="function">
@@ -757,8 +779,7 @@ results.</p>
 <dd><p>Delete a single subsriber.</p>
 </dd></dl>
 
-<span class="target" id="module-onegov.election_day.views.manage.votes"></span><p>The manage views.</p>
-<dl class="function">
+<span class="target" id="module-onegov.election_day.views.manage.votes"></span><dl class="function">
 <dt id="onegov.election_day.views.manage.votes.view_votes">
 <code class="descclassname">onegov.election_day.views.manage.votes.</code><code class="descname">view_votes</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/views/manage/votes.html#view_votes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.views.manage.votes.view_votes" title="Permalink to this definition">¶</a></dt>
 <dd><p>View a list of all votes.</p>

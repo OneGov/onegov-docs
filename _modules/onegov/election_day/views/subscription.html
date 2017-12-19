@@ -39,34 +39,113 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.election_day.views.subscription</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
+<span></span><span class="kn">from</span> <span class="nn">morepath.request</span> <span class="k">import</span> <span class="n">Response</span>
+<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day.forms</span> <span class="k">import</span> <span class="n">SubscribeForm</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.collections</span> <span class="k">import</span> <span class="n">EmailSubscriberCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.collections</span> <span class="k">import</span> <span class="n">SmsSubscriberCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.forms</span> <span class="k">import</span> <span class="n">EmailSubscriptionForm</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.forms</span> <span class="k">import</span> <span class="n">SmsSubscriptionForm</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">DefaultLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.models</span> <span class="k">import</span> <span class="n">Principal</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day.collections</span> <span class="k">import</span> <span class="n">SubscriberCollection</span>
 
 
-<div class="viewcode-block" id="subscribe"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.views.subscription.subscribe">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span>
+<div class="viewcode-block" id="subscribe_email"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.views.subscription.subscribe_email">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span>
     <span class="n">model</span><span class="o">=</span><span class="n">Principal</span><span class="p">,</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;subscribe&#39;</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;subscribe-email&#39;</span><span class="p">,</span>
     <span class="n">template</span><span class="o">=</span><span class="s1">&#39;form.pt&#39;</span><span class="p">,</span>
-    <span class="n">form</span><span class="o">=</span><span class="n">SubscribeForm</span><span class="p">,</span>
+    <span class="n">form</span><span class="o">=</span><span class="n">EmailSubscriptionForm</span><span class="p">,</span>
     <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">subscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">subscribe_email</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds the given email address to the email subscribers.&quot;&quot;&quot;</span>
 
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="n">callout</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="n">subscribers</span> <span class="o">=</span> <span class="n">EmailSubscriberCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+        <span class="n">subscribers</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+        <span class="n">callout</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span>
+            <span class="s2">&quot;Successfully subscribed to the email service. You will receive &quot;</span>
+            <span class="s2">&quot;an email every time new results are published.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Get email alerts&quot;</span><span class="p">),</span>
+        <span class="s1">&#39;message&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span>
+            <span class="s2">&quot;You will receive an email as soon as new results have been &quot;</span>
+            <span class="s2">&quot;published. You can unsubscribe at any time.&quot;</span>
+        <span class="p">),</span>
+        <span class="s1">&#39;cancel&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">homepage_link</span><span class="p">,</span>
+        <span class="s1">&#39;callout&#39;</span><span class="p">:</span> <span class="n">callout</span><span class="p">,</span>
+        <span class="s1">&#39;show_form&#39;</span><span class="p">:</span> <span class="kc">False</span> <span class="k">if</span> <span class="n">callout</span> <span class="k">else</span> <span class="kc">True</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="unsubscribe_email"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.views.subscription.unsubscribe_email">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Principal</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;unsubscribe-email&#39;</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="s1">&#39;form.pt&#39;</span><span class="p">,</span>
+    <span class="n">form</span><span class="o">=</span><span class="n">EmailSubscriptionForm</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">unsubscribe_email</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Removes the email number from the email subscribers.</span>
+
+<span class="sd">    Allows one-click unsubscription as defined by RFC-8058:</span>
+<span class="sd">        curl -X POST http://localhost:8080/xx/zg/unsubscribe-oneclick?opaque=yy</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="n">subscribers</span> <span class="o">=</span> <span class="n">EmailSubscriberCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+
+    <span class="n">token</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;opaque&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;POST&#39;</span> <span class="ow">and</span> <span class="n">token</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">load_url_safe_token</span><span class="p">(</span><span class="n">token</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">subscribers</span><span class="o">.</span><span class="n">unsubscribe</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;address&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">Response</span><span class="p">()</span>
+
+    <span class="n">callout</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="n">subscribers</span><span class="o">.</span><span class="n">unsubscribe</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">callout</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span>
+            <span class="s2">&quot;Successfully unsubscribed from the email services. You will no &quot;</span>
+            <span class="s2">&quot;longer receive an email when new results are published.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Stop email subscription&quot;</span><span class="p">),</span>
+        <span class="s1">&#39;cancel&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">homepage_link</span><span class="p">,</span>
+        <span class="s1">&#39;callout&#39;</span><span class="p">:</span> <span class="n">callout</span><span class="p">,</span>
+        <span class="s1">&#39;show_form&#39;</span><span class="p">:</span> <span class="kc">False</span> <span class="k">if</span> <span class="n">callout</span> <span class="k">else</span> <span class="kc">True</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="subscribe_sms"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.views.subscription.subscribe_sms">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">Principal</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;subscribe-sms&#39;</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="s1">&#39;form.pt&#39;</span><span class="p">,</span>
+    <span class="n">form</span><span class="o">=</span><span class="n">SmsSubscriptionForm</span><span class="p">,</span>
+    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">subscribe_sms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Adds the given phone number to the SMS subscribers.&quot;&quot;&quot;</span>
 
     <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
     <span class="n">callout</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-        <span class="n">subscribers</span> <span class="o">=</span> <span class="n">SubscriberCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+        <span class="n">subscribers</span> <span class="o">=</span> <span class="n">SmsSubscriberCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
         <span class="n">subscribers</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">formatted_phone_number</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
         <span class="n">callout</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span>
-            <span class="s2">&quot;Successfully subscribed to the SMS services. You will receive an &quot;</span>
+            <span class="s2">&quot;Successfully subscribed to the SMS service. You will receive a &quot;</span>
             <span class="s2">&quot;SMS every time new results are published.&quot;</span>
         <span class="p">)</span>
 
@@ -75,7 +154,7 @@
         <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
         <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Get SMS alerts&quot;</span><span class="p">),</span>
         <span class="s1">&#39;message&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span>
-            <span class="s2">&quot;You will receive an SMS as soon as new results have been &quot;</span>
+            <span class="s2">&quot;You will receive a SMS as soon as new results have been &quot;</span>
             <span class="s2">&quot;published. The SMS service is free of charge. You can &quot;</span>
             <span class="s2">&quot;unsubscribe at any time.&quot;</span>
         <span class="p">),</span>
@@ -85,22 +164,21 @@
     <span class="p">}</span></div>
 
 
-<div class="viewcode-block" id="unsubscribe"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.views.subscription.unsubscribe">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span>
+<div class="viewcode-block" id="unsubscribe_sms"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.views.subscription.unsubscribe_sms">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span>
     <span class="n">model</span><span class="o">=</span><span class="n">Principal</span><span class="p">,</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;unsubscribe&#39;</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;unsubscribe-sms&#39;</span><span class="p">,</span>
     <span class="n">template</span><span class="o">=</span><span class="s1">&#39;form.pt&#39;</span><span class="p">,</span>
-    <span class="n">form</span><span class="o">=</span><span class="n">SubscribeForm</span><span class="p">,</span>
+    <span class="n">form</span><span class="o">=</span><span class="n">SmsSubscriptionForm</span><span class="p">,</span>
     <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">unsubscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
-
+<span class="k">def</span> <span class="nf">unsubscribe_sms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Removes the given phone number from the SMS subscribers.&quot;&quot;&quot;</span>
 
     <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
     <span class="n">callout</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-        <span class="n">subscribers</span> <span class="o">=</span> <span class="n">SubscriberCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
+        <span class="n">subscribers</span> <span class="o">=</span> <span class="n">SmsSubscriberCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span>
         <span class="n">subscribers</span><span class="o">.</span><span class="n">unsubscribe</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">formatted_phone_number</span><span class="p">)</span>
         <span class="n">callout</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span>
             <span class="s2">&quot;Successfully unsubscribed from the SMS services. You will no &quot;</span>

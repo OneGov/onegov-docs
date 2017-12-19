@@ -39,16 +39,14 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.election_day.views.manage.votes</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot; The manage views. &quot;&quot;&quot;</span>
-
-<span class="kn">import</span> <span class="nn">morepath</span>
-
+<span></span><span class="kn">from</span> <span class="nn">morepath</span> <span class="k">import</span> <span class="n">redirect</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Vote</span><span class="p">,</span> <span class="n">VoteCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">groupbylist</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.collections</span> <span class="k">import</span> <span class="n">ArchivedResultCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.collections</span> <span class="k">import</span> <span class="n">NotificationCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.forms</span> <span class="k">import</span> <span class="n">TriggerNotificationForm</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.forms</span> <span class="k">import</span> <span class="n">VoteForm</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">ManageVotesLayout</span>
 
@@ -58,7 +56,6 @@
     <span class="n">template</span><span class="o">=</span><span class="s1">&#39;manage/votes.pt&#39;</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="k">def</span> <span class="nf">view_votes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
-
     <span class="sd">&quot;&quot;&quot; View a list of all votes. &quot;&quot;&quot;</span>
 
     <span class="k">return</span> <span class="p">{</span>
@@ -75,7 +72,6 @@
     <span class="n">form</span><span class="o">=</span><span class="n">VoteForm</span>
 <span class="p">)</span>
 <span class="k">def</span> <span class="nf">create_vote</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
-
     <span class="sd">&quot;&quot;&quot; Create a new vote. &quot;&quot;&quot;</span>
 
     <span class="n">layout</span> <span class="o">=</span> <span class="n">ManageVotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
@@ -88,7 +84,7 @@
         <span class="n">form</span><span class="o">.</span><span class="n">update_model</span><span class="p">(</span><span class="n">vote</span><span class="p">)</span>
         <span class="n">archive</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">vote</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
         <span class="n">request</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Vote added.&quot;</span><span class="p">),</span> <span class="s1">&#39;success&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">manage_model_link</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">manage_model_link</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
@@ -104,7 +100,6 @@
     <span class="n">form</span><span class="o">=</span><span class="n">VoteForm</span>
 <span class="p">)</span>
 <span class="k">def</span> <span class="nf">edit_vote</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
-
     <span class="sd">&quot;&quot;&quot; Edit an existing vote. &quot;&quot;&quot;</span>
 
     <span class="n">layout</span> <span class="o">=</span> <span class="n">ManageVotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
@@ -116,7 +111,7 @@
         <span class="n">form</span><span class="o">.</span><span class="n">update_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="n">archive</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
         <span class="n">request</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Vote modified.&quot;</span><span class="p">),</span> <span class="s1">&#39;success&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">manage_model_link</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">manage_model_link</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">form</span><span class="o">.</span><span class="n">errors</span><span class="p">:</span>
         <span class="n">form</span><span class="o">.</span><span class="n">apply_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
@@ -136,7 +131,6 @@
     <span class="n">name</span><span class="o">=</span><span class="s1">&#39;clear&#39;</span>
 <span class="p">)</span>
 <span class="k">def</span> <span class="nf">clear_vote</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
-
     <span class="sd">&quot;&quot;&quot; Clear the results of a vote. &quot;&quot;&quot;</span>
 
     <span class="n">layout</span> <span class="o">=</span> <span class="n">ManageVotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
@@ -145,7 +139,7 @@
     <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
         <span class="n">archive</span><span class="o">.</span><span class="n">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
         <span class="n">request</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Results deleted.&quot;</span><span class="p">),</span> <span class="s1">&#39;success&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">manage_model_link</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">manage_model_link</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;message&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span>
@@ -170,7 +164,6 @@
     <span class="n">name</span><span class="o">=</span><span class="s1">&#39;delete&#39;</span>
 <span class="p">)</span>
 <span class="k">def</span> <span class="nf">delete_vote</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
-
     <span class="sd">&quot;&quot;&quot; Delete an existing vote. &quot;&quot;&quot;</span>
 
     <span class="n">layout</span> <span class="o">=</span> <span class="n">ManageVotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
@@ -179,7 +172,7 @@
     <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
         <span class="n">archive</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
         <span class="n">request</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Vote deleted.&quot;</span><span class="p">),</span> <span class="s1">&#39;success&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">manage_model_link</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">manage_model_link</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;message&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span>
@@ -201,10 +194,10 @@
 
 <div class="viewcode-block" id="trigger_vote"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.manage.votes.trigger_vote">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">manage_form</span><span class="p">(</span>
     <span class="n">model</span><span class="o">=</span><span class="n">Vote</span><span class="p">,</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;trigger&#39;</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;trigger&#39;</span><span class="p">,</span>
+    <span class="n">form</span><span class="o">=</span><span class="n">TriggerNotificationForm</span>
 <span class="p">)</span>
 <span class="k">def</span> <span class="nf">trigger_vote</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
-
     <span class="sd">&quot;&quot;&quot; Trigger the notifications related to a vote. &quot;&quot;&quot;</span>
 
     <span class="n">session</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
@@ -212,9 +205,9 @@
     <span class="n">layout</span> <span class="o">=</span> <span class="n">ManageVotesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-        <span class="n">notifications</span><span class="o">.</span><span class="n">trigger</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">notifications</span><span class="o">.</span><span class="n">trigger</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="o">.</span><span class="n">notifications</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
         <span class="n">request</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Notifications triggered.&quot;</span><span class="p">),</span> <span class="s1">&#39;success&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">manage_model_link</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">manage_model_link</span><span class="p">)</span>
 
     <span class="n">callout</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">message</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>

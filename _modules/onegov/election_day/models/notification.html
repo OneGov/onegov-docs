@@ -46,9 +46,11 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UTCDateTime</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
+<span class="kn">from</span> <span class="nn">onegov.core.templates</span> <span class="k">import</span> <span class="n">render_template</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">PostThread</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day.models.subscriber</span> <span class="k">import</span> <span class="n">Subscriber</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.models.subscriber</span> <span class="k">import</span> <span class="n">EmailSubscriber</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.models.subscriber</span> <span class="k">import</span> <span class="n">SmsSubscriber</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">get_summary</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">ForeignKey</span>
@@ -63,11 +65,19 @@
 
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;notifications&#39;</span>
 
+    <span class="c1">#: the type of the item, this can be used to create custom polymorphic</span>
+    <span class="c1">#: subclasses of this class. See</span>
+    <span class="c1">#: `&lt;http://docs.sqlalchemy.org/en/improve_toc/\</span>
+    <span class="c1">#: orm/extensions/declarative/inheritance.html&gt;`_.</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;polymorphic_on&#39;</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span>
+        <span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="kc">None</span>
+    <span class="p">}</span>
+
     <span class="c1">#: Identifies the notification</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
-
-    <span class="c1">#: The action made (e.g. the URL called)</span>
-    <span class="n">action</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="c1">#: The last update of the corresponding election/vote</span>
     <span class="n">last_modified</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UTCDateTime</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -101,6 +111,8 @@
 
 <span class="k">class</span> <span class="nc">WebhookNotification</span><span class="p">(</span><span class="n">Notification</span><span class="p">):</span>
 
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;webhooks&#39;</span><span class="p">}</span>
+
     <span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Posts the summary of the given vote or election to the webhook</span>
 <span class="sd">        URL defined for this principal.</span>
@@ -113,7 +125,6 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">update_from_model</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">=</span> <span class="s1">&#39;webhooks&#39;</span>
 
         <span class="n">webhooks</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">webhooks</span>
         <span class="k">if</span> <span class="n">webhooks</span><span class="p">:</span>
@@ -130,7 +141,93 @@
                 <span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
 
+<span class="k">class</span> <span class="nc">EmailNotification</span><span class="p">(</span><span class="n">Notification</span><span class="p">):</span>
+
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;email&#39;</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">set_locale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">locale</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Changes the locale of the request.</span>
+
+<span class="sd">        (Re)stores the intial locale if no locale is given.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">locale</span><span class="p">:</span>
+            <span class="n">locale</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;_old_locale&#39;</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">locale</span><span class="p">)</span>
+
+        <span class="n">request</span><span class="o">.</span><span class="n">locale</span> <span class="o">=</span> <span class="n">locale</span>
+        <span class="k">if</span> <span class="s1">&#39;translator&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">request</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;translator&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_subject_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">completed</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;New intermediate results&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Vote</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">answer</span> <span class="o">==</span> <span class="s1">&#39;accepted&#39;</span> <span class="ow">or</span> <span class="n">model</span><span class="o">.</span><span class="n">answer</span> <span class="o">==</span> <span class="s1">&#39;proposal&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Accepted&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">answer</span> <span class="o">==</span> <span class="s1">&#39;rejected&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Rejected&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">answer</span> <span class="o">==</span> <span class="s1">&#39;counter-proposal&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Counter proposal accepted&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Final results&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sends the results of the vote or election to all subscribers.</span>
+
+<span class="sd">        Adds unsubscribe headers (RFC 2369, RFC 8058).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">MailLayout</span>  <span class="c1"># circular</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_from_model</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_locale</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">subject_prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_subject_prefix</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+        <span class="n">template</span> <span class="o">=</span> <span class="s1">&#39;mail_</span><span class="si">{}</span><span class="s1">_results.pt&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="s1">&#39;vote&#39;</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Vote</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;election&#39;</span>
+        <span class="p">)</span>
+
+        <span class="n">subscribers</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">EmailSubscriber</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">subscriber</span> <span class="ow">in</span> <span class="n">subscribers</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_locale</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">subscriber</span><span class="o">.</span><span class="n">locale</span><span class="p">)</span>
+
+            <span class="n">optout</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="p">,</span> <span class="s1">&#39;unsubscribe-email&#39;</span><span class="p">)</span>
+            <span class="n">token</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">new_url_safe_token</span><span class="p">({</span><span class="s1">&#39;address&#39;</span><span class="p">:</span> <span class="n">subscriber</span><span class="o">.</span><span class="n">address</span><span class="p">})</span>
+
+            <span class="n">model_title</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">title_translations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">locale</span><span class="p">)</span>
+            <span class="n">model_title</span> <span class="o">=</span> <span class="n">model_title</span> <span class="ow">or</span> <span class="n">model</span><span class="o">.</span><span class="n">title</span>
+            <span class="n">subject</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> - </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">model_title</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">subject_prefix</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span>
+                <span class="n">subject</span><span class="o">=</span><span class="n">subject</span><span class="p">,</span>
+                <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">address</span><span class="p">,</span> <span class="p">),</span>
+                <span class="n">reply_to</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> &lt;</span><span class="si">{}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">mail_sender</span>
+                <span class="p">),</span>
+                <span class="n">content</span><span class="o">=</span><span class="n">render_template</span><span class="p">(</span>
+                    <span class="n">template</span><span class="p">,</span>
+                    <span class="n">request</span><span class="p">,</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">subject</span><span class="p">,</span>
+                        <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span>
+                        <span class="s1">&#39;model_title&#39;</span><span class="p">:</span> <span class="n">model_title</span><span class="p">,</span>
+                        <span class="s1">&#39;optout&#39;</span><span class="p">:</span> <span class="n">optout</span><span class="p">,</span>
+                        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">MailLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+                    <span class="p">}</span>
+                <span class="p">),</span>
+                <span class="n">headers</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s1">&#39;List-Unsubscribe&#39;</span><span class="p">:</span> <span class="s1">&#39;&lt;</span><span class="si">{}</span><span class="s1">?opaque=</span><span class="si">{}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">optout</span><span class="p">,</span> <span class="n">token</span><span class="p">),</span>
+                    <span class="s1">&#39;List-Unsubscribe-Post&#39;</span><span class="p">:</span> <span class="s1">&#39;List-Unsubscribe=One-Click&#39;</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_locale</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+
 <span class="k">class</span> <span class="nc">SmsNotification</span><span class="p">(</span><span class="n">Notification</span><span class="p">):</span>
+
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;sms&#39;</span><span class="p">}</span>
 
     <span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Posts a link to the vote or election to all subscribers.</span>
@@ -141,7 +238,6 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">update_from_model</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">=</span> <span class="s1">&#39;sms&#39;</span>
 
         <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">completed</span><span class="p">:</span>
             <span class="n">content</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span>
@@ -154,14 +250,13 @@
                 <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">sms_notification</span><span class="p">}</span>
             <span class="p">)</span>
 
-        <span class="n">session</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
-        <span class="n">subscribers</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Subscriber</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="n">subscribers</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">SmsSubscriber</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">subscriber</span> <span class="ow">in</span> <span class="n">subscribers</span><span class="p">:</span>
             <span class="n">translator</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">translations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">locale</span><span class="p">)</span>
             <span class="n">translated</span> <span class="o">=</span> <span class="n">translator</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="k">if</span> <span class="n">translator</span> <span class="k">else</span> <span class="n">content</span>
             <span class="n">translated</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">translated</span><span class="p">)</span>
 
-            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_sms</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">phone_number</span><span class="p">,</span> <span class="n">translated</span><span class="p">)</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_sms</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">address</span><span class="p">,</span> <span class="n">translated</span><span class="p">)</span>
 </pre></div>
 
           </div>

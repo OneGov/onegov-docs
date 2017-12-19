@@ -47,7 +47,7 @@
 <span class="kn">from</span> <span class="nn">alembic.migration</span> <span class="k">import</span> <span class="n">MigrationContext</span>
 <span class="kn">from</span> <span class="nn">alembic.operations</span> <span class="k">import</span> <span class="n">Operations</span>
 <span class="kn">from</span> <span class="nn">inspect</span> <span class="k">import</span> <span class="n">getmembers</span><span class="p">,</span> <span class="n">isfunction</span><span class="p">,</span> <span class="n">ismethod</span>
-<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">find_models</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">JSON</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Text</span>
@@ -427,7 +427,40 @@
 
     <span class="k">def</span> <span class="nf">has_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
         <span class="n">inspector</span> <span class="o">=</span> <span class="n">Inspector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">operations_connection</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">inspector</span><span class="o">.</span><span class="n">get_table_names</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">inspector</span><span class="o">.</span><span class="n">get_table_names</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">models</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">has_matching_tablename</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;__tablename__&#39;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>  <span class="c1"># abstract bases</span>
+
+            <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">__tablename__</span> <span class="o">==</span> <span class="n">table</span>
+
+        <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">bases</span><span class="p">:</span>
+            <span class="k">yield from</span> <span class="n">find_models</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">has_matching_tablename</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">records_per_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">(</span><span class="n">table</span><span class="p">):</span>
+            <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_column_with_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">default</span><span class="p">):</span>
+        <span class="c1"># add a nullable column</span>
+        <span class="n">nullable_column</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">nullable_column</span><span class="o">.</span><span class="n">nullable</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">operations</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">nullable_column</span><span class="p">)</span>
+
+        <span class="c1"># fill it with defaults</span>
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records_per_table</span><span class="p">(</span><span class="n">table</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">default</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">default</span><span class="p">)</span> <span class="k">else</span> <span class="n">default</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="c1"># activate non-null constraint</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">column</span><span class="o">.</span><span class="n">nullable</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">operations</span><span class="o">.</span><span class="n">alter_column</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># propagate to db</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="RawUpgradeRunner"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.RawUpgradeRunner">[docs]</a><span class="k">class</span> <span class="nc">RawUpgradeRunner</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
