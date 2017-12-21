@@ -174,7 +174,7 @@
 
         <span class="k">return</span> <span class="n">query</span>
 
-<div class="viewcode-block" id="FormSubmissionCollection.add"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.collection.FormSubmissionCollection.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">payment_method</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FormSubmissionCollection.add"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.collection.FormSubmissionCollection.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">payment_method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes a filled-out form instance and stores the submission</span>
 <span class="sd">        in the database. The form instance is expected to have a ``_source``</span>
 <span class="sd">        parameter, which contains the source used to build the form (as only</span>
@@ -210,6 +210,7 @@
         <span class="n">submission</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span> <span class="ow">or</span> <span class="n">uuid4</span><span class="p">()</span>
         <span class="n">submission</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="n">submission</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="n">submission</span><span class="o">.</span><span class="n">meta</span> <span class="o">=</span> <span class="n">meta</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="n">submission</span><span class="o">.</span><span class="n">payment_method</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">payment_method</span> <span class="ow">or</span>
             <span class="n">definition</span> <span class="ow">and</span> <span class="n">definition</span><span class="o">.</span><span class="n">payment_method</span> <span class="ow">or</span>
@@ -230,7 +231,8 @@
 
         <span class="k">return</span> <span class="n">submission</span></div>
 
-<div class="viewcode-block" id="FormSubmissionCollection.add_external"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.collection.FormSubmissionCollection.add_external">[docs]</a>    <span class="k">def</span> <span class="nf">add_external</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">payment_method</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FormSubmissionCollection.add_external"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.collection.FormSubmissionCollection.add_external">[docs]</a>    <span class="k">def</span> <span class="nf">add_external</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">payment_method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">meta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes a filled-out form instance and stores the submission</span>
 <span class="sd">        in the database. The form instance is expected to have a ``_source``</span>
 <span class="sd">        parameter, which contains the source used to build the form (as only</span>
@@ -246,7 +248,8 @@
             <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">,</span>
             <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">,</span>
             <span class="nb">id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-            <span class="n">payment_method</span><span class="o">=</span><span class="n">payment_method</span>
+            <span class="n">payment_method</span><span class="o">=</span><span class="n">payment_method</span><span class="p">,</span>
+            <span class="n">meta</span><span class="o">=</span><span class="n">meta</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="FormSubmissionCollection.complete_submission"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.collection.FormSubmissionCollection.complete_submission">[docs]</a>    <span class="k">def</span> <span class="nf">complete_submission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">submission</span><span class="p">):</span>
