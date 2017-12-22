@@ -46,7 +46,7 @@
 
 <span class="kn">from</span> <span class="nn">blinker</span> <span class="k">import</span> <span class="n">Signal</span>
 <span class="kn">from</span> <span class="nn">onegov.core.cache</span> <span class="k">import</span> <span class="n">lru_cache</span>
-<span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">custom_json</span>
+<span class="kn">from</span> <span class="nn">onegov.core.custom</span> <span class="k">import</span> <span class="n">json</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">create_engine</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">scoped_session</span><span class="p">,</span> <span class="n">sessionmaker</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.pool</span> <span class="k">import</span> <span class="n">QueuePool</span>
@@ -230,8 +230,8 @@
         <span class="k">assert</span> <span class="s1">&#39;json_serializer&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">engine_config</span>
         <span class="k">assert</span> <span class="s1">&#39;json_deserializer&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">engine_config</span>
 
-        <span class="n">engine_config</span><span class="p">[</span><span class="s1">&#39;json_serializer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">custom_json</span><span class="o">.</span><span class="n">dumps</span>
-        <span class="n">engine_config</span><span class="p">[</span><span class="s1">&#39;json_deserializer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">custom_json</span><span class="o">.</span><span class="n">loads</span>
+        <span class="n">engine_config</span><span class="p">[</span><span class="s1">&#39;json_serializer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span>
+        <span class="n">engine_config</span><span class="p">[</span><span class="s1">&#39;json_deserializer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span>
 
         <span class="k">if</span> <span class="n">pool_config</span><span class="p">:</span>
             <span class="n">engine_config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pool_config</span><span class="p">)</span>
