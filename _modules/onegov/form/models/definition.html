@@ -45,6 +45,7 @@
 <span class="kn">from</span> <span class="nn">onegov.form.models.submission</span> <span class="k">import</span> <span class="n">FormSubmission</span>
 <span class="kn">from</span> <span class="nn">onegov.form.parser</span> <span class="k">import</span> <span class="n">parse_form</span>
 <span class="kn">from</span> <span class="nn">onegov.form.utils</span> <span class="k">import</span> <span class="n">hash_definition</span>
+<span class="kn">from</span> <span class="nn">onegov.form.extensions</span> <span class="k">import</span> <span class="n">Extendable</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span><span class="p">,</span> <span class="n">relationship</span>
@@ -68,7 +69,8 @@
     <span class="p">}</span>
 
 
-<div class="viewcode-block" id="FormDefinition"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.models.FormDefinition">[docs]</a><span class="k">class</span> <span class="nc">FormDefinition</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">SearchableDefinition</span><span class="p">):</span>
+<div class="viewcode-block" id="FormDefinition"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.models.FormDefinition">[docs]</a><span class="k">class</span> <span class="nc">FormDefinition</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">SearchableDefinition</span><span class="p">,</span>
+                     <span class="n">Extendable</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Defines a form stored in the database. &quot;&quot;&quot;</span>
 
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;forms&#39;</span>
@@ -112,7 +114,8 @@
     <span class="k">def</span> <span class="nf">form_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Parses the form definition and returns a form class. &quot;&quot;&quot;</span>
 
-        <span class="k">return</span> <span class="n">parse_form</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">definition</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">extend_form_class</span><span class="p">(</span>
+            <span class="n">parse_form</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">definition</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;extensions&#39;</span><span class="p">))</span>
 
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;definition&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">definition_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">definition</span><span class="p">):</span>

@@ -163,6 +163,26 @@
         <span class="k">for</span> <span class="n">processor</span> <span class="ow">in</span> <span class="n">preprocessors</span><span class="p">:</span>
             <span class="nb">next</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
+<div class="viewcode-block" id="Form.clone"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.clone">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Creates an independent copy of the form class.</span>
+
+<span class="sd">        The fields of the so called class may be manipulated without affecting</span>
+<span class="sd">        the original class.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">class</span> <span class="nc">ClonedForm</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">unbound_field</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_unbound_fields</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">ClonedForm</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">unbound_field</span><span class="o">.</span><span class="n">field_class</span><span class="p">(</span>
+                <span class="o">*</span><span class="n">unbound_field</span><span class="o">.</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">unbound_field</span><span class="o">.</span><span class="n">kwargs</span>
+            <span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">ClonedForm</span></div>
+
 <div class="viewcode-block" id="Form.process_fieldset"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.process_fieldset">[docs]</a>    <span class="k">def</span> <span class="nf">process_fieldset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Processes the fieldset parameter on the fields, which puts</span>
 <span class="sd">        fields into fieldsets.</span>

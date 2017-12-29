@@ -49,6 +49,7 @@
 <span class="kn">from</span> <span class="nn">onegov.form.display</span> <span class="k">import</span> <span class="n">render_field</span>
 <span class="kn">from</span> <span class="nn">onegov.form.parser</span> <span class="k">import</span> <span class="n">parse_form</span>
 <span class="kn">from</span> <span class="nn">onegov.form.utils</span> <span class="k">import</span> <span class="n">extract_text_from_html</span><span class="p">,</span> <span class="n">hash_definition</span>
+<span class="kn">from</span> <span class="nn">onegov.form.extensions</span> <span class="k">import</span> <span class="n">Extendable</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">Payable</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">process_payment</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
@@ -59,7 +60,8 @@
 <span class="kn">from</span> <span class="nn">wtforms.fields.html5</span> <span class="k">import</span> <span class="n">EmailField</span>
 
 
-<div class="viewcode-block" id="FormSubmission"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.models.FormSubmission">[docs]</a><span class="k">class</span> <span class="nc">FormSubmission</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">Payable</span><span class="p">,</span> <span class="n">AssociatedFiles</span><span class="p">):</span>
+<div class="viewcode-block" id="FormSubmission"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.models.FormSubmission">[docs]</a><span class="k">class</span> <span class="nc">FormSubmission</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">Payable</span><span class="p">,</span> <span class="n">AssociatedFiles</span><span class="p">,</span>
+                     <span class="n">Extendable</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Defines a submitted form in the database. &quot;&quot;&quot;</span>
 
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;submissions&#39;</span>
@@ -115,7 +117,8 @@
     <span class="k">def</span> <span class="nf">form_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Parses the form definition and returns a form class. &quot;&quot;&quot;</span>
 
-        <span class="k">return</span> <span class="n">parse_form</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">definition</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">extend_form_class</span><span class="p">(</span>
+            <span class="n">parse_form</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">definition</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;extensions&#39;</span><span class="p">))</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">form_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -162,7 +165,8 @@
                     <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">title_fields</span>
                 <span class="p">))</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_email_field_data</span><span class="p">(</span><span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_email_field_data</span><span class="p">(</span><span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span>
 
             <span class="c1"># only set the date the first time around</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">received</span><span class="p">:</span>

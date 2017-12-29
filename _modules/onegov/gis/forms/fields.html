@@ -41,6 +41,7 @@
   <h1>Source code for onegov.gis.forms.fields</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">base64</span> <span class="k">import</span> <span class="n">b64decode</span><span class="p">,</span> <span class="n">b64encode</span>
 <span class="kn">from</span> <span class="nn">onegov.core.custom</span> <span class="k">import</span> <span class="n">json</span>
+<span class="kn">from</span> <span class="nn">onegov.form.display</span> <span class="k">import</span> <span class="n">registry</span><span class="p">,</span> <span class="n">BaseRenderer</span>
 <span class="kn">from</span> <span class="nn">onegov.gis.forms.widgets</span> <span class="k">import</span> <span class="n">CoordinatesWidget</span>
 <span class="kn">from</span> <span class="nn">onegov.gis.models</span> <span class="k">import</span> <span class="n">Coordinates</span>
 <span class="kn">from</span> <span class="nn">wtforms.fields</span> <span class="k">import</span> <span class="n">StringField</span>
@@ -77,28 +78,44 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">Coordinates</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">text</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">as_dict</span><span class="p">())</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span>
         <span class="n">text</span> <span class="o">=</span> <span class="n">b64encode</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">))</span>
         <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">text</span>
 
     <span class="k">def</span> <span class="nf">process_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Coordinates</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">Coordinates</span><span class="p">(</span><span class="o">**</span><span class="n">value</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">value</span> <span class="ow">and</span> <span class="n">Coordinates</span><span class="p">(</span><span class="o">**</span><span class="n">value</span><span class="p">)</span> <span class="ow">or</span> <span class="n">Coordinates</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">value</span>
 
     <span class="k">def</span> <span class="nf">populate_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">process_formdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">valuelist</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">valuelist</span> <span class="ow">and</span> <span class="n">valuelist</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
             <span class="n">text</span> <span class="o">=</span> <span class="n">b64decode</span><span class="p">(</span><span class="n">valuelist</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">Coordinates</span><span class="p">(</span><span class="o">**</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">Coordinates</span><span class="p">()</span></div>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;CoordinatesField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">CoordinatesFieldRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &lt;div class=&quot;marker-map&quot;</span>
+<span class="s2">                 data-map-type=&quot;thumbnail&quot;</span>
+<span class="s2">                 data-lat=&quot;</span><span class="si">{lat}</span><span class="s2">&quot;</span>
+<span class="s2">                 data-lon=&quot;</span><span class="si">{lon}</span><span class="s2">&quot;</span>
+<span class="s2">                 data-zoom=&quot;</span><span class="si">{zoom}</span><span class="s2">&quot;&gt;&lt;/div&gt;</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">lat</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span>
+            <span class="n">lon</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span>
+            <span class="n">zoom</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">zoom</span>
+        <span class="p">)</span>
 </pre></div>
 
           </div>

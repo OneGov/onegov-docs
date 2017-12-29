@@ -28,7 +28,7 @@ following consequences:
 
  * It only runs on POSIX platforms.
  * It uses PostgreSQL 10+ and won't support other databases.
- * It requires Python 3.4+. Python 2.x is *not* supported.
+ * It requires Python 3.6+. Python 2.x is *not* supported.
  * It aims to provide concurrency through multiple processes and is not
    necessarily thread-safe.
 

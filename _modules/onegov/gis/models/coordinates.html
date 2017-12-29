@@ -39,7 +39,10 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.gis.models.coordinates</h1><div class="highlight"><pre>
-<div class="viewcode-block" id="Coordinates"><a class="viewcode-back" href="../../../../onegov_gis.html#onegov.gis.models.Coordinates">[docs]</a><span></span><span class="k">class</span> <span class="nc">Coordinates</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span></span><span class="kn">from</span> <span class="nn">onegov.core.custom</span> <span class="k">import</span> <span class="n">json</span>
+
+
+<div class="viewcode-block" id="Coordinates"><a class="viewcode-back" href="../../../../onegov_gis.html#onegov.gis.models.Coordinates">[docs]</a><span class="k">class</span> <span class="nc">Coordinates</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">Serializable</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span> <span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;zoom&#39;</span><span class="p">)):</span>
     <span class="sd">&quot;&quot;&quot; Represents a pair of coordinates.</span>
 
 <span class="sd">    May contain zoom factor and other information like marker icon and</span>
@@ -47,6 +50,8 @@
 <span class="sd">    may or may not be used.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span> <span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;zoom&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lon</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">zoom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">=</span> <span class="n">lat</span>
@@ -56,12 +61,13 @@
     <span class="k">def</span> <span class="nf">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">False</span> <span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">)</span> <span class="k">else</span> <span class="kc">True</span>
 
-    <span class="k">def</span> <span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s1">&#39;lat&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span>
-            <span class="s1">&#39;lon&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span>
-            <span class="s1">&#39;zoom&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">zoom</span>
-        <span class="p">}</span></div>
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Coordinates</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">lat</span> <span class="ow">and</span>\
+            <span class="bp">self</span><span class="o">.</span><span class="n">lon</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">lon</span> <span class="ow">and</span>\
+            <span class="bp">self</span><span class="o">.</span><span class="n">zoom</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">zoom</span></div>
 
 
 <div class="viewcode-block" id="CoordinatesMixin"><a class="viewcode-back" href="../../../../onegov_gis.html#onegov.gis.models.CoordinatesMixin">[docs]</a><span class="k">class</span> <span class="nc">CoordinatesMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -72,17 +78,11 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">Coordinates</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;coordinates&#39;</span><span class="p">,</span> <span class="p">{}))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;coordinates&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">Coordinates</span><span class="p">()</span>
 
     <span class="nd">@coordinates</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span> <span class="nf">coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="p">{}</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;coordinates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;coordinates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span> <span class="ow">or</span> <span class="p">{}</span></div>
 </pre></div>
 
           </div>

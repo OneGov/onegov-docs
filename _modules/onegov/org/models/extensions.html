@@ -44,6 +44,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">linkify</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FieldDependency</span><span class="p">,</span> <span class="n">WTFormsClassBuilder</span>
 <span class="kn">from</span> <span class="nn">onegov.gis</span> <span class="k">import</span> <span class="n">CoordinatesField</span>
+<span class="kn">from</span> <span class="nn">onegov.gis</span> <span class="k">import</span> <span class="n">CoordinatesMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.people</span> <span class="k">import</span> <span class="n">Person</span><span class="p">,</span> <span class="n">PersonCollection</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
@@ -108,32 +109,11 @@
         <span class="k">return</span> <span class="n">HiddenPageForm</span></div>
 
 
-<div class="viewcode-block" id="CoordinatesExtension"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.extensions.CoordinatesExtension">[docs]</a><span class="k">class</span> <span class="nc">CoordinatesExtension</span><span class="p">(</span><span class="n">ContentExtension</span><span class="p">):</span>
+<div class="viewcode-block" id="CoordinatesExtension"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.extensions.CoordinatesExtension">[docs]</a><span class="k">class</span> <span class="nc">CoordinatesExtension</span><span class="p">(</span><span class="n">ContentExtension</span><span class="p">,</span> <span class="n">CoordinatesMixin</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Extends any class that has a data dictionary field with the ability</span>
 <span class="sd">    to add coordinates to it.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">coordinates</span> <span class="o">=</span> <span class="n">content_property</span><span class="p">(</span><span class="s1">&#39;coordinates&#39;</span><span class="p">)</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">has_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lat&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lon&#39;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">False</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">lat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lat&#39;</span><span class="p">)</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">lon</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lon&#39;</span><span class="p">)</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">zoom</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;zoom&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">extend_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form_class</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
 

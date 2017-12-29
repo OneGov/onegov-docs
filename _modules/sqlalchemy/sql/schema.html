@@ -106,6 +106,17 @@
         <span class="k">return</span> <span class="n">schema</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">name</span>
 
 
+<span class="c1"># this should really be in sql/util.py but we&#39;d have to</span>
+<span class="c1"># break an import cycle</span>
+<span class="k">def</span> <span class="nf">_copy_expression</span><span class="p">(</span><span class="n">expression</span><span class="p">,</span> <span class="n">source_table</span><span class="p">,</span> <span class="n">target_table</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">replace</span><span class="p">(</span><span class="n">col</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">source_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">contains_column</span><span class="p">(</span><span class="n">col</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">target_table</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">visitors</span><span class="o">.</span><span class="n">replacement_traverse</span><span class="p">(</span><span class="n">expression</span><span class="p">,</span> <span class="p">{},</span> <span class="n">replace</span><span class="p">)</span>
+
+
 <span class="nd">@inspection</span><span class="o">.</span><span class="n">_self_inspects</span>
 <span class="k">class</span> <span class="nc">SchemaItem</span><span class="p">(</span><span class="n">SchemaEventTarget</span><span class="p">,</span> <span class="n">visitors</span><span class="o">.</span><span class="n">Visitable</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Base class for items that define a database schema.&quot;&quot;&quot;</span>
@@ -412,6 +423,12 @@
 
 <span class="sd">    :param useexisting: Deprecated.  Use :paramref:`.Table.extend_existing`.</span>
 
+<span class="sd">    :param comment: Optional string that will render an SQL comment on table</span>
+<span class="sd">         creation.</span>
+
+<span class="sd">         .. versionadded:: 1.2 Added the :paramref:`.Table.comment` parameter</span>
+<span class="sd">            to :class:`.Table`.</span>
+
 <span class="sd">    :param \**kw: Additional keyword arguments not mentioned above are</span>
 <span class="sd">        dialect specific, and passed in the form ``&lt;dialectname&gt;_&lt;argname&gt;``.</span>
 <span class="sd">        See the documentation regarding an individual dialect at</span>
@@ -535,6 +552,8 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">implicit_returning</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;implicit_returning&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;comment&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="s1">&#39;info&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;info&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="s1">&#39;listeners&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
@@ -625,6 +644,9 @@
             <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">ArgumentError</span><span class="p">(</span>
                     <span class="s2">&quot;Can&#39;t redefine &#39;quote&#39; or &#39;quote_schema&#39; arguments&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;comment&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;comment&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="s1">&#39;info&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;info&#39;</span><span class="p">)</span>
@@ -895,6 +917,7 @@
             <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">))</span>
         <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
             <span class="n">name</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+            <span class="n">comment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">comment</span><span class="p">,</span>
             <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span>
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraints</span><span class="p">:</span>
@@ -911,9 +934,7 @@
             <span class="k">elif</span> <span class="ow">not</span> <span class="n">c</span><span class="o">.</span><span class="n">_type_bound</span><span class="p">:</span>
                 <span class="c1"># skip unique constraints that would be generated</span>
                 <span class="c1"># by the &#39;unique&#39; flag on Column</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">UniqueConstraint</span><span class="p">)</span> <span class="ow">and</span> \
-                    <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> \
-                        <span class="nb">list</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">columns</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">_column_flag</span><span class="p">:</span>
                     <span class="k">continue</span>
 
                 <span class="n">table</span><span class="o">.</span><span class="n">append_constraint</span><span class="p">(</span>
@@ -921,12 +942,13 @@
         <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indexes</span><span class="p">:</span>
             <span class="c1"># skip indexes that would be generated</span>
             <span class="c1"># by the &#39;index&#39; flag on Column</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> \
-                    <span class="nb">list</span><span class="p">(</span><span class="n">index</span><span class="o">.</span><span class="n">columns</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">index</span><span class="o">.</span><span class="n">_column_flag</span><span class="p">:</span>
                 <span class="k">continue</span>
             <span class="n">Index</span><span class="p">(</span><span class="n">index</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                   <span class="n">unique</span><span class="o">=</span><span class="n">index</span><span class="o">.</span><span class="n">unique</span><span class="p">,</span>
-                  <span class="o">*</span><span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">index</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">keys</span><span class="p">()],</span>
+                  <span class="o">*</span><span class="p">[</span><span class="n">_copy_expression</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">expr</span> <span class="ow">in</span> <span class="n">index</span><span class="o">.</span><span class="n">expressions</span><span class="p">],</span>
+                  <span class="n">_table</span><span class="o">=</span><span class="n">table</span><span class="p">,</span>
                   <span class="o">**</span><span class="n">index</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema_item_copy</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
 
@@ -1085,8 +1107,9 @@
 <span class="sd">                :ref:`metadata_defaults_toplevel`</span>
 
 <span class="sd">        :param doc: optional String that can be used by the ORM or similar</span>
-<span class="sd">            to document attributes.   This attribute does not render SQL</span>
-<span class="sd">            comments (a future attribute &#39;comment&#39; will achieve that).</span>
+<span class="sd">            to document attributes on the Python side.   This attribute does</span>
+<span class="sd">            **not** render SQL comments; use the :paramref:`.Column.comment`</span>
+<span class="sd">            parameter for this purpose.</span>
 
 <span class="sd">        :param key: An optional string identifier which will identify this</span>
 <span class="sd">            ``Column`` object on the :class:`.Table`. When a key is provided,</span>
@@ -1200,6 +1223,13 @@
 <span class="sd">             .. versionadded:: 0.8.3 Added the ``system=True`` parameter to</span>
 <span class="sd">                :class:`.Column`.</span>
 
+<span class="sd">        :param comment: Optional string that will render an SQL comment on</span>
+<span class="sd">             table creation.</span>
+
+<span class="sd">             .. versionadded:: 1.2 Added the :paramref:`.Column.comment`</span>
+<span class="sd">                parameter to :class:`.Column`.</span>
+
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -1246,6 +1276,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">autoincrement</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;autoincrement&#39;</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">constraints</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">foreign_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;comment&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
         <span class="c1"># check if this Column is proxying another column</span>
         <span class="k">if</span> <span class="s1">&#39;_proxies&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
@@ -1392,7 +1423,7 @@
                     <span class="s2">&quot;The &#39;index&#39; keyword argument on Column is boolean only. &quot;</span>
                     <span class="s2">&quot;To create indexes with a specific name, create an &quot;</span>
                     <span class="s2">&quot;explicit Index object external to the Table.&quot;</span><span class="p">)</span>
-            <span class="n">Index</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unique</span><span class="p">))</span>
+            <span class="n">Index</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unique</span><span class="p">),</span> <span class="n">_column_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unique</span><span class="p">,</span> <span class="n">util</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">ArgumentError</span><span class="p">(</span>
@@ -1401,7 +1432,8 @@
                     <span class="s2">&quot;specific name, append an explicit UniqueConstraint to &quot;</span>
                     <span class="s2">&quot;the Table&#39;s list of elements, or create an explicit &quot;</span>
                     <span class="s2">&quot;Index object external to the Table.&quot;</span><span class="p">)</span>
-            <span class="n">table</span><span class="o">.</span><span class="n">append_constraint</span><span class="p">(</span><span class="n">UniqueConstraint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">append_constraint</span><span class="p">(</span>
+                <span class="n">UniqueConstraint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">_column_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_setup_on_memoized_fks</span><span class="p">(</span><span class="k">lambda</span> <span class="n">fk</span><span class="p">:</span> <span class="n">fk</span><span class="o">.</span><span class="n">_set_remote_table</span><span class="p">(</span><span class="n">table</span><span class="p">))</span>
 
@@ -1454,6 +1486,7 @@
             <span class="n">onupdate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">onupdate</span><span class="p">,</span>
             <span class="n">server_onupdate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">server_onupdate</span><span class="p">,</span>
             <span class="n">doc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">doc</span><span class="p">,</span>
+            <span class="n">comment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">comment</span><span class="p">,</span>
             <span class="o">*</span><span class="n">args</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema_item_copy</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
@@ -2089,6 +2122,14 @@
             <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_clause_element</span> <span class="ow">and</span> \
             <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_sequence</span>
 
+    <span class="nd">@util</span><span class="o">.</span><span class="n">memoized_property</span>
+    <span class="nd">@util</span><span class="o">.</span><span class="n">dependencies</span><span class="p">(</span><span class="s2">&quot;sqlalchemy.sql.sqltypes&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_arg_is_typed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sqltypes</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_clause_element</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arg</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">sqltypes</span><span class="o">.</span><span class="n">NullType</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
     <span class="k">def</span> <span class="nf">_maybe_wrap_callable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Wrap callables that don&#39;t accept a context.</span>
 
@@ -2373,6 +2414,7 @@
             <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
 
 
+
 <span class="nd">@inspection</span><span class="o">.</span><span class="n">_self_inspects</span>
 <span class="k">class</span> <span class="nc">FetchedValue</span><span class="p">(</span><span class="n">_NotAColumnExpr</span><span class="p">,</span> <span class="n">SchemaEventTarget</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A marker for a transparent database-side default.</span>
@@ -2586,6 +2628,7 @@
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">columns</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
         <span class="n">_autoattach</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_autoattach&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_column_flag</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_column_flag&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">ColumnCollection</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_pending_colargs</span> <span class="o">=</span> <span class="p">[</span><span class="n">_to_schema_column_or_string</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
                                  <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">]</span>
@@ -2647,7 +2690,7 @@
 
         <span class="n">columns</span> <span class="o">=</span> <span class="n">cols_w_table</span>
 
-        <span class="n">tables</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">c</span><span class="o">.</span><span class="n">table</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">])</span>
+        <span class="n">tables</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="o">.</span><span class="n">table</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">}</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_set_parent_with_dispatch</span><span class="p">(</span><span class="n">tables</span><span class="o">.</span><span class="n">pop</span><span class="p">())</span>
         <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_allow_multiple_tables</span><span class="p">:</span>
@@ -2691,8 +2734,10 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">_autoattach</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_autoattach&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">_column_flag</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_column_flag&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
         <span class="n">Constraint</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
-        <span class="n">ColumnCollectionMixin</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">columns</span><span class="p">,</span> <span class="n">_autoattach</span><span class="o">=</span><span class="n">_autoattach</span><span class="p">)</span>
+        <span class="n">ColumnCollectionMixin</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">columns</span><span class="p">,</span> <span class="n">_autoattach</span><span class="o">=</span><span class="n">_autoattach</span><span class="p">,</span> <span class="n">_column_flag</span><span class="o">=</span><span class="n">_column_flag</span><span class="p">)</span>
 
     <span class="n">columns</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="sd">&quot;&quot;&quot;A :class:`.ColumnCollection` representing the set of columns</span>
@@ -2795,12 +2840,8 @@
 
     <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_table</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">target_table</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">def</span> <span class="nf">replace</span><span class="p">(</span><span class="n">col</span><span class="p">):</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">contains_column</span><span class="p">(</span><span class="n">col</span><span class="p">):</span>
-                    <span class="k">return</span> <span class="n">target_table</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="kc">None</span>
-            <span class="n">sqltext</span> <span class="o">=</span> <span class="n">visitors</span><span class="o">.</span><span class="n">replacement_traverse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sqltext</span><span class="p">,</span> <span class="p">{},</span> <span class="n">replace</span><span class="p">)</span>
+            <span class="n">sqltext</span> <span class="o">=</span> <span class="n">_copy_expression</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sqltext</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="n">target_table</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">sqltext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sqltext</span>
         <span class="n">c</span> <span class="o">=</span> <span class="n">CheckConstraint</span><span class="p">(</span><span class="n">sqltext</span><span class="p">,</span>
@@ -3414,7 +3455,7 @@
 <span class="sd">            documented arguments.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">table</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">table</span> <span class="o">=</span> <span class="n">table</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="n">columns</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">processed_expressions</span> <span class="o">=</span> <span class="p">[]</span>
@@ -3427,13 +3468,24 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">expressions</span> <span class="o">=</span> <span class="n">processed_expressions</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">quoted_name</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;quote&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">unique</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;unique&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">_column_flag</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_column_flag&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
         <span class="k">if</span> <span class="s1">&#39;info&#39;</span> <span class="ow">in</span> <span class="n">kw</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;info&#39;</span><span class="p">)</span>
+
+        <span class="c1"># TODO: consider &quot;table&quot; argument being public, but for</span>
+        <span class="c1"># the purpose of the fix here, it starts as private.</span>
+        <span class="k">if</span> <span class="s1">&#39;_table&#39;</span> <span class="ow">in</span> <span class="n">kw</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_table&#39;</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_dialect_kwargs</span><span class="p">(</span><span class="n">kw</span><span class="p">)</span>
 
         <span class="c1"># will call _set_parent() if table-bound column</span>
         <span class="c1"># objects are present</span>
-        <span class="n">ColumnCollectionMixin</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">columns</span><span class="p">)</span>
+        <span class="n">ColumnCollectionMixin</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">columns</span><span class="p">,</span> <span class="n">_column_flag</span><span class="o">=</span><span class="n">_column_flag</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">table</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_parent</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_set_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
         <span class="n">ColumnCollectionMixin</span><span class="o">.</span><span class="n">_set_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
@@ -3947,7 +3999,10 @@
                         <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">current</span><span class="p">]</span>
 
             <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">load</span><span class="p">:</span>
-                <span class="n">Table</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">reflect_opts</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">Table</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">reflect_opts</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">exc</span><span class="o">.</span><span class="n">UnreflectableTableError</span> <span class="k">as</span> <span class="n">uerr</span><span class="p">:</span>
+                    <span class="n">util</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Skipping table </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">uerr</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">append_ddl_listener</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_name</span><span class="p">,</span> <span class="n">listener</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Append a DDL event listener to this ``MetaData``.</span>
