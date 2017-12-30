@@ -49,6 +49,7 @@
 <span class="kn">from</span> <span class="nn">onegov.search.indexer</span> <span class="k">import</span> <span class="n">ORMEventTranslator</span>
 <span class="kn">from</span> <span class="nn">onegov.search.indexer</span> <span class="k">import</span> <span class="n">TypeMappingRegistry</span>
 <span class="kn">from</span> <span class="nn">onegov.search.utils</span> <span class="k">import</span> <span class="n">searchable_sqlalchemy_models</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">inspect</span>
 
 
 <div class="viewcode-block" id="ElasticsearchApp"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.ElasticsearchApp">[docs]</a><span class="k">class</span> <span class="nc">ElasticsearchApp</span><span class="p">(</span><span class="n">morepath</span><span class="o">.</span><span class="n">App</span><span class="p">):</span>
@@ -289,7 +290,16 @@
 
         <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">bases</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">searchable_sqlalchemy_models</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
-                <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+                <span class="n">query</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+                <span class="c1"># if the model has a polymorphic identity, limit the query</span>
+                <span class="c1"># by it, or we&#39;ll index too many things</span>
+                <span class="n">info</span> <span class="o">=</span> <span class="n">inspect</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">polymorphic_on</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                        <span class="n">info</span><span class="o">.</span><span class="n">polymorphic_on</span> <span class="o">==</span> <span class="n">info</span><span class="o">.</span><span class="n">polymorphic_identity</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">query</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">es_orm_events</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">es_indexer</span><span class="o">.</span><span class="n">process</span><span class="p">()</span></div></div>
 
