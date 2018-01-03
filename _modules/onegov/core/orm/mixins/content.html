@@ -45,6 +45,9 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy.schema</span> <span class="k">import</span> <span class="n">Column</span>
 
 
+<span class="n">IMMUTABLE_TYPES</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">complex</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="ContentMixin"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.mixins.ContentMixin">[docs]</a><span class="k">class</span> <span class="nc">ContentMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Mixin providing a meta/content JSON pair. Meta is a JSON column loaded</span>
 <span class="sd">    with each request, content is a JSON column loaded deferred (to be shown</span>
@@ -63,75 +66,178 @@
         <span class="k">return</span> <span class="n">deferred</span><span class="p">(</span><span class="n">Column</span><span class="p">(</span><span class="n">JSON</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">dict</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">dictionary_based_property_factory</span><span class="p">(</span><span class="n">attribute</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">is_valid_default</span><span class="p">(</span><span class="n">default</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
 
-    <span class="k">def</span> <span class="nf">dictionary_based_property</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Enables access of dictionaries through properties.</span>
+    <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">default</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
 
-<span class="sd">        Usage::</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">default</span><span class="p">,</span> <span class="n">IMMUTABLE_TYPES</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
 
-<span class="sd">            meta_property = dictionary_based_property_factory(&#39;meta&#39;)</span>
-
-<span class="sd">            class Model(ContentMixin):</span>
-<span class="sd">                content = meta_property(&#39;content&#39;)</span>
-
-<span class="sd">        This will add a content getter, setter and deleter bound, which all</span>
-<span class="sd">        proxy to meta[&#39;content&#39;].</span>
-
-<span class="sd">        Since this is just a thin wrapper around python&#39;s property we can also</span>
-<span class="sd">        override the setter::</span>
-
-<span class="sd">            class Model(ContentMixin):</span>
-<span class="sd">                content = meta_property(&#39;content&#39;)</span>
-
-<span class="sd">                @content.setter</span>
-<span class="sd">                def set_content(self, value):</span>
-<span class="sd">                    self.meta[&#39;content&#39;] = value</span>
-<span class="sd">                    self.meta[&#39;content_html&#39;] = to_html(value)</span>
-
-<span class="sd">                @content.deleter</span>
-<span class="sd">                def del_content(self):</span>
-<span class="sd">                    del self.meta[&#39;content&#39;]</span>
-<span class="sd">                    del self.meta[&#39;content_html&#39;]</span>
-
-<span class="sd">        meta_property and content_property, to access the</span>
-<span class="sd">        :class:`ContentMixin`&#39;s dictionaries are defined in this file.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">default</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
-            <span class="n">callable</span><span class="p">(</span><span class="n">default</span><span class="p">)</span> <span class="ow">or</span>
-            <span class="nb">isinstance</span><span class="p">(</span>
-                <span class="n">default</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">complex</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
-
-        <span class="k">def</span> <span class="nf">getter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="n">dictionary</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">dictionary</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                    <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="p">()</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">default</span><span class="p">)</span> <span class="k">else</span> <span class="n">default</span>
-                <span class="p">)</span>
-            <span class="k">return</span> <span class="n">default</span>
-
-        <span class="k">def</span> <span class="nf">setter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">,</span> <span class="p">{})</span>
-
-            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-
-        <span class="k">def</span> <span class="nf">deleter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="k">del</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)[</span><span class="n">name</span><span class="p">]</span>
-
-        <span class="k">return</span> <span class="nb">property</span><span class="p">(</span><span class="n">getter</span><span class="p">,</span> <span class="n">setter</span><span class="p">,</span> <span class="n">deleter</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">dictionary_based_property</span>
+    <span class="k">return</span> <span class="kc">False</span>
 
 
-<span class="n">content_property</span> <span class="o">=</span> <span class="n">dictionary_based_property_factory</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">)</span>
-<span class="n">data_property</span> <span class="o">=</span> <span class="n">dictionary_based_property_factory</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">)</span>
-<span class="n">meta_property</span> <span class="o">=</span> <span class="n">dictionary_based_property_factory</span><span class="p">(</span><span class="s1">&#39;meta&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="dict_property"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.mixins.dict_property">[docs]</a><span class="k">class</span> <span class="nc">dict_property</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Enables access of dictionaries through properties.</span>
+
+<span class="sd">    Usage::</span>
+
+<span class="sd">        class Model(ContentMixin):</span>
+<span class="sd">            access_times = dict_property(&#39;meta&#39;)</span>
+
+<span class="sd">    This creates a property that accesses the meta directory with the key</span>
+<span class="sd">    &#39;access_times&#39;. The key is implicitly copied from the definition.</span>
+
+<span class="sd">    Another way of writing this out would be::</span>
+
+<span class="sd">        class Model(ContentMixin):</span>
+<span class="sd">            access_times = dict_property(&#39;meta&#39;, &#39;access_times&#39;)</span>
+
+<span class="sd">    As is apparent, the &#39;access_times&#39; key is duplicated in this case. Usually</span>
+<span class="sd">    you do not need to provide the name. The exception being if you want</span>
+<span class="sd">    the property name and the dictionary key to differ::</span>
+
+<span class="sd">        class Model(ContentMixin):</span>
+<span class="sd">            access_times = dict_property(&#39;meta&#39;, &#39;access&#39;)</span>
+
+<span class="sd">    Here, the key in the dictionary is &#39;access&#39;, while the property is</span>
+<span class="sd">    &#39;access_times&#39;.</span>
+
+<span class="sd">    Since we often use the same kind of dictionaries we can use the builtin</span>
+<span class="sd">    properties that are scoped to a specific dictionary::</span>
+
+<span class="sd">        class Model(ContentMixin):</span>
+<span class="sd">            access_times = meta_property()</span>
+
+<span class="sd">    This is equivalent to the initial example.</span>
+
+<span class="sd">    We can also create our own scoped properties as follows:</span>
+
+<span class="sd">        foo_property = dict_property_factory(&#39;foo&#39;)</span>
+
+<span class="sd">        class Model(object):</span>
+
+<span class="sd">            foo = {}</span>
+
+<span class="sd">            bar = foo_property()</span>
+
+<span class="sd">    Here, model.bar would read model.foo[&#39;bar&#39;].</span>
+
+<span class="sd">    Dict properties are compatible with typical python properties, so the</span>
+<span class="sd">    usual getter/setter/deleter methods are also available::</span>
+
+<span class="sd">        class Model(ContentMixin):</span>
+<span class="sd">            content = meta_property()</span>
+
+<span class="sd">            @content.setter</span>
+<span class="sd">            def set_content(self, value):</span>
+<span class="sd">                self.meta[&#39;content&#39;] = value</span>
+<span class="sd">                self.meta[&#39;content_html&#39;] = to_html(value)</span>
+
+<span class="sd">            @content.deleter</span>
+<span class="sd">            def del_content(self):</span>
+<span class="sd">                del self.meta[&#39;content&#39;]</span>
+<span class="sd">                del self.meta[&#39;content_html&#39;]</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">is_valid_default</span><span class="p">(</span><span class="n">default</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attribute</span> <span class="o">=</span> <span class="n">attribute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">default</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">custom_getter</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">custom_setter</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">custom_deleter</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__set_name__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">owner</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sets the dictionary key, if none is provided. &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">getter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">custom_getter</span> <span class="o">=</span> <span class="n">fn</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">return</span> <span class="n">wrapper</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">setter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">custom_setter</span> <span class="o">=</span> <span class="n">fn</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">return</span> <span class="n">wrapper</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">deleter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">custom_deleter</span> <span class="o">=</span> <span class="n">fn</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">return</span> <span class="n">wrapper</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+
+        <span class="c1"># do not implement class-only behaviour</span>
+        <span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c1"># pass control wholly to the custom getter if available</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_getter</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_getter</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span>
+
+        <span class="c1"># get the value in the dictionary</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribute</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
+
+        <span class="c1"># fallback to the default</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">()</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span>
+
+    <span class="k">def</span> <span class="nf">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+
+        <span class="c1"># create the dictionary if it does not exist yet</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribute</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribute</span><span class="p">,</span> <span class="p">{})</span>
+
+        <span class="c1"># pass control to the custom setter if available</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_setter</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_setter</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="c1"># fallback to just setting the value</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribute</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">__delete__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">):</span>
+
+        <span class="c1"># pass control to the custom deleter if available</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_deleter</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_deleter</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span>
+
+        <span class="c1"># fallback to just removing the value</span>
+        <span class="k">del</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribute</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">]</span></div>
+
+
+<span class="k">def</span> <span class="nf">dict_property_factory</span><span class="p">(</span><span class="n">attribute</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">factory</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">dict_property</span><span class="p">(</span><span class="n">attribute</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">factory</span>
+
+
+<span class="n">content_property</span> <span class="o">=</span> <span class="n">dict_property_factory</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">)</span>
+<span class="n">data_property</span> <span class="o">=</span> <span class="n">dict_property_factory</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">)</span>
+<span class="n">meta_property</span> <span class="o">=</span> <span class="n">dict_property_factory</span><span class="p">(</span><span class="s1">&#39;meta&#39;</span><span class="p">)</span>
+
+<span class="c1"># for backwards compatibility, might be removed in the future</span>
+<span class="n">dictionary_based_property_factory</span> <span class="o">=</span> <span class="n">dict_property_factory</span>
 </pre></div>
 
           </div>

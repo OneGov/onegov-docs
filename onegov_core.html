@@ -1811,40 +1811,7 @@ to the associable model.</p>
 
 </dd></dl>
 
-<span class="target" id="module-onegov.core.orm.mixins"></span><dl class="function">
-<dt id="onegov.core.orm.mixins.content_property">
-<code class="descclassname">onegov.core.orm.mixins.</code><code class="descname">content_property</code><span class="sig-paren">(</span><em>name</em>, <em>default=None</em><span class="sig-paren">)</span><a class="headerlink" href="#onegov.core.orm.mixins.content_property" title="Permalink to this definition">¶</a></dt>
-<dd><p>Enables access of dictionaries through properties.</p>
-<p>Usage:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">meta_property</span> <span class="o">=</span> <span class="n">dictionary_based_property_factory</span><span class="p">(</span><span class="s1">&#39;meta&#39;</span><span class="p">)</span>
-
-<span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">ContentMixin</span><span class="p">):</span>
-    <span class="n">content</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>This will add a content getter, setter and deleter bound, which all
-proxy to meta[‘content’].</p>
-<p>Since this is just a thin wrapper around python’s property we can also
-override the setter:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">ContentMixin</span><span class="p">):</span>
-    <span class="n">content</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">)</span>
-
-    <span class="nd">@content</span><span class="o">.</span><span class="n">setter</span>
-    <span class="k">def</span> <span class="nf">set_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;content&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;content_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">to_html</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-
-    <span class="nd">@content</span><span class="o">.</span><span class="n">deleter</span>
-    <span class="k">def</span> <span class="nf">del_content</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;content&#39;</span><span class="p">]</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;content_html&#39;</span><span class="p">]</span>
-</pre></div>
-</div>
-<p>meta_property and content_property, to access the
-<a class="reference internal" href="#onegov.core.orm.mixins.ContentMixin" title="onegov.core.orm.mixins.ContentMixin"><code class="xref py py-class docutils literal"><span class="pre">ContentMixin</span></code></a>’s dictionaries are defined in this file.</p>
-</dd></dl>
-
-<dl class="class">
+<span class="target" id="module-onegov.core.orm.mixins"></span><dl class="class">
 <dt id="onegov.core.orm.mixins.ContentMixin">
 <em class="property">class </em><code class="descclassname">onegov.core.orm.mixins.</code><code class="descname">ContentMixin</code><a class="reference internal" href="_modules/onegov/core/orm/mixins/content.html#ContentMixin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.mixins.ContentMixin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mixin providing a meta/content JSON pair. Meta is a JSON column loaded
@@ -1852,23 +1819,52 @@ with each request, content is a JSON column loaded deferred (to be shown
 only in the detail view).</p>
 </dd></dl>
 
-<dl class="function">
-<dt id="onegov.core.orm.mixins.data_property">
-<code class="descclassname">onegov.core.orm.mixins.</code><code class="descname">data_property</code><span class="sig-paren">(</span><em>name</em>, <em>default=None</em><span class="sig-paren">)</span><a class="headerlink" href="#onegov.core.orm.mixins.data_property" title="Permalink to this definition">¶</a></dt>
+<dl class="class">
+<dt id="onegov.core.orm.mixins.dict_property">
+<em class="property">class </em><code class="descclassname">onegov.core.orm.mixins.</code><code class="descname">dict_property</code><span class="sig-paren">(</span><em>attribute</em>, <em>key=None</em>, <em>default=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/mixins/content.html#dict_property"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.mixins.dict_property" title="Permalink to this definition">¶</a></dt>
 <dd><p>Enables access of dictionaries through properties.</p>
 <p>Usage:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">meta_property</span> <span class="o">=</span> <span class="n">dictionary_based_property_factory</span><span class="p">(</span><span class="s1">&#39;meta&#39;</span><span class="p">)</span>
-
-<span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">ContentMixin</span><span class="p">):</span>
-    <span class="n">content</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">)</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">ContentMixin</span><span class="p">):</span>
+    <span class="n">access_times</span> <span class="o">=</span> <span class="n">dict_property</span><span class="p">(</span><span class="s1">&#39;meta&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>This will add a content getter, setter and deleter bound, which all
-proxy to meta[‘content’].</p>
-<p>Since this is just a thin wrapper around python’s property we can also
-override the setter:</p>
+<p>This creates a property that accesses the meta directory with the key
+‘access_times’. The key is implicitly copied from the definition.</p>
+<p>Another way of writing this out would be:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">ContentMixin</span><span class="p">):</span>
-    <span class="n">content</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">)</span>
+    <span class="n">access_times</span> <span class="o">=</span> <span class="n">dict_property</span><span class="p">(</span><span class="s1">&#39;meta&#39;</span><span class="p">,</span> <span class="s1">&#39;access_times&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>As is apparent, the ‘access_times’ key is duplicated in this case. Usually
+you do not need to provide the name. The exception being if you want
+the property name and the dictionary key to differ:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">ContentMixin</span><span class="p">):</span>
+    <span class="n">access_times</span> <span class="o">=</span> <span class="n">dict_property</span><span class="p">(</span><span class="s1">&#39;meta&#39;</span><span class="p">,</span> <span class="s1">&#39;access&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here, the key in the dictionary is ‘access’, while the property is
+‘access_times’.</p>
+<p>Since we often use the same kind of dictionaries we can use the builtin
+properties that are scoped to a specific dictionary:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">ContentMixin</span><span class="p">):</span>
+    <span class="n">access_times</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This is equivalent to the initial example.</p>
+<p>We can also create our own scoped properties as follows:</p>
+<blockquote>
+<div><p>foo_property = dict_property_factory(‘foo’)</p>
+<p>class Model(object):</p>
+<blockquote>
+<div><p>foo = {}</p>
+<p>bar = foo_property()</p>
+</div></blockquote>
+</div></blockquote>
+<p>Here, model.bar would read model.foo[‘bar’].</p>
+<p>Dict properties are compatible with typical python properties, so the
+usual getter/setter/deleter methods are also available:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">ContentMixin</span><span class="p">):</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
 
     <span class="nd">@content</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span> <span class="nf">set_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
@@ -1881,41 +1877,6 @@ override the setter:</p>
         <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;content_html&#39;</span><span class="p">]</span>
 </pre></div>
 </div>
-<p>meta_property and content_property, to access the
-<a class="reference internal" href="#onegov.core.orm.mixins.ContentMixin" title="onegov.core.orm.mixins.ContentMixin"><code class="xref py py-class docutils literal"><span class="pre">ContentMixin</span></code></a>’s dictionaries are defined in this file.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="onegov.core.orm.mixins.meta_property">
-<code class="descclassname">onegov.core.orm.mixins.</code><code class="descname">meta_property</code><span class="sig-paren">(</span><em>name</em>, <em>default=None</em><span class="sig-paren">)</span><a class="headerlink" href="#onegov.core.orm.mixins.meta_property" title="Permalink to this definition">¶</a></dt>
-<dd><p>Enables access of dictionaries through properties.</p>
-<p>Usage:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">meta_property</span> <span class="o">=</span> <span class="n">dictionary_based_property_factory</span><span class="p">(</span><span class="s1">&#39;meta&#39;</span><span class="p">)</span>
-
-<span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">ContentMixin</span><span class="p">):</span>
-    <span class="n">content</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>This will add a content getter, setter and deleter bound, which all
-proxy to meta[‘content’].</p>
-<p>Since this is just a thin wrapper around python’s property we can also
-override the setter:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">ContentMixin</span><span class="p">):</span>
-    <span class="n">content</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">)</span>
-
-    <span class="nd">@content</span><span class="o">.</span><span class="n">setter</span>
-    <span class="k">def</span> <span class="nf">set_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;content&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;content_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">to_html</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-
-    <span class="nd">@content</span><span class="o">.</span><span class="n">deleter</span>
-    <span class="k">def</span> <span class="nf">del_content</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;content&#39;</span><span class="p">]</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;content_html&#39;</span><span class="p">]</span>
-</pre></div>
-</div>
-<p>meta_property and content_property, to access the
-<a class="reference internal" href="#onegov.core.orm.mixins.ContentMixin" title="onegov.core.orm.mixins.ContentMixin"><code class="xref py py-class docutils literal"><span class="pre">ContentMixin</span></code></a>’s dictionaries are defined in this file.</p>
 </dd></dl>
 
 <dl class="class">
