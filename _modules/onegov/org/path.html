@@ -76,6 +76,7 @@
 <span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="p">(</span>
     <span class="n">AtoZPages</span><span class="p">,</span>
     <span class="n">Clipboard</span><span class="p">,</span>
+    <span class="n">DirectorySubmissionAction</span><span class="p">,</span>
     <span class="n">Editor</span><span class="p">,</span>
     <span class="n">Export</span><span class="p">,</span>
     <span class="n">ExportCollection</span><span class="p">,</span>
@@ -597,6 +598,21 @@
             <span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;extended&#39;</span>
         <span class="p">)</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">DirectorySubmissionAction</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/directory-submission/</span><span class="si">{directory_id}</span><span class="s1">/</span><span class="si">{submission_id}</span><span class="s1">/</span><span class="si">{action}</span><span class="s1">&#39;</span><span class="p">,</span>
+    <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">directory_id</span><span class="o">=</span><span class="n">UUID</span><span class="p">,</span> <span class="n">submission_id</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_directory_submission_action</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">directory_id</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+    <span class="n">action</span> <span class="o">=</span> <span class="n">DirectorySubmissionAction</span><span class="p">(</span>
+        <span class="n">session</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span>
+        <span class="n">directory_id</span><span class="o">=</span><span class="n">directory_id</span><span class="p">,</span>
+        <span class="n">submission_id</span><span class="o">=</span><span class="n">submission_id</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">action</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">action</span><span class="o">.</span><span class="n">valid</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">action</span>
 </pre></div>
 
           </div>
