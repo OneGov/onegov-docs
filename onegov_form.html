@@ -385,6 +385,63 @@ after the given field.</p>
 <em class="property">class </em><code class="descclassname">onegov.form.models.</code><code class="descname">FormDefinition</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/models/definition.html#FormDefinition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.models.FormDefinition" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines a form stored in the database.</p>
 <dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.name">
+<code class="descname">name</code><a class="headerlink" href="#onegov.form.models.FormDefinition.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>the name of the form (key, part of the url)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.title">
+<code class="descname">title</code><a class="headerlink" href="#onegov.form.models.FormDefinition.title" title="Permalink to this definition">¶</a></dt>
+<dd><p>the title of the form</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.definition">
+<code class="descname">definition</code><a class="headerlink" href="#onegov.form.models.FormDefinition.definition" title="Permalink to this definition">¶</a></dt>
+<dd><p>the form as parsable string</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.checksum">
+<code class="descname">checksum</code><a class="headerlink" href="#onegov.form.models.FormDefinition.checksum" title="Permalink to this definition">¶</a></dt>
+<dd><p>the checksum of the definition, forms and submissions with matching
+checksums are guaranteed to have the exact same definition</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.type">
+<code class="descname">type</code><a class="headerlink" href="#onegov.form.models.FormDefinition.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>the type of the form, this can be used to create custom polymorphic
+subclasses. See <a class="reference external" href="http://docs.sqlalchemy.org/en/improve_toc/orm/extensions/declarative/inheritance.html">http://docs.sqlalchemy.org/en/improve_toc/orm/extensions/declarative/inheritance.html</a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.submissions">
+<code class="descname">submissions</code><a class="headerlink" href="#onegov.form.models.FormDefinition.submissions" title="Permalink to this definition">¶</a></dt>
+<dd><p>link between forms and submissions</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.lead">
+<code class="descname">lead</code><em class="property"> = None</em><a class="headerlink" href="#onegov.form.models.FormDefinition.lead" title="Permalink to this definition">¶</a></dt>
+<dd><p>lead text describing the form</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.text">
+<code class="descname">text</code><em class="property"> = None</em><a class="headerlink" href="#onegov.form.models.FormDefinition.text" title="Permalink to this definition">¶</a></dt>
+<dd><p>content associated with the form</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormDefinition.payment_method">
+<code class="descname">payment_method</code><a class="headerlink" href="#onegov.form.models.FormDefinition.payment_method" title="Permalink to this definition">¶</a></dt>
+<dd><p>payment options (‘manual’ for out of band payments without cc, ‘free’
+for both manual and cc payments, ‘cc’ for forced cc payments)</p>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="onegov.form.models.FormDefinition.form_class">
 <code class="descname">form_class</code><a class="headerlink" href="#onegov.form.models.FormDefinition.form_class" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses the form definition and returns a form class.</p>
@@ -396,6 +453,78 @@ after the given field.</p>
 <dt id="onegov.form.models.FormSubmission">
 <em class="property">class </em><code class="descclassname">onegov.form.models.</code><code class="descname">FormSubmission</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/form/models/submission.html#FormSubmission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.form.models.FormSubmission" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines a submitted form in the database.</p>
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.id">
+<code class="descname">id</code><a class="headerlink" href="#onegov.form.models.FormSubmission.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>id of the form submission</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.name">
+<code class="descname">name</code><a class="headerlink" href="#onegov.form.models.FormSubmission.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>name of the form this submission belongs to</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.title">
+<code class="descname">title</code><a class="headerlink" href="#onegov.form.models.FormSubmission.title" title="Permalink to this definition">¶</a></dt>
+<dd><p>the title of the submission, generated from the submitted fields
+NULL for submissions which are not complete</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.email">
+<code class="descname">email</code><a class="headerlink" href="#onegov.form.models.FormSubmission.email" title="Permalink to this definition">¶</a></dt>
+<dd><p>the e-mail address associated with the submitee, generated from the</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.definition">
+<code class="descname">definition</code><a class="headerlink" href="#onegov.form.models.FormSubmission.definition" title="Permalink to this definition">¶</a></dt>
+<dd><p>the source code of the form at the moment of submission. This is stored
+alongside the submission as the original form may change later. We
+want to keep the old form around just in case.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.received">
+<code class="descname">received</code><a class="headerlink" href="#onegov.form.models.FormSubmission.received" title="Permalink to this definition">¶</a></dt>
+<dd><p>the exact time this submissions was changed from ‘pending’ to ‘complete’</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.checksum">
+<code class="descname">checksum</code><a class="headerlink" href="#onegov.form.models.FormSubmission.checksum" title="Permalink to this definition">¶</a></dt>
+<dd><p>the checksum of the definition, forms and submissions with matching
+checksums are guaranteed to have the exact same definition</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.meta">
+<code class="descname">meta</code><a class="headerlink" href="#onegov.form.models.FormSubmission.meta" title="Permalink to this definition">¶</a></dt>
+<dd><p>metadata about this submission</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.data">
+<code class="descname">data</code><a class="headerlink" href="#onegov.form.models.FormSubmission.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>the submission data</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.state">
+<code class="descname">state</code><a class="headerlink" href="#onegov.form.models.FormSubmission.state" title="Permalink to this definition">¶</a></dt>
+<dd><p>the state of the submission</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.form.models.FormSubmission.payment_method">
+<code class="descname">payment_method</code><a class="headerlink" href="#onegov.form.models.FormSubmission.payment_method" title="Permalink to this definition">¶</a></dt>
+<dd><p>payment options -&gt; copied from the dfinition at the moment of
+submission. This is stored alongside the submission as the original
+form setting may change later.</p>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="onegov.form.models.FormSubmission.form_class">
 <code class="descname">form_class</code><a class="headerlink" href="#onegov.form.models.FormSubmission.form_class" title="Permalink to this definition">¶</a></dt>
@@ -1372,7 +1501,7 @@ markdown:</p>
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.6</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |
