@@ -42,6 +42,7 @@
 <span></span><span class="kn">from</span> <span class="nn">onegov.ballot.models</span> <span class="k">import</span> <span class="n">Election</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models</span> <span class="k">import</span> <span class="n">Vote</span>
 <span class="kn">from</span> <span class="nn">onegov.core.custom</span> <span class="k">import</span> <span class="n">json</span>
+<span class="kn">from</span> <span class="nn">onegov.core.i18n</span> <span class="k">import</span> <span class="n">SiteLocale</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UTCDateTime</span>
@@ -188,13 +189,15 @@
 
         <span class="n">subscribers</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">()</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">EmailSubscriber</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">subscriber</span> <span class="ow">in</span> <span class="n">subscribers</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">set_locale</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">subscriber</span><span class="o">.</span><span class="n">locale</span><span class="p">)</span>
+            <span class="n">locale</span> <span class="o">=</span> <span class="n">subscriber</span><span class="o">.</span><span class="n">locale</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_locale</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">locale</span><span class="p">)</span>
 
             <span class="n">optout</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="p">,</span> <span class="s1">&#39;unsubscribe-email&#39;</span><span class="p">)</span>
             <span class="n">token</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">new_url_safe_token</span><span class="p">({</span><span class="s1">&#39;address&#39;</span><span class="p">:</span> <span class="n">subscriber</span><span class="o">.</span><span class="n">address</span><span class="p">})</span>
 
-            <span class="n">model_title</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">title_translations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">locale</span><span class="p">)</span>
+            <span class="n">model_title</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">title_translations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">locale</span><span class="p">)</span>
             <span class="n">model_title</span> <span class="o">=</span> <span class="n">model_title</span> <span class="ow">or</span> <span class="n">model</span><span class="o">.</span><span class="n">title</span>
+            <span class="n">model_url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">SiteLocale</span><span class="p">(</span><span class="n">locale</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">model</span><span class="p">)))</span>
             <span class="n">subject</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> - </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                 <span class="n">model_title</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">subject_prefix</span><span class="p">)</span>
             <span class="p">)</span>
@@ -212,6 +215,7 @@
                         <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">subject</span><span class="p">,</span>
                         <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span>
                         <span class="s1">&#39;model_title&#39;</span><span class="p">:</span> <span class="n">model_title</span><span class="p">,</span>
+                        <span class="s1">&#39;model_url&#39;</span><span class="p">:</span> <span class="n">model_url</span><span class="p">,</span>
                         <span class="s1">&#39;optout&#39;</span><span class="p">:</span> <span class="n">optout</span><span class="p">,</span>
                         <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">MailLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
                     <span class="p">}</span>

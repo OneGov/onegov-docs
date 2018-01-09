@@ -85,12 +85,16 @@
     <span class="c1">#</span>
     <span class="c1">#: http://www.unicode.org/reports/tr35/tr35-39/tr35-dates.html</span>
     <span class="c1">#: #Date_Format_Patterns</span>
+    <span class="c1">#: Skeleton Patterns:</span>
+    <span class="c1">#</span>
+    <span class="c1">#: http://cldr.unicode.org/translation/date-time-patterns</span>
     <span class="c1">#:</span>
     <span class="c1">#: Classes inheriting from :class:`Layout` may add their own formats, as</span>
     <span class="c1">#: long as they end in ``_format``. For example::</span>
     <span class="c1">#:</span>
     <span class="c1">#:     class MyLayout(Layout):</span>
     <span class="c1">#:         my_format = &#39;dd.MMMM&#39;</span>
+    <span class="c1">#:         my_skeleton_format = &#39;skeleton:yMMM&#39;</span>
     <span class="c1">#:</span>
     <span class="c1">#:     MyLayout().format_date(dt, &#39;my&#39;)</span>
     <span class="c1">#:</span>
@@ -150,16 +154,19 @@
             <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">humanize</span><span class="p">(</span><span class="n">locale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
 
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="s1">&#39;hour&#39;</span><span class="p">):</span>
-            <span class="n">formatter</span> <span class="o">=</span> <span class="n">babel</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">format_datetime</span>
+        <span class="n">locale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span> <span class="o">+</span> <span class="s1">&#39;_format&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fmt</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;skeleton:&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">babel</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">format_skeleton</span><span class="p">(</span>
+                <span class="n">fmt</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;skeleton:&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="n">datetime</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
+                <span class="n">fuzzy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">locale</span><span class="o">=</span><span class="n">locale</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="s1">&#39;hour&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">babel</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">format_datetime</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">fmt</span><span class="p">,</span> <span class="n">locale</span><span class="o">=</span><span class="n">locale</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">formatter</span> <span class="o">=</span> <span class="n">babel</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">format_date</span>
-
-        <span class="k">return</span> <span class="n">formatter</span><span class="p">(</span>
-            <span class="n">dt</span><span class="p">,</span>
-            <span class="nb">format</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span> <span class="o">+</span> <span class="s1">&#39;_format&#39;</span><span class="p">),</span>
-            <span class="n">locale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span>
-        <span class="p">)</span></div>
+            <span class="k">return</span> <span class="n">babel</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">fmt</span><span class="p">,</span> <span class="n">locale</span><span class="o">=</span><span class="n">locale</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Layout.isodate"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.layout.Layout.isodate">[docs]</a>    <span class="k">def</span> <span class="nf">isodate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">date</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns the given date in the ISO 8601 format. &quot;&quot;&quot;</span>
