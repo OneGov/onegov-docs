@@ -43,6 +43,7 @@
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">DomainOfInfluenceMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">StatusMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">summarized_property</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">TitleTranslationsMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.ballot</span> <span class="k">import</span> <span class="n">Ballot</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.ballot_result</span> <span class="k">import</span> <span class="n">BallotResult</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.mixins</span> <span class="k">import</span> <span class="n">DerivedBallotsCountMixin</span>
@@ -66,8 +67,9 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
 
 
-<div class="viewcode-block" id="Vote"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote">[docs]</a><span class="k">class</span> <span class="nc">Vote</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">DerivedBallotsCountMixin</span><span class="p">,</span>
-           <span class="n">DomainOfInfluenceMixin</span><span class="p">,</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">StatusMixin</span><span class="p">):</span>
+<div class="viewcode-block" id="Vote"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote">[docs]</a><span class="k">class</span> <span class="nc">Vote</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span>
+           <span class="n">DomainOfInfluenceMixin</span><span class="p">,</span> <span class="n">StatusMixin</span><span class="p">,</span> <span class="n">TitleTranslationsMixin</span><span class="p">,</span>
+           <span class="n">DerivedBallotsCountMixin</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; A vote describes the issue being voted on. For example,</span>
 <span class="sd">    &quot;Vote for Net Neutrality&quot; or &quot;Vote for Basic Income&quot;.</span>
 
@@ -92,9 +94,22 @@
     <span class="c1">#: shortcode for cantons that use it</span>
     <span class="n">shortcode</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="c1">#: title of the vote</span>
+    <span class="c1">#: all translations of the title</span>
     <span class="n">title_translations</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">HSTORE</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the translated title (uses the locale of the request, falls back to the</span>
+    <span class="c1">#: default locale of the app)</span>
     <span class="n">title</span> <span class="o">=</span> <span class="n">translation_hybrid</span><span class="p">(</span><span class="n">title_translations</span><span class="p">)</span>
+
+    <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;title_translations&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">title_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">translations</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">default_locale</span><span class="p">)</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="n">normalize_for_url</span><span class="p">(</span><span class="n">title</span> <span class="ow">or</span> <span class="s1">&#39;vote&#39;</span><span class="p">)</span>
+            <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">while</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Vote</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Vote</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="nb">id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">():</span>
+                <span class="nb">id</span> <span class="o">=</span> <span class="n">increment_name</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span>
 
     <span class="c1">#: identifies the date of the vote</span>
     <span class="n">date</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Date</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -126,15 +141,6 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">proposal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballot</span><span class="p">(</span><span class="s1">&#39;proposal&#39;</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;title_translations&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">title_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">translations</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
-            <span class="nb">id</span> <span class="o">=</span> <span class="n">normalize_for_url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;vote&#39;</span>
-            <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-            <span class="k">while</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Vote</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Vote</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="nb">id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">():</span>
-                <span class="nb">id</span> <span class="o">=</span> <span class="n">increment_name</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">counted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

@@ -40,6 +40,7 @@
             
   <h1>Source code for onegov.ballot.models.vote.ballot</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">summarized_property</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">TitleTranslationsMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.ballot_result</span> <span class="k">import</span> <span class="n">BallotResult</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.mixins</span> <span class="k">import</span> <span class="n">DerivedAttributesMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.vote.mixins</span> <span class="k">import</span> <span class="n">DerivedBallotsCountMixin</span>
@@ -61,8 +62,8 @@
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
 
 
-<div class="viewcode-block" id="Ballot"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Ballot">[docs]</a><span class="k">class</span> <span class="nc">Ballot</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">DerivedAttributesMixin</span><span class="p">,</span>
-             <span class="n">DerivedBallotsCountMixin</span><span class="p">):</span>
+<div class="viewcode-block" id="Ballot"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Ballot">[docs]</a><span class="k">class</span> <span class="nc">Ballot</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">TitleTranslationsMixin</span><span class="p">,</span>
+             <span class="n">DerivedAttributesMixin</span><span class="p">,</span> <span class="n">DerivedBallotsCountMixin</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; A ballot contains a single question asked for a vote.</span>
 
 <span class="sd">    Usually each vote has exactly one ballot, but it&#39;s possible for votes to</span>
@@ -99,8 +100,11 @@
     <span class="c1">#: identifies the vote this ballot result belongs to</span>
     <span class="n">vote_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;votes.id&#39;</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="c1">#: title of the ballot</span>
+    <span class="c1">#: all translations of the title</span>
     <span class="n">title_translations</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">HSTORE</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: the translated title (uses the locale of the request, falls back to the</span>
+    <span class="c1">#: default locale of the app)</span>
     <span class="n">title</span> <span class="o">=</span> <span class="n">translation_hybrid</span><span class="p">(</span><span class="n">title_translations</span><span class="p">)</span>
 
     <span class="c1">#: a ballot contains n results</span>
