@@ -354,55 +354,30 @@ subclasses of this class. See
 
 <span class="target" id="module-onegov.election_day.models.principal"></span><dl class="class">
 <dt id="onegov.election_day.models.principal.Principal">
-<em class="property">class </em><code class="descclassname">onegov.election_day.models.principal.</code><code class="descname">Principal</code><span class="sig-paren">(</span><em>canton=None</em>, <em>municipality=None</em>, <em>name=None</em>, <em>logo=None</em>, <em>color='#000'</em>, <em>base=None</em>, <em>analytics=None</em>, <em>use_maps=False</em>, <em>fetch=None</em>, <em>webhooks=None</em>, <em>sms_notification=None</em>, <em>email_notification=None</em>, <em>wabsti_import=False</em>, <em>pdf_signing=None</em>, <em>open_data=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/models/principal.html#Principal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.models.principal.Principal" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">onegov.election_day.models.principal.</code><code class="descname">Principal</code><span class="sig-paren">(</span><em>id_=None</em>, <em>domain=None</em>, <em>available_domains=None</em>, <em>entities=None</em>, <em>name=None</em>, <em>logo=None</em>, <em>color='#000'</em>, <em>base=None</em>, <em>analytics=None</em>, <em>use_districts=True</em>, <em>use_maps=False</em>, <em>fetch=None</em>, <em>webhooks=None</em>, <em>sms_notification=None</em>, <em>email_notification=None</em>, <em>wabsti_import=False</em>, <em>pdf_signing=None</em>, <em>open_data=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/models/principal.html#Principal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.models.principal.Principal" title="Permalink to this definition">¶</a></dt>
 <dd><p>The principal is the political entity running the election day app.</p>
-<p>If the principal is canton:
-* the <code class="docutils literal"><span class="pre">canton</span></code> shortcut must be set to a valid canton shortcut
-(e.g. <code class="docutils literal"><span class="pre">be</span></code>)
-* the available domains are <code class="docutils literal"><span class="pre">federation</span></code> and <code class="docutils literal"><span class="pre">canton</span></code>
-* use_maps is always true
-* <code class="docutils literal"><span class="pre">muncipalities</span></code>/<code class="docutils literal"><span class="pre">entities</span></code> returns the BFS numbers of the
-municipalties
-* there should be static data (BFS numbers and map data) for each canton
-for a bunch of years</p>
-<p>If the principal is a municipality:
-* the <code class="docutils literal"><span class="pre">municipality</span></code> shortcut must be set to a valid BFS number
-(e.g. <code class="docutils literal"><span class="pre">351</span></code>)
-* the available domains are <code class="docutils literal"><span class="pre">federation</span></code>, <code class="docutils literal"><span class="pre">canton</span></code> and <code class="docutils literal"><span class="pre">municipality</span></code>
-* use_maps can be set to enable / display maps in the application
-* <code class="docutils literal"><span class="pre">districts</span></code>/<code class="docutils literal"><span class="pre">entities</span></code> returns the the districts of the muncipality,
-if there are any defined
-* there can optionally be static data (districts and map data)</p>
-<dl class="attribute">
-<dt id="onegov.election_day.models.principal.Principal.domain">
-<code class="descname">domain</code><a class="headerlink" href="#onegov.election_day.models.principal.Principal.domain" title="Permalink to this definition">¶</a></dt>
-<dd><p>the domain of influcence</p>
+<p>There are currently two different types of principals supported: Cantons
+and Municipalitites.</p>
+<p>A principal is identitifed by its ID (municipalitites: BFS number, cantons:
+canton code).</p>
+<p>A principal may consist of different entitites (municipalitites: quarters,
+cantons: municipalities) grouped by districts. The label of the entity and
+districts may vary and can be queried with <cite>label</cite>.</p>
+<p>A principal is part of a domain (municipalitites: municipality, canton:
+canton) and supports different types of domains (typically all higher
+domains).</p>
 </dd></dl>
 
-<dl class="attribute">
-<dt id="onegov.election_day.models.principal.Principal.id">
-<code class="descname">id</code><a class="headerlink" href="#onegov.election_day.models.principal.Principal.id" title="Permalink to this definition">¶</a></dt>
-<dd><p>the BFS code / district ID</p>
+<dl class="class">
+<dt id="onegov.election_day.models.principal.Canton">
+<em class="property">class </em><code class="descclassname">onegov.election_day.models.principal.</code><code class="descname">Canton</code><span class="sig-paren">(</span><em>canton=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/models/principal.html#Canton"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.models.principal.Canton" title="Permalink to this definition">¶</a></dt>
+<dd><p>A cantonal instance.</p>
 </dd></dl>
 
-<dl class="attribute">
-<dt id="onegov.election_day.models.principal.Principal.available_domains">
-<code class="descname">available_domains</code><a class="headerlink" href="#onegov.election_day.models.principal.Principal.available_domains" title="Permalink to this definition">¶</a></dt>
-<dd><p>the usable domains of influence</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="onegov.election_day.models.principal.Principal.has_quarters">
-<code class="descname">has_quarters</code><a class="headerlink" href="#onegov.election_day.models.principal.Principal.has_quarters" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns true if a communal instance has different quarters.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="onegov.election_day.models.principal.Principal.label">
-<code class="descname">label</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/models/principal.html#Principal.label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.models.principal.Principal.label" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the right label of the given thing.</p>
-</dd></dl>
-
+<dl class="class">
+<dt id="onegov.election_day.models.principal.Municipality">
+<em class="property">class </em><code class="descclassname">onegov.election_day.models.principal.</code><code class="descname">Municipality</code><span class="sig-paren">(</span><em>municipality=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/election_day/models/principal.html#Municipality"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.election_day.models.principal.Municipality" title="Permalink to this definition">¶</a></dt>
+<dd><p>A communal instance.</p>
 </dd></dl>
 
 </div>

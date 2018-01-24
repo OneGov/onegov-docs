@@ -39,18 +39,18 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.form.core</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">inspect</span>
-<span class="kn">import</span> <span class="nn">weakref</span>
+<span></span><span class="kn">import</span> <span class="nn">weakref</span>
 
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">decimal</span> <span class="k">import</span> <span class="n">Decimal</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">onegov.form.validators</span> <span class="k">import</span> <span class="n">StrictOptional</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">Price</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">itemgetter</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">Form</span> <span class="k">as</span> <span class="n">BaseForm</span>
 <span class="kn">from</span> <span class="nn">wtforms.fields.html5</span> <span class="k">import</span> <span class="n">EmailField</span>
-<span class="kn">from</span> <span class="nn">wtforms.validators</span> <span class="k">import</span> <span class="n">InputRequired</span><span class="p">,</span> <span class="n">DataRequired</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">wtforms.validators</span> <span class="k">import</span> <span class="n">InputRequired</span><span class="p">,</span> <span class="n">DataRequired</span>
 <span class="kn">from</span> <span class="nn">wtforms_components</span> <span class="k">import</span> <span class="n">If</span><span class="p">,</span> <span class="n">Chain</span>
 
 
@@ -257,7 +257,7 @@
                     <span class="p">),</span>
                     <span class="n">If</span><span class="p">(</span>
                         <span class="n">field</span><span class="o">.</span><span class="n">depends_on</span><span class="o">.</span><span class="n">unfulfilled</span><span class="p">,</span>
-                        <span class="n">Optional</span><span class="p">()</span>
+                        <span class="n">StrictOptional</span><span class="p">()</span>
                     <span class="p">),</span>
                 <span class="p">)</span>
 
@@ -573,42 +573,6 @@
         <span class="sd">&quot;&quot;&quot; Returns only the fields which are not empty. &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">(</span>
             <span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span> <span class="k">for</span> <span class="nb">id</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="with_options"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.with_options">[docs]</a><span class="k">def</span> <span class="nf">with_options</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="o">**</span><span class="n">render_options</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Takes a widget class or instance and returns a child-instance of the</span>
-<span class="sd">    widget class, with the given options set on the render call.</span>
-
-<span class="sd">    This makes it easy to use existing WTForms widgets with custom render</span>
-<span class="sd">    options:</span>
-
-<span class="sd">    field = StringField(widget=with_options(TextArea, class_=&quot;markdown&quot;))</span>
-
-<span class="sd">    Note: With wtforms 2.1 this is no longer necssary. Instead use the</span>
-<span class="sd">    render_kw parameter of the field class. This function will be deprecated</span>
-<span class="sd">    in a future release.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">widget</span><span class="p">):</span>
-        <span class="k">class</span> <span class="nc">Widget</span><span class="p">(</span><span class="n">widget</span><span class="p">):</span>
-
-            <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-                <span class="n">render_options</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
-                <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">render_options</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">Widget</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">class</span> <span class="nc">Widget</span><span class="p">(</span><span class="n">widget</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
-
-            <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">widget</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
-
-            <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-                <span class="n">render_options</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
-                <span class="k">return</span> <span class="n">widget</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">render_options</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">Widget</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="FieldDependency"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.FieldDependency">[docs]</a><span class="k">class</span> <span class="nc">FieldDependency</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>

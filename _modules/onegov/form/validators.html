@@ -42,12 +42,16 @@
 <span></span><span class="kn">import</span> <span class="nn">importlib</span>
 <span class="kn">import</span> <span class="nn">humanize</span>
 
+<span class="kn">from</span> <span class="nn">cgi</span> <span class="k">import</span> <span class="n">FieldStorage</span>
 <span class="kn">from</span> <span class="nn">mimetypes</span> <span class="k">import</span> <span class="n">types_map</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">_</span>
-<span class="kn">from</span> <span class="nn">onegov.form.core</span> <span class="k">import</span> <span class="n">with_options</span>
+<span class="kn">from</span> <span class="nn">onegov.form.utils</span> <span class="k">import</span> <span class="n">with_options</span>
 <span class="kn">from</span> <span class="nn">onegov.form.errors</span> <span class="k">import</span> <span class="n">InvalidFormSyntax</span><span class="p">,</span> <span class="n">DuplicateLabelError</span>
 <span class="kn">from</span> <span class="nn">stdnum.exceptions</span> <span class="k">import</span> <span class="n">ValidationError</span> <span class="k">as</span> <span class="n">StdnumValidationError</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">ValidationError</span>
+<span class="kn">from</span> <span class="nn">wtforms.fields</span> <span class="k">import</span> <span class="n">SelectField</span>
+<span class="kn">from</span> <span class="nn">wtforms.validators</span> <span class="k">import</span> <span class="n">StopValidation</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">wtforms.compat</span> <span class="k">import</span> <span class="n">string_types</span>
 
 
 <div class="viewcode-block" id="Stdnum"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.validators.Stdnum">[docs]</a><span class="k">class</span> <span class="nc">Stdnum</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -193,6 +197,41 @@
                                     <span class="n">label</span><span class="o">=</span><span class="n">formfield</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">text</span>
                                 <span class="p">)</span>
                             <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="StrictOptional"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.validators.StrictOptional">[docs]</a><span class="k">class</span> <span class="nc">StrictOptional</span><span class="p">(</span><span class="n">Optional</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A copy of wtform&#39;s Optional validator, but with a more strict approach</span>
+<span class="sd">    to optional validation checking.</span>
+
+<span class="sd">    See https://github.com/wtforms/wtforms/issues/350</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">is_missing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">FieldStorage</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">string_types</span><span class="p">):</span>
+            <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">string_check</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">raw_data</span> <span class="ow">and</span> <span class="n">field</span><span class="o">.</span><span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span>
+
+        <span class="c1"># the selectfields have this annyoing habit of coercing all values</span>
+        <span class="c1"># that are added to them -&gt; this includes the None, which is turned</span>
+        <span class="c1"># into &#39;None&#39;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">SelectField</span><span class="p">)</span> <span class="ow">and</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;None&#39;</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_missing</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_missing</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">errors</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">raise</span> <span class="n">StopValidation</span><span class="p">()</span></div>
 </pre></div>
 
           </div>
