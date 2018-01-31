@@ -108,7 +108,13 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">configure_morepath</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">post_mortem</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">config</span><span class="p">,</span>
+            <span class="n">configure_morepath</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">post_mortem</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">environ_overrides</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">applications</span> <span class="o">=</span> <span class="n">ApplicationCollection</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">applications</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">wildcard_applications</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
             <span class="n">a</span><span class="o">.</span><span class="n">root</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">applications</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span><span class="o">.</span><span class="n">is_static</span><span class="p">)</span>
@@ -119,6 +125,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">configure_morepath</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">post_mortem</span> <span class="o">=</span> <span class="n">post_mortem</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">environ_overrides</span> <span class="o">=</span> <span class="n">environ_overrides</span>
 
 <div class="viewcode-block" id="Server.configure_logging"><a class="viewcode-back" href="../../../onegov_server.html#onegov.server.core.Server.configure_logging">[docs]</a>    <span class="k">def</span> <span class="nf">configure_logging</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Configures the python logging.</span>
@@ -140,6 +147,10 @@
             <span class="n">morepath</span><span class="o">.</span><span class="n">autoscan</span><span class="p">()</span></div>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ_overrides</span><span class="p">:</span>
+            <span class="n">environ</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">environ_overrides</span><span class="p">)</span>
+
         <span class="n">request</span> <span class="o">=</span> <span class="n">Request</span><span class="p">(</span><span class="n">environ</span><span class="p">)</span>
         <span class="n">path_fragments</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
 
