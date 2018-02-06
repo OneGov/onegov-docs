@@ -72,6 +72,9 @@
 <span class="kn">from</span> <span class="nn">itsdangerous</span> <span class="k">import</span> <span class="n">BadSignature</span><span class="p">,</span> <span class="n">Signer</span>
 <span class="kn">from</span> <span class="nn">mailthon.middleware</span> <span class="k">import</span> <span class="n">TLS</span><span class="p">,</span> <span class="n">Auth</span>
 <span class="kn">from</span> <span class="nn">morepath.publish</span> <span class="k">import</span> <span class="n">resolve_model</span><span class="p">,</span> <span class="n">get_view_name</span>
+<span class="kn">from</span> <span class="nn">more.content_security</span> <span class="k">import</span> <span class="n">ContentSecurityApp</span>
+<span class="kn">from</span> <span class="nn">more.content_security</span> <span class="k">import</span> <span class="n">ContentSecurityPolicy</span>
+<span class="kn">from</span> <span class="nn">more.content_security</span> <span class="k">import</span> <span class="n">SELF</span><span class="p">,</span> <span class="n">UNSAFE_INLINE</span><span class="p">,</span> <span class="n">UNSAFE_EVAL</span><span class="p">,</span> <span class="n">NONE</span>
 <span class="kn">from</span> <span class="nn">more.transaction</span> <span class="k">import</span> <span class="n">TransactionApp</span>
 <span class="kn">from</span> <span class="nn">more.transaction.main</span> <span class="k">import</span> <span class="n">transaction_tween_factory</span>
 <span class="kn">from</span> <span class="nn">more.webassets</span> <span class="k">import</span> <span class="n">WebassetsApp</span>
@@ -95,7 +98,13 @@
 <span class="kn">from</span> <span class="nn">webob.exc</span> <span class="k">import</span> <span class="n">HTTPConflict</span>
 
 
-<div class="viewcode-block" id="Framework"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework">[docs]</a><span class="k">class</span> <span class="nc">Framework</span><span class="p">(</span><span class="n">TransactionApp</span><span class="p">,</span> <span class="n">WebassetsApp</span><span class="p">,</span> <span class="n">OrmCacheApp</span><span class="p">,</span> <span class="n">ServerApplication</span><span class="p">):</span>
+<div class="viewcode-block" id="Framework"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework">[docs]</a><span class="k">class</span> <span class="nc">Framework</span><span class="p">(</span>
+    <span class="n">TransactionApp</span><span class="p">,</span>
+    <span class="n">WebassetsApp</span><span class="p">,</span>
+    <span class="n">OrmCacheApp</span><span class="p">,</span>
+    <span class="n">ContentSecurityApp</span><span class="p">,</span>
+    <span class="n">ServerApplication</span>
+<span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Baseclass for Morepath OneGov applications. &quot;&quot;&quot;</span>
 
     <span class="n">request_class</span> <span class="o">=</span> <span class="n">CoreRequest</span>
@@ -473,6 +482,16 @@
     <span class="k">def</span> <span class="nf">configure_hipchat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_token</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hipchat_token&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_room_id</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hipchat_room_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">configure_content_security_policy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">content_security_policy_enabled</span>\
+            <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content_security_policy_enabled&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">content_security_policy_report_uri</span>\
+            <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content_security_policy_report_uri&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">content_security_policy_report_only</span>\
+            <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content_security_policy_report_only&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Framework.set_application_id"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.set_application_id">[docs]</a>    <span class="k">def</span> <span class="nf">set_application_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">application_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Set before the request is handled. Gets the schema from the</span>
@@ -1003,6 +1022,56 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="default_content_security_policy"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.default_content_security_policy">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">setting</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s1">&#39;content_security_policy&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">default_content_security_policy</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; The default content security policy used throughout OneGov. &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">ContentSecurityPolicy</span><span class="p">(</span>
+        <span class="c1"># by default limit to self</span>
+        <span class="n">default_src</span><span class="o">=</span><span class="p">{</span><span class="n">SELF</span><span class="p">},</span>
+
+        <span class="c1"># allow fonts from practically anywhere (no mixed content though)</span>
+        <span class="n">font_src</span><span class="o">=</span><span class="p">{</span><span class="n">SELF</span><span class="p">,</span> <span class="s2">&quot;http:&quot;</span><span class="p">,</span> <span class="s2">&quot;https:&quot;</span><span class="p">,</span> <span class="s2">&quot;data:&quot;</span><span class="p">},</span>
+
+        <span class="c1"># allow images from practically anywhere (no mixed content though)</span>
+        <span class="n">img_src</span><span class="o">=</span><span class="p">{</span><span class="n">SELF</span><span class="p">,</span> <span class="s2">&quot;http:&quot;</span><span class="p">,</span> <span class="s2">&quot;https:&quot;</span><span class="p">,</span> <span class="s2">&quot;data:&quot;</span><span class="p">},</span>
+
+        <span class="c1"># enable inline styles and external stylesheets</span>
+        <span class="n">style_src</span><span class="o">=</span><span class="p">{</span><span class="n">SELF</span><span class="p">,</span> <span class="s2">&quot;https:&quot;</span><span class="p">,</span> <span class="n">UNSAFE_INLINE</span><span class="p">},</span>
+
+        <span class="c1"># enable inline scripts, eval and external scripts</span>
+        <span class="n">script_src</span><span class="o">=</span><span class="p">{</span><span class="n">SELF</span><span class="p">,</span> <span class="s2">&quot;https:&quot;</span><span class="p">,</span> <span class="n">UNSAFE_INLINE</span><span class="p">,</span> <span class="n">UNSAFE_EVAL</span><span class="p">},</span>
+
+        <span class="c1"># do not enable any object/embed/applet elements</span>
+        <span class="n">object_src</span><span class="o">=</span><span class="p">{</span><span class="n">NONE</span><span class="p">},</span>
+
+        <span class="c1"># disable all mixed content (https -&gt; http)</span>
+        <span class="n">block_all_mixed_content</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="default_policy_apply_factory"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.default_policy_apply_factory">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">setting</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s1">&#39;content_security_policy&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;apply_policy&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">default_policy_apply_factory</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Adds the content security policy report settings from the yaml. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">apply_policy</span><span class="p">(</span><span class="n">policy</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">response</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">content_security_policy_enabled</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">report_uri</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">content_security_policy_report_uri</span>
+        <span class="n">report_only</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">content_security_policy_report_only</span>
+
+        <span class="k">if</span> <span class="n">report_uri</span><span class="p">:</span>
+            <span class="n">policy</span><span class="o">.</span><span class="n">report_uri</span> <span class="o">=</span> <span class="n">report_uri</span>
+
+        <span class="k">if</span> <span class="n">report_only</span><span class="p">:</span>
+            <span class="n">policy</span><span class="o">.</span><span class="n">report_only</span> <span class="o">=</span> <span class="n">report_only</span>
+
+        <span class="n">policy</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">apply_policy</span></div>
 
 
 <span class="nd">@Framework</span><span class="o">.</span><span class="n">tween_factory</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="n">transaction_tween_factory</span><span class="p">)</span>
