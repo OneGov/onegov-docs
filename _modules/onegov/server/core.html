@@ -113,7 +113,8 @@
             <span class="n">config</span><span class="p">,</span>
             <span class="n">configure_morepath</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">post_mortem</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">environ_overrides</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">environ_overrides</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">exception_hook</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">applications</span> <span class="o">=</span> <span class="n">ApplicationCollection</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">applications</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">wildcard_applications</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
@@ -126,6 +127,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">post_mortem</span> <span class="o">=</span> <span class="n">post_mortem</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">environ_overrides</span> <span class="o">=</span> <span class="n">environ_overrides</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exception_hook</span> <span class="o">=</span> <span class="n">exception_hook</span>
 
 <div class="viewcode-block" id="Server.configure_logging"><a class="viewcode-back" href="../../../onegov_server.html#onegov.server.core.Server.configure_logging">[docs]</a>    <span class="k">def</span> <span class="nf">configure_logging</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Configures the python logging.</span>
@@ -146,7 +148,7 @@
             <span class="kn">import</span> <span class="nn">morepath</span>
             <span class="n">morepath</span><span class="o">.</span><span class="n">autoscan</span><span class="p">()</span></div>
 
-    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">handle_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ_overrides</span><span class="p">:</span>
             <span class="n">environ</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">environ_overrides</span><span class="p">)</span>
@@ -199,11 +201,18 @@
         <span class="n">application</span><span class="o">.</span><span class="n">set_application_id</span><span class="p">(</span>
             <span class="n">application</span><span class="o">.</span><span class="n">namespace</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">application_id</span><span class="p">)</span>
 
+        <span class="k">return</span> <span class="n">application</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">application</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">handle_request</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">exception_hook</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">exception_hook</span><span class="p">()</span>
+
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_mortem</span><span class="p">:</span>
                 <span class="kn">import</span> <span class="nn">pdb</span><span class="p">;</span> <span class="n">pdb</span><span class="o">.</span><span class="n">post_mortem</span><span class="p">()</span>  <span class="c1"># noqa</span>
+
             <span class="k">raise</span></div>
 </pre></div>
 
