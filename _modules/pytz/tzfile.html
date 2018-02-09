@@ -44,15 +44,12 @@
 <span class="sd">$Id: tzfile.py,v 1.8 2004/06/03 00:15:24 zenzen Exp $</span>
 <span class="sd">&#39;&#39;&#39;</span>
 
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">cStringIO</span> <span class="k">import</span> <span class="n">StringIO</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">StringIO</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">struct</span> <span class="k">import</span> <span class="n">unpack</span><span class="p">,</span> <span class="n">calcsize</span>
 
 <span class="kn">from</span> <span class="nn">pytz.tzinfo</span> <span class="k">import</span> <span class="n">StaticTzInfo</span><span class="p">,</span> <span class="n">DstTzInfo</span><span class="p">,</span> <span class="n">memorized_ttinfo</span>
 <span class="kn">from</span> <span class="nn">pytz.tzinfo</span> <span class="k">import</span> <span class="n">memorized_datetime</span><span class="p">,</span> <span class="n">memorized_timedelta</span>
+
 
 <span class="k">def</span> <span class="nf">_byte_string</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Cast a string or byte string to an ASCII byte string.&quot;&quot;&quot;</span>
@@ -60,22 +57,24 @@
 
 <span class="n">_NULL</span> <span class="o">=</span> <span class="n">_byte_string</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\0</span><span class="s1">&#39;</span><span class="p">)</span>
 
+
 <span class="k">def</span> <span class="nf">_std_string</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Cast a string or byte string to an ASCII string.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ASCII&#39;</span><span class="p">))</span>
 
+
 <span class="k">def</span> <span class="nf">build_tzinfo</span><span class="p">(</span><span class="n">zone</span><span class="p">,</span> <span class="n">fp</span><span class="p">):</span>
     <span class="n">head_fmt</span> <span class="o">=</span> <span class="s1">&#39;&gt;4s c 15x 6l&#39;</span>
     <span class="n">head_size</span> <span class="o">=</span> <span class="n">calcsize</span><span class="p">(</span><span class="n">head_fmt</span><span class="p">)</span>
-    <span class="p">(</span><span class="n">magic</span><span class="p">,</span> <span class="nb">format</span><span class="p">,</span> <span class="n">ttisgmtcnt</span><span class="p">,</span> <span class="n">ttisstdcnt</span><span class="p">,</span><span class="n">leapcnt</span><span class="p">,</span> <span class="n">timecnt</span><span class="p">,</span>
-        <span class="n">typecnt</span><span class="p">,</span> <span class="n">charcnt</span><span class="p">)</span> <span class="o">=</span>  <span class="n">unpack</span><span class="p">(</span><span class="n">head_fmt</span><span class="p">,</span> <span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">head_size</span><span class="p">))</span>
+    <span class="p">(</span><span class="n">magic</span><span class="p">,</span> <span class="nb">format</span><span class="p">,</span> <span class="n">ttisgmtcnt</span><span class="p">,</span> <span class="n">ttisstdcnt</span><span class="p">,</span> <span class="n">leapcnt</span><span class="p">,</span> <span class="n">timecnt</span><span class="p">,</span>
+        <span class="n">typecnt</span><span class="p">,</span> <span class="n">charcnt</span><span class="p">)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">head_fmt</span><span class="p">,</span> <span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">head_size</span><span class="p">))</span>
 
     <span class="c1"># Make sure it is a tzfile(5) file</span>
     <span class="k">assert</span> <span class="n">magic</span> <span class="o">==</span> <span class="n">_byte_string</span><span class="p">(</span><span class="s1">&#39;TZif&#39;</span><span class="p">),</span> <span class="s1">&#39;Got magic </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">repr</span><span class="p">(</span><span class="n">magic</span><span class="p">)</span>
 
     <span class="c1"># Read out the transition times, localtime indices and ttinfo structures.</span>
     <span class="n">data_fmt</span> <span class="o">=</span> <span class="s1">&#39;&gt;</span><span class="si">%(timecnt)d</span><span class="s1">l </span><span class="si">%(timecnt)d</span><span class="s1">B </span><span class="si">%(ttinfo)s</span><span class="s1"> </span><span class="si">%(charcnt)d</span><span class="s1">s&#39;</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span>
-        <span class="n">timecnt</span><span class="o">=</span><span class="n">timecnt</span><span class="p">,</span> <span class="n">ttinfo</span><span class="o">=</span><span class="s1">&#39;lBB&#39;</span><span class="o">*</span><span class="n">typecnt</span><span class="p">,</span> <span class="n">charcnt</span><span class="o">=</span><span class="n">charcnt</span><span class="p">)</span>
+        <span class="n">timecnt</span><span class="o">=</span><span class="n">timecnt</span><span class="p">,</span> <span class="n">ttinfo</span><span class="o">=</span><span class="s1">&#39;lBB&#39;</span> <span class="o">*</span> <span class="n">typecnt</span><span class="p">,</span> <span class="n">charcnt</span><span class="o">=</span><span class="n">charcnt</span><span class="p">)</span>
     <span class="n">data_size</span> <span class="o">=</span> <span class="n">calcsize</span><span class="p">(</span><span class="n">data_fmt</span><span class="p">)</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">data_fmt</span><span class="p">,</span> <span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">data_size</span><span class="p">))</span>
 
@@ -94,7 +93,7 @@
     <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">ttinfo_raw</span><span class="p">):</span>
         <span class="c1"># have we looked up this timezone name yet?</span>
-        <span class="n">tzname_offset</span> <span class="o">=</span> <span class="n">ttinfo_raw</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">tzname_offset</span> <span class="o">=</span> <span class="n">ttinfo_raw</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">tzname_offset</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tznames</span><span class="p">:</span>
             <span class="n">nul</span> <span class="o">=</span> <span class="n">tznames_raw</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">_NULL</span><span class="p">,</span> <span class="n">tzname_offset</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">nul</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -102,12 +101,12 @@
             <span class="n">tznames</span><span class="p">[</span><span class="n">tzname_offset</span><span class="p">]</span> <span class="o">=</span> <span class="n">_std_string</span><span class="p">(</span>
                 <span class="n">tznames_raw</span><span class="p">[</span><span class="n">tzname_offset</span><span class="p">:</span><span class="n">nul</span><span class="p">])</span>
         <span class="n">ttinfo</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ttinfo_raw</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                       <span class="nb">bool</span><span class="p">(</span><span class="n">ttinfo_raw</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]),</span>
+                       <span class="nb">bool</span><span class="p">(</span><span class="n">ttinfo_raw</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]),</span>
                        <span class="n">tznames</span><span class="p">[</span><span class="n">tzname_offset</span><span class="p">]))</span>
         <span class="n">i</span> <span class="o">+=</span> <span class="mi">3</span>
 
     <span class="c1"># Now build the timezone object</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ttinfo</span><span class="p">)</span> <span class="o">==</span><span class="mi">1</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">transitions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ttinfo</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">transitions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">ttinfo</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">ttinfo</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
         <span class="bp">cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">zone</span><span class="p">,</span> <span class="p">(</span><span class="n">StaticTzInfo</span><span class="p">,),</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">zone</span><span class="o">=</span><span class="n">zone</span><span class="p">,</span>
@@ -132,21 +131,21 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="n">inf</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
                 <span class="n">dst</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
                     <span class="n">prev_inf</span> <span class="o">=</span> <span class="n">ttinfo</span><span class="p">[</span><span class="n">lindexes</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="n">prev_inf</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
                         <span class="k">break</span>
-                <span class="n">dst</span> <span class="o">=</span> <span class="n">inf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">prev_inf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># dst offset</span>
+                <span class="n">dst</span> <span class="o">=</span> <span class="n">inf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">prev_inf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># dst offset</span>
 
                 <span class="c1"># Bad dst? Look further. DST &gt; 24 hours happens when</span>
                 <span class="c1"># a timzone has moved across the international dateline.</span>
-                <span class="k">if</span> <span class="n">dst</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">dst</span> <span class="o">&gt;</span> <span class="mi">3600</span><span class="o">*</span><span class="mi">3</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">transitions</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">dst</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">dst</span> <span class="o">&gt;</span> <span class="mi">3600</span> <span class="o">*</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">transitions</span><span class="p">)):</span>
                         <span class="n">stdinf</span> <span class="o">=</span> <span class="n">ttinfo</span><span class="p">[</span><span class="n">lindexes</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
                         <span class="k">if</span> <span class="ow">not</span> <span class="n">stdinf</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
                             <span class="n">dst</span> <span class="o">=</span> <span class="n">inf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">stdinf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                             <span class="k">if</span> <span class="n">dst</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                                <span class="k">break</span> <span class="c1"># Found a useful std time.</span>
+                                <span class="k">break</span>  <span class="c1"># Found a useful std time.</span>
 
             <span class="n">tzname</span> <span class="o">=</span> <span class="n">inf</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
@@ -170,12 +169,10 @@
     <span class="kn">from</span> <span class="nn">pprint</span> <span class="k">import</span> <span class="n">pprint</span>
     <span class="n">base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s1">&#39;zoneinfo&#39;</span><span class="p">)</span>
     <span class="n">tz</span> <span class="o">=</span> <span class="n">build_tzinfo</span><span class="p">(</span><span class="s1">&#39;Australia/Melbourne&#39;</span><span class="p">,</span>
-                      <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base</span><span class="p">,</span><span class="s1">&#39;Australia&#39;</span><span class="p">,</span><span class="s1">&#39;Melbourne&#39;</span><span class="p">),</span> <span class="s1">&#39;rb&#39;</span><span class="p">))</span>
+                      <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="s1">&#39;Australia&#39;</span><span class="p">,</span> <span class="s1">&#39;Melbourne&#39;</span><span class="p">),</span> <span class="s1">&#39;rb&#39;</span><span class="p">))</span>
     <span class="n">tz</span> <span class="o">=</span> <span class="n">build_tzinfo</span><span class="p">(</span><span class="s1">&#39;US/Eastern&#39;</span><span class="p">,</span>
-                      <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base</span><span class="p">,</span><span class="s1">&#39;US&#39;</span><span class="p">,</span><span class="s1">&#39;Eastern&#39;</span><span class="p">),</span> <span class="s1">&#39;rb&#39;</span><span class="p">))</span>
+                      <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="s1">&#39;US&#39;</span><span class="p">,</span> <span class="s1">&#39;Eastern&#39;</span><span class="p">),</span> <span class="s1">&#39;rb&#39;</span><span class="p">))</span>
     <span class="n">pprint</span><span class="p">(</span><span class="n">tz</span><span class="o">.</span><span class="n">_utc_transition_times</span><span class="p">)</span>
-    <span class="c1">#print tz.asPython(4)</span>
-    <span class="c1">#print tz.transitions_mapping</span>
 </pre></div>
 
           </div>
