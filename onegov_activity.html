@@ -4,20 +4,12 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>Onegov Activity API &#8212; OneGov Docs 0.0.1 documentation</title>
     <link rel="stylesheet" href="_static/custom.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
@@ -29,8 +21,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
@@ -230,7 +221,7 @@ confirmed.</p>
 <dt id="onegov.activity.models.booking.Booking.set_priority_bit">
 <code class="descname">set_priority_bit</code><span class="sig-paren">(</span><em>index</em>, <em>bit</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/activity/models/booking.html#Booking.set_priority_bit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.activity.models.booking.Booking.set_priority_bit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Changes the priority, setting the the nth bit from the right to
-the value of <code class="docutils literal"><span class="pre">bit</span></code> (index/n begins at 0).</p>
+the value of <code class="docutils literal notranslate"><span class="pre">bit</span></code> (index/n begins at 0).</p>
 <p>The first bit (index=0) is reserved for starring/unstarring.
 The second bit (index=1) is reserved for nobble/unnobble.</p>
 <p>As a result, starring is less influental than locking.</p>
@@ -390,6 +381,73 @@ there’s a wiggle room of x days which is applied to the exact age.</p>
 </div>
 <div class="section" id="module-onegov.activity.collections.activity">
 <span id="collections"></span><h2>Collections<a class="headerlink" href="#module-onegov.activity.collections.activity" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.activity.collections.activity.ActivityCollection">
+<em class="property">class </em><code class="descclassname">onegov.activity.collections.activity.</code><code class="descname">ActivityCollection</code><span class="sig-paren">(</span><em>session</em>, <em>type='*'</em>, <em>page=0</em>, <em>tags=None</em>, <em>states=None</em>, <em>durations=None</em>, <em>age_ranges=None</em>, <em>owners=None</em>, <em>period_ids=None</em>, <em>dateranges=None</em>, <em>weekdays=None</em>, <em>municipalities=None</em>, <em>available=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/activity/collections/activity.html#ActivityCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.activity.collections.activity.ActivityCollection" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="onegov.activity.collections.activity.ActivityCollection.subset">
+<code class="descname">subset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/activity/collections/activity.html#ActivityCollection.subset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.activity.collections.activity.ActivityCollection.subset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an SQLAlchemy query containing all records that should
+be considered for pagination.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.activity.collections.activity.ActivityCollection.page_index">
+<code class="descname">page_index</code><a class="headerlink" href="#onegov.activity.collections.activity.ActivityCollection.page_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the current page index (starting at 0).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.activity.collections.activity.ActivityCollection.page_by_index">
+<code class="descname">page_by_index</code><span class="sig-paren">(</span><em>index</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/activity/collections/activity.html#ActivityCollection.page_by_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.activity.collections.activity.ActivityCollection.page_by_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the page at the given index. A page here means an instance
+of the class inheriting from the <code class="docutils literal notranslate"><span class="pre">Pagination</span></code> base class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.activity.collections.activity.ActivityCollection.query_base">
+<code class="descname">query_base</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/activity/collections/activity.html#ActivityCollection.query_base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.activity.collections.activity.ActivityCollection.query_base" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the query based used by <code class="xref py py-meth docutils literal notranslate"><span class="pre">query()</span></code>. Overriding this
+function is useful to apply a general filter to the query before
+any other filter is applied.</p>
+<p>For example, a policy can be enforced that only allows public
+activites.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.activity.collections.activity.ActivityCollection.for_filter">
+<code class="descname">for_filter</code><span class="sig-paren">(</span><em>tag=None</em>, <em>state=None</em>, <em>duration=None</em>, <em>age_range=None</em>, <em>owner=None</em>, <em>period_id=None</em>, <em>daterange=None</em>, <em>weekday=None</em>, <em>municipality=None</em>, <em>available=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/activity/collections/activity.html#ActivityCollection.for_filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.activity.collections.activity.ActivityCollection.for_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a new collection instance.</p>
+<p>The given tag is excluded if already in the list, included if not
+yet in the list. Same goes for the given state.</p>
+<p>Note that dateranges are excluded only if they match exactly. That is
+we don’t care about overlaps at all. If the same exact daterange is
+found in the filter, it is excluded.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.activity.collections.activity.ActivityCollection.used_tags">
+<code class="descname">used_tags</code><a class="headerlink" href="#onegov.activity.collections.activity.ActivityCollection.used_tags" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of all the tags used on <em>all</em> activites of
+the current type.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.activity.collections.activity.ActivityCollection.used_municipalities">
+<code class="descname">used_municipalities</code><a class="headerlink" href="#onegov.activity.collections.activity.ActivityCollection.used_municipalities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of all the municipalities on <em>all</em> activites of
+the current type</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.activity.collections.activity.ActivityCollection.get_unique_name">
+<code class="descname">get_unique_name</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/activity/collections/activity.html#ActivityCollection.get_unique_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.activity.collections.activity.ActivityCollection.get_unique_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a desired name, finds a variant of that name that’s not
+yet used. So if ‘foobar’ is already used, ‘foobar-1’ will be returned.</p>
+</dd></dl>
+
+</dd></dl>
+
 <span class="target" id="module-onegov.activity.collections.booking"></span></div>
 <div class="section" id="module-onegov.activity.utils">
 <span id="utils"></span><h2>Utils<a class="headerlink" href="#module-onegov.activity.utils" title="Permalink to this headline">¶</a></h2>
@@ -448,7 +506,7 @@ be the last digit in the given number.</p>
 <dt id="onegov.activity.utils.as_invoice_code">
 <code class="descclassname">onegov.activity.utils.</code><code class="descname">as_invoice_code</code><span class="sig-paren">(</span><em>invoice</em>, <em>username</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/activity/utils.html#as_invoice_code"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.activity.utils.as_invoice_code" title="Permalink to this definition">¶</a></dt>
 <dd><p>Takes the invoice group and username from an
-<code class="xref py py-class docutils literal"><span class="pre">InvoiceItem</span></code> and generates
+<code class="xref py py-class docutils literal notranslate"><span class="pre">InvoiceItem</span></code> and generates
 a hash unique to this invoice/username combination.</p>
 <p>There’s no guarantee that this code is unique for an invoice, though
 the chance of it overlapping is very very small -&gt; any algorithm
@@ -536,12 +594,14 @@ with a time tuple in b.</p>
 
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -552,7 +612,7 @@ with a time tuple in b.</p>
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |

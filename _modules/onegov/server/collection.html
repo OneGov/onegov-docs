@@ -4,20 +4,12 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>onegov.server.collection &#8212; OneGov Docs 0.0.1 documentation</title>
     <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../../',
-        VERSION:     '0.0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
@@ -29,8 +21,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
@@ -61,8 +52,8 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">instance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">application_class</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">instance</span><span class="o">.</span><span class="n">namespace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">instance</span><span class="o">.</span><span class="n">configure_application</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">instance</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">instance</span><span class="o">.</span><span class="n">configure_application</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">instance</span>
 
 
 <div class="viewcode-block" id="ApplicationCollection"><a class="viewcode-back" href="../../../onegov_server.html#onegov.server.collection.ApplicationCollection">[docs]</a><span class="k">class</span> <span class="nc">ApplicationCollection</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -90,8 +81,8 @@
                 <span class="s2">&quot;tried to register &#39;</span><span class="si">{}</span><span class="s2">&#39; twice&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">root</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">applications</span><span class="p">[</span><span class="n">root</span><span class="p">]</span> <span class="o">=</span> <span class="n">CachedApplication</span><span class="p">(</span>
-            <span class="n">application_class</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">configuration</span>
-        <span class="p">)</span></div>
+            <span class="n">application_class</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">configuration</span></div>
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="ApplicationCollection.get"><a class="viewcode-back" href="../../../onegov_server.html#onegov.server.collection.ApplicationCollection.get">[docs]</a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns the applicaton for the given path, creating a new instance</span>
@@ -102,8 +93,8 @@
 
         <span class="k">if</span> <span class="n">application</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">application</span><span class="o">.</span><span class="n">get</span><span class="p">()</span></div>
+        <span class="k">else</span><span class="p">:</span></div>
+            <span class="k">return</span> <span class="n">application</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 
 <div class="viewcode-block" id="ApplicationCollection.morepath_applications"><a class="viewcode-back" href="../../../onegov_server.html#onegov.server.collection.ApplicationCollection.morepath_applications">[docs]</a>    <span class="k">def</span> <span class="nf">morepath_applications</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Iterates through the applications that depend on morepath. &quot;&quot;&quot;</span>
@@ -111,8 +102,8 @@
         <span class="k">for</span> <span class="n">app</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">applications</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
             <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmro</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">application_class</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">base</span><span class="o">.</span><span class="vm">__module__</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;morepath.&#39;</span><span class="p">):</span>
-                    <span class="k">yield</span> <span class="n">app</span>
-                    <span class="k">break</span></div></div>
+                    <span class="k">yield</span> <span class="n">app</span></div></div>
+                    <span class="k">break</span>
 </pre></div>
 
           </div>
@@ -146,12 +137,14 @@
 
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -162,7 +155,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>
