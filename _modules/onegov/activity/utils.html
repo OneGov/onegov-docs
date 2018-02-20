@@ -37,6 +37,7 @@
 <span class="kn">import</span> <span class="nn">re</span>
 
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">chain</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">chunks</span>
 <span class="kn">from</span> <span class="nn">pyquery</span> <span class="k">import</span> <span class="n">PyQuery</span> <span class="k">as</span> <span class="n">pq</span>
@@ -311,7 +312,7 @@
 <span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">transactions</span><span class="p">))</span>
 
 
-<div class="viewcode-block" id="dates_overlap"><a class="viewcode-back" href="../../../onegov_activity.html#onegov.activity.utils.dates_overlap">[docs]</a><span class="k">def</span> <span class="nf">dates_overlap</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">minutes_between</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">cut_end</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="dates_overlap"><a class="viewcode-back" href="../../../onegov_activity.html#onegov.activity.utils.dates_overlap">[docs]</a><span class="k">def</span> <span class="nf">dates_overlap</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">minutes_between</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">cut_end</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">alignment</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Returns true if any time tuple in the list of tuples in a overlaps</span>
 <span class="sd">    with a time tuple in b.</span>
 
@@ -326,8 +327,22 @@
     <span class="c1"># make sure that 11:00 - 12:00 and 12:00 - 13:00 are not overlapping</span>
     <span class="n">ms</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">microseconds</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">alignment</span><span class="p">:</span>
+
+        <span class="c1"># alignment function</span>
+        <span class="n">align</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sedate</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;align_range_to_</span><span class="si">{alignment}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="c1"># it is highliy unlikely that this will ever be anything else as this</span>
+        <span class="c1"># module is pretty much tailored for Switzerland</span>
+        <span class="n">align</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">align</span><span class="p">,</span> <span class="n">timezone</span><span class="o">=</span><span class="s1">&#39;Europe/Zurich&#39;</span><span class="p">)</span>
+
     <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">a</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">os</span><span class="p">,</span> <span class="n">oe</span> <span class="ow">in</span> <span class="n">b</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">alignment</span><span class="p">:</span>
+                <span class="n">s</span><span class="p">,</span> <span class="n">e</span> <span class="o">=</span> <span class="n">align</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+                <span class="n">os</span><span class="p">,</span> <span class="n">oe</span> <span class="o">=</span> <span class="n">align</span><span class="p">(</span><span class="n">os</span><span class="p">,</span> <span class="n">oe</span><span class="p">)</span>
+
             <span class="k">if</span> <span class="n">sedate</span><span class="o">.</span><span class="n">overlaps</span><span class="p">(</span>
                 <span class="n">s</span> <span class="o">-</span> <span class="n">offset</span><span class="p">,</span> <span class="n">e</span> <span class="o">+</span> <span class="n">offset</span> <span class="o">-</span> <span class="n">ms</span><span class="p">,</span>
                 <span class="n">os</span> <span class="o">-</span> <span class="n">offset</span><span class="p">,</span> <span class="n">oe</span> <span class="o">+</span> <span class="n">offset</span> <span class="o">-</span> <span class="n">ms</span>
