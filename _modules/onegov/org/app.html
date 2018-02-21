@@ -35,6 +35,7 @@
 <span class="kn">from</span> <span class="nn">chameleon</span> <span class="k">import</span> <span class="n">PageTemplate</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
 <span class="kn">from</span> <span class="nn">dectate</span> <span class="k">import</span> <span class="n">directive</span>
+<span class="kn">from</span> <span class="nn">more.content_security</span> <span class="k">import</span> <span class="n">SELF</span>
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">Framework</span><span class="p">,</span> <span class="n">utils</span>
 <span class="kn">from</span> <span class="nn">onegov.core.framework</span> <span class="k">import</span> <span class="n">default_content_security_policy</span>
 <span class="kn">from</span> <span class="nn">onegov.core.i18n</span> <span class="k">import</span> <span class="n">default_locale_negotiator</span>
@@ -267,8 +268,13 @@
 <span class="k">def</span> <span class="nf">org_content_security_policy</span><span class="p">():</span>
     <span class="n">policy</span> <span class="o">=</span> <span class="n">default_content_security_policy</span><span class="p">()</span>
 
+    <span class="n">policy</span><span class="o">.</span><span class="n">child_src</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">SELF</span><span class="p">)</span>
     <span class="n">policy</span><span class="o">.</span><span class="n">child_src</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;https://*.youtube.com&#39;</span><span class="p">)</span>
     <span class="n">policy</span><span class="o">.</span><span class="n">child_src</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;https://*.vimeo.com&#39;</span><span class="p">)</span>
+    <span class="n">policy</span><span class="o">.</span><span class="n">child_src</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;https://checkout.stripe.com&#39;</span><span class="p">)</span>
+
+    <span class="n">policy</span><span class="o">.</span><span class="n">connect_src</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">SELF</span><span class="p">)</span>
+    <span class="n">policy</span><span class="o">.</span><span class="n">connect_src</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;https://checkout.stripe.com&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">policy</span>
 

@@ -47,8 +47,8 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">ResourcesLayout</span><span class="p">,</span> <span class="n">ResourceLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models.resource</span> <span class="k">import</span> <span class="n">DaypassResource</span><span class="p">,</span> <span class="n">RoomResource</span>
+<span class="kn">from</span> <span class="nn">onegov.org.utils</span> <span class="k">import</span> <span class="n">group_by_column</span>
 <span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">Ticket</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.sql.expression</span> <span class="k">import</span> <span class="n">nullsfirst</span>
 <span class="kn">from</span> <span class="nn">webob</span> <span class="k">import</span> <span class="n">exc</span>
 
 
@@ -84,36 +84,17 @@
     <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">with_content_extensions</span><span class="p">(</span><span class="n">ResourceForm</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">get_grouped_resources</span><span class="p">(</span><span class="n">resources</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">emptygroup</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="n">resources</span> <span class="o">=</span> <span class="n">resources</span><span class="o">.</span><span class="n">query</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">nullsfirst</span><span class="p">(</span><span class="n">Resource</span><span class="o">.</span><span class="n">group</span><span class="p">))</span>
-    <span class="n">resources</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">exclude_invisible</span><span class="p">(</span><span class="n">resources</span><span class="p">)</span>
-
-    <span class="n">grouped</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
-
-    <span class="k">def</span> <span class="nf">group_key</span><span class="p">(</span><span class="n">resource</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">resource</span><span class="o">.</span><span class="n">group</span> <span class="ow">or</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;General&quot;</span><span class="p">))</span>
-
-    <span class="k">def</span> <span class="nf">sort_key</span><span class="p">(</span><span class="n">resource</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">resource</span><span class="o">.</span><span class="n">title</span>
-
-    <span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span> <span class="ow">or</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">value</span><span class="p">:</span> <span class="n">value</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="n">resources</span><span class="p">,</span> <span class="n">group_key</span><span class="p">):</span>
-        <span class="n">grouped</span><span class="p">[</span><span class="n">group</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">items</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="n">sort_key</span><span class="p">)</span>
-        <span class="n">grouped</span><span class="p">[</span><span class="n">group</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">transform</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">[</span><span class="n">group</span><span class="p">]]</span>
-
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">grouped</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">grouped</span> <span class="o">=</span> <span class="p">{</span><span class="n">emptygroup</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">grouped</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]}</span>
-
-    <span class="k">return</span> <span class="n">grouped</span>
-
-
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">ResourceCollection</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;resources.pt&#39;</span><span class="p">,</span>
              <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">view_resources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reservations&quot;</span><span class="p">),</span>
-        <span class="s1">&#39;resources&#39;</span><span class="p">:</span> <span class="n">get_grouped_resources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">),</span>
+        <span class="s1">&#39;resources&#39;</span><span class="p">:</span> <span class="n">group_by_column</span><span class="p">(</span>
+            <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
+            <span class="n">query</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(),</span>
+            <span class="n">group_column</span><span class="o">=</span><span class="n">Resource</span><span class="o">.</span><span class="n">group</span><span class="p">,</span>
+            <span class="n">sort_column</span><span class="o">=</span><span class="n">Resource</span><span class="o">.</span><span class="n">title</span>
+        <span class="p">),</span>
         <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">ResourcesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
     <span class="p">}</span>
 
@@ -133,10 +114,13 @@
         <span class="c1"># only update once every minute</span>
         <span class="n">response</span><span class="o">.</span><span class="n">cache_control</span><span class="o">.</span><span class="n">max_age</span> <span class="o">=</span> <span class="mi">60</span>
 
-    <span class="k">return</span> <span class="n">get_grouped_resources</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span>
+    <span class="k">return</span> <span class="n">group_by_column</span><span class="p">(</span>
+        <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
+        <span class="n">query</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(),</span>
+        <span class="n">group_column</span><span class="o">=</span><span class="n">Resource</span><span class="o">.</span><span class="n">group</span><span class="p">,</span>
+        <span class="n">sort_column</span><span class="o">=</span><span class="n">Resource</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
         <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
-        <span class="n">emptygroup</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reservations&quot;</span><span class="p">))</span>
+        <span class="n">default_group</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reservations&quot;</span><span class="p">))</span>
     <span class="p">)</span>
 
 

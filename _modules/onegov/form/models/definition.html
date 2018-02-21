@@ -33,6 +33,7 @@
 <span></span><span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span><span class="p">,</span> <span class="n">content_property</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">onegov.form.models.submission</span> <span class="k">import</span> <span class="n">FormSubmission</span>
 <span class="kn">from</span> <span class="nn">onegov.form.parser</span> <span class="k">import</span> <span class="n">parse_form</span>
 <span class="kn">from</span> <span class="nn">onegov.form.utils</span> <span class="k">import</span> <span class="n">hash_definition</span>
@@ -75,6 +76,12 @@
     <span class="c1">#: the form as parsable string</span>
     <span class="n">definition</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
+    <span class="c1">#: the group to which this resource belongs to (may be any kind of string)</span>
+    <span class="n">group</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: The normalized title for sorting</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
     <span class="c1">#: the checksum of the definition, forms and submissions with matching</span>
     <span class="c1">#: checksums are guaranteed to have the exact same definition</span>
     <span class="n">checksum</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -111,6 +118,10 @@
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;definition&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">definition_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">definition</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">checksum</span> <span class="o">=</span> <span class="n">hash_definition</span><span class="p">(</span><span class="n">definition</span><span class="p">)</span>
+
+    <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">title_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="n">normalize_for_url</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">has_submissions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">with_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FormSubmission</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>

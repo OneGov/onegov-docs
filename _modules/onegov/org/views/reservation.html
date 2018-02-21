@@ -373,13 +373,22 @@
             <span class="n">TicketMessage</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">ticket</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;opened&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">:</span>
+            <span class="n">show_submission</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;send_by_email&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span>
+
+            <span class="k">if</span> <span class="n">submission</span> <span class="ow">and</span> <span class="n">show_submission</span><span class="p">:</span>
+                <span class="n">form</span> <span class="o">=</span> <span class="n">submission</span><span class="o">.</span><span class="n">form_obj</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">form</span> <span class="o">=</span> <span class="kc">None</span>
+
             <span class="n">send_html_mail</span><span class="p">(</span>
                 <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
                 <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_ticket_opened.pt&#39;</span><span class="p">,</span>
                 <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;A ticket has been opened&quot;</span><span class="p">),</span>
                 <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="p">),</span>
                 <span class="n">content</span><span class="o">=</span><span class="p">{</span>
-                    <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">ticket</span>
+                    <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">ticket</span><span class="p">,</span>
+                    <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
+                    <span class="s1">&#39;show_submission&#39;</span><span class="p">:</span> <span class="n">show_submission</span>
                 <span class="p">}</span>
             <span class="p">)</span>
 

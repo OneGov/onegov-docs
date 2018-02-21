@@ -34,7 +34,7 @@
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">sedate</span>
 
-<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">Counter</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">time</span>
 <span class="kn">from</span> <span class="nn">onegov.core.cache</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">isodate</span> <span class="k">import</span> <span class="n">parse_date</span><span class="p">,</span> <span class="n">parse_datetime</span>
@@ -46,6 +46,7 @@
 <span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">DeleteLink</span><span class="p">,</span> <span class="n">Link</span>
 <span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">TicketCollection</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">attrgetter</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">nullsfirst</span>
 <span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
 
 
@@ -606,6 +607,53 @@
         <span class="k">return</span> <span class="n">add_delta</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">predicted_delta</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span></div>
         <span class="k">return</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="group_by_column"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.utils.group_by_column">[docs]</a><span class="k">def</span> <span class="nf">group_by_column</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">group_column</span><span class="p">,</span> <span class="n">sort_column</span><span class="p">,</span>
+                    <span class="n">default_group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Groups the given query by the given group.</span>
+
+<span class="sd">        :param request:</span>
+<span class="sd">            The current request used for translation and to exclude invisible</span>
+<span class="sd">            records.</span>
+
+<span class="sd">        :param query:</span>
+<span class="sd">            The query that should be grouped</span>
+
+<span class="sd">        :param group_column:</span>
+<span class="sd">            The column by which the grouping should happen.</span>
+
+<span class="sd">        :param sort_column:</span>
+<span class="sd">            The column by which the records should be sorted.</span>
+
+<span class="sd">        :param default_group:</span>
+<span class="sd">            The group in use if the found group is empty (optional).</span>
+
+<span class="sd">        :param transform:</span>
+<span class="sd">            Called with each record to transform the result (optional).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_group</span> <span class="o">=</span> <span class="n">default_group</span> <span class="ow">or</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;General&quot;</span><span class="p">))</span>
+
+    <span class="n">records</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">nullsfirst</span><span class="p">(</span><span class="n">group_column</span><span class="p">))</span>
+    <span class="n">records</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">exclude_invisible</span><span class="p">(</span><span class="n">records</span><span class="p">)</span>
+
+    <span class="n">grouped</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">group_key</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">group_column</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="ow">or</span> <span class="n">default_group</span>
+
+    <span class="k">def</span> <span class="nf">sort_key</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">sort_column</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span> <span class="ow">or</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">group_key</span><span class="p">):</span>
+        <span class="n">grouped</span><span class="p">[</span><span class="n">group</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">items</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="n">sort_key</span><span class="p">)</span>
+        <span class="n">grouped</span><span class="p">[</span><span class="n">group</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">transform</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">[</span><span class="n">group</span><span class="p">]]</span>
+</div>
+    <span class="k">return</span> <span class="n">grouped</span>
 </pre></div>
 
           </div>
