@@ -35,12 +35,14 @@
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">onegov.core.crypto</span> <span class="k">import</span> <span class="n">random_token</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
+<span class="kn">from</span> <span class="nn">onegov.core.collection</span> <span class="k">import</span> <span class="n">GenericCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">as_fileintent</span>
 <span class="kn">from</span> <span class="nn">onegov.form.errors</span> <span class="k">import</span> <span class="n">UnableToComplete</span>
 <span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">UploadField</span>
 <span class="kn">from</span> <span class="nn">onegov.form.models</span> <span class="k">import</span> <span class="p">(</span>
     <span class="n">FormDefinition</span><span class="p">,</span>
     <span class="n">FormSubmission</span><span class="p">,</span>
+    <span class="n">FormRegistrationWindow</span><span class="p">,</span>
     <span class="n">FormFile</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">replace_timezone</span><span class="p">,</span> <span class="n">utcnow</span>
@@ -61,6 +63,10 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">submissions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">FormSubmissionCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">registration_windows</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">FormRegistrationWindowCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">scoped_submissions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ensure_existance</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">ensure_existance</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
@@ -166,7 +172,7 @@
         <span class="k">return</span> <span class="n">query</span>
 
 <div class="viewcode-block" id="FormSubmissionCollection.add"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.collection.FormSubmissionCollection.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">payment_method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">meta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">meta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">spots</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes a filled-out form instance and stores the submission</span>
 <span class="sd">        in the database. The form instance is expected to have a ``_source``</span>
 <span class="sd">        parameter, which contains the source used to build the form (as only</span>
@@ -193,6 +199,14 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FormDefinition</span><span class="p">)</span>
                     <span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">one</span><span class="p">())</span>
 
+        <span class="k">if</span> <span class="n">definition</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">registration_window</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">registration_window</span> <span class="o">=</span> <span class="n">definition</span><span class="o">.</span><span class="n">current_registration_window</span>
+
+        <span class="k">if</span> <span class="n">registration_window</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">registration_window</span><span class="o">.</span><span class="n">accepts_submissions</span>
+
         <span class="c1"># look up the right class depending on the type</span>
         <span class="n">submission_class</span> <span class="o">=</span> <span class="n">FormSubmission</span><span class="o">.</span><span class="n">get_polymorphic_class</span><span class="p">(</span>
             <span class="n">state</span><span class="p">,</span> <span class="n">FormSubmission</span>
@@ -204,6 +218,8 @@
         <span class="n">submission</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
         <span class="n">submission</span><span class="o">.</span><span class="n">meta</span> <span class="o">=</span> <span class="n">meta</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="n">submission</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="n">email</span>
+        <span class="n">submission</span><span class="o">.</span><span class="n">registration_window</span> <span class="o">=</span> <span class="n">registration_window</span>
+        <span class="n">submission</span><span class="o">.</span><span class="n">spots</span> <span class="o">=</span> <span class="n">spots</span>
         <span class="n">submission</span><span class="o">.</span><span class="n">payment_method</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">payment_method</span> <span class="ow">or</span>
             <span class="n">definition</span> <span class="ow">and</span> <span class="n">definition</span><span class="o">.</span><span class="n">payment_method</span> <span class="ow">or</span>
@@ -403,6 +419,25 @@
         <span class="sd">&quot;&quot;&quot; Deletes the given submission and all the files belonging to it. &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">submission</span><span class="p">)</span></div></div>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">FormRegistrationWindowCollection</span><span class="p">(</span><span class="n">GenericCollection</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">model_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">FormRegistrationWindow</span>
+
+    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">FormRegistrationWindow</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">query</span>
 </pre></div>
 
           </div>

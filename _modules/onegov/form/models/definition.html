@@ -35,6 +35,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span><span class="p">,</span> <span class="n">content_property</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">onegov.form.models.submission</span> <span class="k">import</span> <span class="n">FormSubmission</span>
+<span class="kn">from</span> <span class="nn">onegov.form.models.registration_window</span> <span class="k">import</span> <span class="n">FormRegistrationWindow</span>
 <span class="kn">from</span> <span class="nn">onegov.form.parser</span> <span class="k">import</span> <span class="n">parse_form</span>
 <span class="kn">from</span> <span class="nn">onegov.form.utils</span> <span class="k">import</span> <span class="n">hash_definition</span>
 <span class="kn">from</span> <span class="nn">onegov.form.extensions</span> <span class="k">import</span> <span class="n">Extendable</span>
@@ -94,6 +95,48 @@
     <span class="c1">#: link between forms and submissions</span>
     <span class="n">submissions</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s1">&#39;FormSubmission&#39;</span><span class="p">,</span> <span class="n">backref</span><span class="o">=</span><span class="s1">&#39;form&#39;</span><span class="p">)</span>
 
+    <span class="c1">#: link between forms and registration windows</span>
+    <span class="n">registration_windows</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;FormRegistrationWindow&#39;</span><span class="p">,</span>
+        <span class="n">backref</span><span class="o">=</span><span class="s1">&#39;form&#39;</span><span class="p">,</span>
+        <span class="n">order_by</span><span class="o">=</span><span class="s1">&#39;FormRegistrationWindow.start&#39;</span><span class="p">)</span>
+
+    <span class="c1">#: the currently active registration window</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: this sorts the registration windows by the smaller k-nearest neighbour</span>
+    <span class="c1">#: result of both start and end in relation to the current date</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: the result is the *nearest* date range in relation to today:</span>
+    <span class="c1">#: * during an active registration window, it&#39;s that active window</span>
+    <span class="c1">#: * outside of active windows, it&#39;s last window half way until</span>
+    <span class="c1">#:   the next window starts</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: this could of course be done more conventionally, but this is cooler 😅</span>
+    <span class="n">current_registration_window</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s1">&#39;FormRegistrationWindow&#39;</span><span class="p">,</span> <span class="n">viewonly</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">uselist</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">primaryjoin</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;and_(</span>
+<span class="s2">            FormRegistrationWindow.name == FormDefinition.name,</span>
+<span class="s2">            FormRegistrationWindow.id == select((</span>
+<span class="s2">                FormRegistrationWindow.id,</span>
+<span class="s2">            )).where(</span>
+<span class="s2">                FormRegistrationWindow.name == FormDefinition.name</span>
+<span class="s2">            ).order_by(</span>
+<span class="s2">                func.least(</span>
+<span class="s2">                    cast(</span>
+<span class="s2">                        func.now().op(&#39;AT TIME ZONE&#39;)(</span>
+<span class="s2">                            FormRegistrationWindow.timezone</span>
+<span class="s2">                        ), Date</span>
+<span class="s2">                    ).op(&#39;&lt;-&gt;&#39;)(FormRegistrationWindow.start),</span>
+<span class="s2">                    cast(</span>
+<span class="s2">                        func.now().op(&#39;AT TIME ZONE&#39;)(</span>
+<span class="s2">                            FormRegistrationWindow.timezone</span>
+<span class="s2">                        ), Date</span>
+<span class="s2">                    ).op(&#39;&lt;-&gt;&#39;)(FormRegistrationWindow.end)</span>
+<span class="s2">                )</span>
+<span class="s2">            ).limit(1)</span>
+<span class="s2">        )&quot;&quot;&quot;</span>
+    <span class="p">)</span>
+
     <span class="c1">#: lead text describing the form</span>
     <span class="n">lead</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
 
@@ -129,8 +172,19 @@
 
         <span class="k">if</span> <span class="n">with_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FormSubmission</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">with_state</span><span class="p">)</span>
-</div>
+
         <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="ow">and</span> <span class="kc">True</span> <span class="ow">or</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">add_registration_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">):</span>
+        <span class="n">window</span> <span class="o">=</span> <span class="n">FormRegistrationWindow</span><span class="p">(</span>
+            <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+            <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">options</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">registration_windows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">window</span><span class="p">)</span>
+</div>
+        <span class="k">return</span> <span class="n">window</span>
 </pre></div>
 
           </div>
