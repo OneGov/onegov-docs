@@ -57,6 +57,7 @@
 <span class="kn">import</span> <span class="nn">random</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 
+<span class="kn">from</span> <span class="nn">base64</span> <span class="k">import</span> <span class="n">b64encode</span>
 <span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">dectate</span> <span class="k">import</span> <span class="n">directive</span>
@@ -87,6 +88,7 @@
 <span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.exc</span> <span class="k">import</span> <span class="n">OperationalError</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span> <span class="k">as</span> <span class="n">new_uuid</span>
+<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">urlencode</span>
 <span class="kn">from</span> <span class="nn">webob.exc</span> <span class="k">import</span> <span class="n">HTTPConflict</span>
 
 
@@ -475,6 +477,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_token</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hipchat_token&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_room_id</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hipchat_room_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">configure_zulip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zulip_url</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;zulip_url&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zulip_stream</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;zulip_stream&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zulip_user</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;zulip_user&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zulip_key</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;zulip_key&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">configure_content_security_policy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">content_security_policy_enabled</span>\
             <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content_security_policy_enabled&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
@@ -750,6 +758,40 @@
             <span class="p">)</span>
 
             <span class="n">thread</span> <span class="o">=</span> <span class="n">PostThread</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+            <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</div>
+            <span class="k">return</span> <span class="n">thread</span>
+
+<div class="viewcode-block" id="Framework.send_zulip"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.send_zulip">[docs]</a>    <span class="k">def</span> <span class="nf">send_zulip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">content</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sends a hipchat message asynchronously.</span>
+
+<span class="sd">        We are using the stream message method of zulip:</span>
+<span class="sd">        `&lt;https://zulipchat.com/api/stream-message&gt;`_</span>
+
+<span class="sd">        Returns the thread object to allow waiting by calling join.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">all</span><span class="p">((</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">zulip_url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zulip_stream</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zulip_user</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zulip_key</span>
+        <span class="p">)):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">urlencode</span><span class="p">({</span>
+                <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;stream&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;to&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">zulip_stream</span><span class="p">,</span>
+                <span class="s1">&#39;subject&#39;</span><span class="p">:</span> <span class="n">subject</span><span class="p">,</span>
+                <span class="s1">&#39;content&#39;</span><span class="p">:</span> <span class="n">content</span>
+            <span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+            <span class="n">auth</span> <span class="o">=</span> <span class="n">b64encode</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">zulip_user</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zulip_key</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">headers</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="s1">&#39;Authorization&#39;</span><span class="p">,</span> <span class="s1">&#39;Basic </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">auth</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">))),</span>
+                <span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span> <span class="s1">&#39;application/x-www-form-urlencoded&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;Content-Length&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)),</span>
+            <span class="p">)</span>
+
+            <span class="n">thread</span> <span class="o">=</span> <span class="n">PostThread</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">zulip_url</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
             <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 </div>
             <span class="k">return</span> <span class="n">thread</span>
