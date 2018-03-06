@@ -45,13 +45,10 @@
     <span class="s1">&#39;ungultige sz&#39;</span><span class="p">,</span>
     <span class="s1">&#39;ja&#39;</span><span class="p">,</span>
     <span class="s1">&#39;nein&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;initoantw&#39;</span><span class="p">,</span>
     <span class="s1">&#39;gegenvja&#39;</span><span class="p">,</span>
     <span class="s1">&#39;gegenvnein&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;gegenvoantw&#39;</span><span class="p">,</span>
     <span class="s1">&#39;stichfrja&#39;</span><span class="p">,</span>
     <span class="s1">&#39;stichfrnein&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;stichfroantw&#39;</span><span class="p">,</span>
     <span class="s1">&#39;stimmbet&#39;</span><span class="p">,</span>
 <span class="p">)</span>
 
@@ -163,9 +160,15 @@
         <span class="n">empty</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">e_ballots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">leere_sz</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="n">empty</span><span class="p">[</span><span class="s1">&#39;proposal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">initoantw</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">e_ballots</span>
-            <span class="n">empty</span><span class="p">[</span><span class="s1">&#39;counter-proposal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">gegenvoantw</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">e_ballots</span>
-            <span class="n">empty</span><span class="p">[</span><span class="s1">&#39;tie-breaker&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stichfroantw</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">e_ballots</span>
+            <span class="n">empty</span><span class="p">[</span><span class="s1">&#39;proposal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">int</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;initoantw&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">e_ballots</span>
+            <span class="p">)</span>
+            <span class="n">empty</span><span class="p">[</span><span class="s1">&#39;counter-proposal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">int</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;gegenvoantw&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">e_ballots</span>
+            <span class="p">)</span>
+            <span class="n">empty</span><span class="p">[</span><span class="s1">&#39;tie-breaker&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">int</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;stichfroantw&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">e_ballots</span>
+            <span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
             <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Could not read the empty votes&quot;</span><span class="p">))</span>
 

@@ -69,7 +69,7 @@
     <span class="n">userlinks</span> <span class="o">=</span> <span class="n">directive</span><span class="p">(</span><span class="n">directives</span><span class="o">.</span><span class="n">UserlinkAction</span><span class="p">)</span>
 
     <span class="c1">#: the version of this application (do not change manually!)</span>
-    <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;0.24.3&#39;</span>
+    <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;0.24.4&#39;</span>
 
 <div class="viewcode-block" id="OrgApp.is_allowed_application_id"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.app.OrgApp.is_allowed_application_id">[docs]</a>    <span class="k">def</span> <span class="nf">is_allowed_application_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">application_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Stops onegov.server from ever passing the request to the org</span>
@@ -176,9 +176,10 @@
 <span class="sd">        settings.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">category</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;category&#39;</span><span class="p">,</span> <span class="s1">&#39;marketing&#39;</span><span class="p">)</span>
 
         <span class="n">reply_to</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;reply_to&#39;</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;reply_to&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
-        <span class="n">reply_to</span> <span class="o">=</span> <span class="n">reply_to</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_sender</span>
+        <span class="n">reply_to</span> <span class="o">=</span> <span class="n">reply_to</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail</span><span class="p">[</span><span class="n">category</span><span class="p">][</span><span class="s1">&#39;sender&#39;</span><span class="p">]</span>
         <span class="n">reply_to</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> &lt;</span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">reply_to</span><span class="p">)</span>
 </div>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span><span class="n">reply_to</span><span class="o">=</span><span class="n">reply_to</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>

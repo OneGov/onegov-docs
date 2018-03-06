@@ -127,12 +127,27 @@
     <span class="k">if</span> <span class="n">use_smtp</span><span class="p">:</span>
         <span class="n">smtp</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">getfixturevalue</span><span class="p">(</span><span class="s1">&#39;smtp&#39;</span><span class="p">)</span>
 
-        <span class="n">app</span><span class="o">.</span><span class="n">mail_host</span><span class="p">,</span> <span class="n">app</span><span class="o">.</span><span class="n">mail_port</span> <span class="o">=</span> <span class="n">smtp</span><span class="o">.</span><span class="n">address</span>
-        <span class="n">app</span><span class="o">.</span><span class="n">mail_sender</span> <span class="o">=</span> <span class="s1">&#39;mails@govikon.ch&#39;</span>
-        <span class="n">app</span><span class="o">.</span><span class="n">mail_force_tls</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="n">app</span><span class="o">.</span><span class="n">mail_username</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">app</span><span class="o">.</span><span class="n">mail_password</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">app</span><span class="o">.</span><span class="n">mail_use_directory</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">mail</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;marketing&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;host&#39;</span><span class="p">:</span> <span class="n">smtp</span><span class="o">.</span><span class="n">address</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s1">&#39;port&#39;</span><span class="p">:</span> <span class="n">smtp</span><span class="o">.</span><span class="n">address</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="s1">&#39;force_tls&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s1">&#39;use_directory&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s1">&#39;sender&#39;</span><span class="p">:</span> <span class="s1">&#39;mails@govikon.ch&#39;</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;transactional&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;host&#39;</span><span class="p">:</span> <span class="n">smtp</span><span class="o">.</span><span class="n">address</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s1">&#39;port&#39;</span><span class="p">:</span> <span class="n">smtp</span><span class="o">.</span><span class="n">address</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="s1">&#39;force_tls&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s1">&#39;use_directory&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s1">&#39;sender&#39;</span><span class="p">:</span> <span class="s1">&#39;mails@govikon.ch&#39;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
         <span class="n">app</span><span class="o">.</span><span class="n">smtp</span> <span class="o">=</span> <span class="n">smtp</span>
 
     <span class="k">return</span> <span class="n">app</span>

@@ -44,7 +44,7 @@
 <span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">Link</span>
 <span class="kn">from</span> <span class="nn">onegov.org.forms</span> <span class="k">import</span> <span class="n">ReservationForm</span>
 <span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">ReservationLayout</span>
-<span class="kn">from</span> <span class="nn">onegov.org.mail</span> <span class="k">import</span> <span class="n">send_html_mail</span>
+<span class="kn">from</span> <span class="nn">onegov.org.mail</span> <span class="k">import</span> <span class="n">send_transactional_html_mail</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">TicketMessage</span><span class="p">,</span> <span class="n">ReservationMessage</span>
 <span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Allocation</span><span class="p">,</span> <span class="n">Reservation</span><span class="p">,</span> <span class="n">Resource</span>
 <span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">TicketCollection</span>
@@ -380,7 +380,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">form</span> <span class="o">=</span> <span class="kc">None</span>
 
-            <span class="n">send_html_mail</span><span class="p">(</span>
+            <span class="n">send_transactional_html_mail</span><span class="p">(</span>
                 <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
                 <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_ticket_opened.pt&#39;</span><span class="p">,</span>
                 <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;A ticket has been opened&quot;</span><span class="p">),</span>
@@ -405,7 +405,7 @@
         <span class="n">reservations</span> <span class="o">=</span> <span class="n">reservations</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Reservation</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">:</span>
-            <span class="n">send_html_mail</span><span class="p">(</span>
+            <span class="n">send_transactional_html_mail</span><span class="p">(</span>
                 <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
                 <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_reservation_accepted.pt&#39;</span><span class="p">,</span>
                 <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your reservations were accepted&quot;</span><span class="p">),</span>
@@ -476,7 +476,7 @@
         <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">payment</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">:</span>
-        <span class="n">send_html_mail</span><span class="p">(</span>
+        <span class="n">send_transactional_html_mail</span><span class="p">(</span>
             <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
             <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_reservation_rejected.pt&#39;</span><span class="p">,</span>
             <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The following reservations were rejected&quot;</span><span class="p">),</span>

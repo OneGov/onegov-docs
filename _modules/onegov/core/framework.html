@@ -76,6 +76,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">cache</span><span class="p">,</span> <span class="n">log</span><span class="p">,</span> <span class="n">utils</span>
 <span class="kn">from</span> <span class="nn">onegov.core.custom</span> <span class="k">import</span> <span class="n">json</span>
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">directives</span>
+<span class="kn">from</span> <span class="nn">onegov.core.cache</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">onegov.core.datamanager</span> <span class="k">import</span> <span class="n">MailDataManager</span>
 <span class="kn">from</span> <span class="nn">onegov.core.mail</span> <span class="k">import</span> <span class="n">email</span><span class="p">,</span> <span class="n">Postman</span><span class="p">,</span> <span class="n">MaildirPostman</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">SessionManager</span><span class="p">,</span> <span class="n">debug</span>
@@ -315,24 +316,18 @@
 
 <span class="sd">            Defaults to 1&#39;200s (20 minutes).</span>
 
-<span class="sd">        :mail_host:</span>
-<span class="sd">            The mail server to send e-mails from.</span>
+<span class="sd">        :mail:</span>
+<span class="sd">            A dictionary keyed by e-mail category (i.e. &#39;marketing&#39;,</span>
+<span class="sd">            &#39;transactional&#39;) with the following subkeys:</span>
 
-<span class="sd">        :mail_port:</span>
-<span class="sd">            The port used for the mail server.</span>
-
-<span class="sd">        :mail_force_tls:</span>
-<span class="sd">            True if TLS should be forced when connecting to the mail server.</span>
-<span class="sd">            Defaults to ``True``.</span>
-
-<span class="sd">        :mail_username:</span>
-<span class="sd">            The username used for mail server authentication.</span>
-
-<span class="sd">        :mail_password:</span>
-<span class="sd">            The password used for mail server authentication.</span>
-
-<span class="sd">        :mail_sender:</span>
-<span class="sd">            The sender e-mail address.</span>
+<span class="sd">                - host: The mail server to send e-mails from.</span>
+<span class="sd">                - port: The port used for the mail server.</span>
+<span class="sd">                - force_tls: True if TLS should be forced.</span>
+<span class="sd">                - username: The mail username</span>
+<span class="sd">                - password: The mail password</span>
+<span class="sd">                - sender: The mail sender</span>
+<span class="sd">                - use_directory: True if a mail directory should be used</span>
+<span class="sd">                - directory: Path to the directory that should be used</span>
 
 <span class="sd">        :mail_use_directory:</span>
 <span class="sd">            If true, mails are stored in the maildir defined through</span>
@@ -464,14 +459,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">print_exceptions</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;print_exceptions&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">configure_mail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mail_host</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_host&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mail_port</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_port&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mail_force_tls</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_force_tls&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mail_username</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_username&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mail_password</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_password&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mail_sender</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_sender&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mail_use_directory</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_use_directory&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mail_directory</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail_directory&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mail</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mail&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mail</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="s1">&#39;transactional&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail</span>
+            <span class="k">assert</span> <span class="s1">&#39;marketing&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail</span>
 
     <span class="k">def</span> <span class="nf">configure_hipchat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_token</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hipchat_token&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -636,48 +629,78 @@
         <span class="sd">&quot;&quot;&quot; Alias for self.session_manager.session. &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">session</span>
 
-    <span class="nd">@cached_property</span>
-    <span class="k">def</span> <span class="nf">postman</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Framework.postman"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.postman">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">postman</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns a Mailthon postman configured with the mail settings in</span>
 <span class="sd">        the settings view. See `&lt;http://mailthon.readthedocs.org/&gt;`_ for</span>
 <span class="sd">        more information.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail</span><span class="p">[</span><span class="n">category</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_use_directory</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_directory</span>
+        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;use_directory&#39;</span><span class="p">]:</span>
+            <span class="k">assert</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;directory&#39;</span><span class="p">]</span>
 
             <span class="k">return</span> <span class="n">MaildirPostman</span><span class="p">(</span>
                 <span class="n">host</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">port</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">options</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">maildir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mail_directory</span><span class="p">)</span>
+                <span class="n">options</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">maildir</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;directory&#39;</span><span class="p">])</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_host</span>
-            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_port</span>
+            <span class="k">assert</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;host&#39;</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;port&#39;</span><span class="p">]</span>
 
             <span class="n">middlewares</span> <span class="o">=</span> <span class="p">[]</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_force_tls</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;force_tls&#39;</span><span class="p">]:</span>
                 <span class="n">middlewares</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TLS</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_username</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">]:</span>
                 <span class="n">middlewares</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="n">Auth</span><span class="p">(</span>
-                        <span class="n">username</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mail_username</span><span class="p">,</span>
-                        <span class="n">password</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mail_password</span>
+                        <span class="n">username</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span>
+                        <span class="n">password</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;password&#39;</span><span class="p">]</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
 
             <span class="k">return</span> <span class="n">Postman</span><span class="p">(</span>
-                <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mail_host</span><span class="p">,</span>
-                <span class="n">port</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mail_port</span><span class="p">,</span>
-                <span class="n">middlewares</span><span class="o">=</span><span class="n">middlewares</span>
+                <span class="n">host</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;host&#39;</span><span class="p">],</span>
+                <span class="n">port</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;port&#39;</span><span class="p">],</span>
+                <span class="n">middlewares</span><span class="o">=</span><span class="n">middlewares</span></div>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="Framework.send_email"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.send_email">[docs]</a>    <span class="k">def</span> <span class="nf">send_email</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reply_to</span><span class="p">,</span> <span class="n">receivers</span><span class="o">=</span><span class="p">(),</span> <span class="n">cc</span><span class="o">=</span><span class="p">(),</span> <span class="n">bcc</span><span class="o">=</span><span class="p">(),</span>
-                   <span class="n">subject</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span>
-                   <span class="n">attachments</span><span class="o">=</span><span class="p">(),</span> <span class="n">headers</span><span class="o">=</span><span class="p">{}):</span>
+<div class="viewcode-block" id="Framework.send_marketing_email"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.send_marketing_email">[docs]</a>    <span class="k">def</span> <span class="nf">send_marketing_email</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sends an e-mail categorised as marketing. This includes but is not</span>
+<span class="sd">        limited to:</span>
+
+<span class="sd">            * Announcements</span>
+<span class="sd">            * Newsletters</span>
+<span class="sd">            * Promotional E-Mails</span>
+
+<span class="sd">        When in doubt, send a marketing e-mail. Transactional e-mails are</span>
+<span class="sd">        sacred and should only be used if necessary. This ensures that the</span>
+<span class="sd">        important stuff is reaching our customers!</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;marketing&#39;</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Framework.send_transactional_email"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.send_transactional_email">[docs]</a>    <span class="k">def</span> <span class="nf">send_transactional_email</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sends an e-mail categorised as transactional. This is limited to:</span>
+
+<span class="sd">            * Welcome emails</span>
+<span class="sd">            * Reset passwords emails</span>
+<span class="sd">            * Notifications</span>
+<span class="sd">            * Weekly digests</span>
+<span class="sd">            * Receipts and invoices</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;transactional&#39;</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Framework.send_email"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.send_email">[docs]</a>    <span class="k">def</span> <span class="nf">send_email</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reply_to</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="s1">&#39;marketing&#39;</span><span class="p">,</span>
+                   <span class="n">receivers</span><span class="o">=</span><span class="p">(),</span> <span class="n">cc</span><span class="o">=</span><span class="p">(),</span> <span class="n">bcc</span><span class="o">=</span><span class="p">(),</span> <span class="n">subject</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span> <span class="n">attachments</span><span class="o">=</span><span class="p">(),</span> <span class="n">headers</span><span class="o">=</span><span class="p">{}):</span>
         <span class="sd">&quot;&quot;&quot; Sends a plain-text e-mail using :attr:`postman` to the given</span>
 <span class="sd">        recipients. A reply to address is used to enable people to answer</span>
 <span class="sd">        to the e-mail which is usually sent by a noreply kind of e-mail</span>
@@ -693,36 +716,39 @@
 <span class="sd">        `&lt;http://mailthon.readthedocs.org/&gt;`_.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_sender</span>
+        <span class="k">assert</span> <span class="n">category</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;transactional&#39;</span><span class="p">,</span> <span class="s1">&#39;marketing&#39;</span><span class="p">)</span>
+
+        <span class="n">sender</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail</span><span class="p">[</span><span class="n">category</span><span class="p">][</span><span class="s1">&#39;sender&#39;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">sender</span>
 
         <span class="c1"># if the reply to address has a name part (Name &lt;address@host&gt;), use</span>
         <span class="c1"># the name part for the sender address as well to somewhat hide the</span>
         <span class="c1"># fact that we&#39;re using a noreply email</span>
         <span class="n">name</span><span class="p">,</span> <span class="n">address</span> <span class="o">=</span> <span class="n">parseaddr</span><span class="p">(</span><span class="n">reply_to</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">parseaddr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mail_sender</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
-            <span class="n">mail_sender</span> <span class="o">=</span> <span class="n">formataddr</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_sender</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">mail_sender</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_sender</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">parseaddr</span><span class="p">(</span><span class="n">sender</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">sender</span> <span class="o">=</span> <span class="n">formataddr</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">sender</span><span class="p">))</span>
 
         <span class="n">envelope</span> <span class="o">=</span> <span class="n">email</span><span class="p">(</span>
-            <span class="n">sender</span><span class="o">=</span><span class="n">mail_sender</span><span class="p">,</span>
+            <span class="n">sender</span><span class="o">=</span><span class="n">sender</span><span class="p">,</span>
             <span class="n">receivers</span><span class="o">=</span><span class="n">receivers</span><span class="p">,</span>
             <span class="n">cc</span><span class="o">=</span><span class="n">cc</span><span class="p">,</span>
             <span class="n">bcc</span><span class="o">=</span><span class="n">bcc</span><span class="p">,</span>
             <span class="n">subject</span><span class="o">=</span><span class="n">subject</span><span class="p">,</span>
             <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
             <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">,</span>
-            <span class="n">attachments</span><span class="o">=</span><span class="n">attachments</span>
+            <span class="n">attachments</span><span class="o">=</span><span class="n">attachments</span><span class="p">,</span>
+            <span class="n">category</span><span class="o">=</span><span class="n">category</span>
         <span class="p">)</span>
 
-        <span class="n">envelope</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Sender&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mail_sender</span>
+        <span class="n">envelope</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Sender&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sender</span>
         <span class="n">envelope</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Reply-To&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">formataddr</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">address</span><span class="p">))</span>
+
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">headers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">envelope</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
         <span class="c1"># send e-mails through the transaction machinery</span></div>
-        <span class="n">MailDataManager</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">postman</span><span class="p">,</span> <span class="n">envelope</span><span class="p">)</span>
+        <span class="n">MailDataManager</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">postman</span><span class="p">(</span><span class="n">category</span><span class="p">),</span> <span class="n">envelope</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Framework.send_hipchat"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.send_hipchat">[docs]</a>    <span class="k">def</span> <span class="nf">send_hipchat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message_from</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">message_format</span><span class="o">=</span><span class="s1">&#39;html&#39;</span><span class="p">,</span>
                      <span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="n">notify</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>

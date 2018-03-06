@@ -112,10 +112,10 @@
                 <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;reset-password&#39;</span><span class="p">)</span>
             <span class="p">)</span>
 
-            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_transactional_email</span><span class="p">(</span>
                 <span class="n">subject</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Password reset&quot;</span><span class="p">)),</span>
                 <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="p">),</span>
-                <span class="n">reply_to</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">mail_sender</span><span class="p">,</span>
+                <span class="n">reply_to</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">mail</span><span class="p">[</span><span class="s1">&#39;transactional&#39;</span><span class="p">][</span><span class="s1">&#39;sender&#39;</span><span class="p">],</span>
                 <span class="n">content</span><span class="o">=</span><span class="n">render_template</span><span class="p">(</span>
                     <span class="s1">&#39;mail_password_reset.pt&#39;</span><span class="p">,</span>
                     <span class="n">request</span><span class="p">,</span>

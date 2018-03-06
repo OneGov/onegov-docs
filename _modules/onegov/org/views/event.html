@@ -40,7 +40,7 @@
 <span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">Link</span>
 <span class="kn">from</span> <span class="nn">onegov.org.forms</span> <span class="k">import</span> <span class="n">EventForm</span>
 <span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">EventLayout</span>
-<span class="kn">from</span> <span class="nn">onegov.org.mail</span> <span class="k">import</span> <span class="n">send_html_mail</span>
+<span class="kn">from</span> <span class="nn">onegov.org.mail</span> <span class="k">import</span> <span class="n">send_transactional_html_mail</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">TicketMessage</span><span class="p">,</span> <span class="n">EventMessage</span>
 <span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">TicketCollection</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
@@ -94,7 +94,7 @@
     <span class="n">ticket</span> <span class="o">=</span> <span class="n">TicketCollection</span><span class="p">(</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">by_handler_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;submitter_email&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">:</span>
-        <span class="n">send_html_mail</span><span class="p">(</span>
+        <span class="n">send_transactional_html_mail</span><span class="p">(</span>
             <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
             <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_event_accepted.pt&#39;</span><span class="p">,</span>
             <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your event was accepted&quot;</span><span class="p">),</span>
@@ -192,7 +192,7 @@
             <span class="n">TicketMessage</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">ticket</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;opened&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;submitter_email&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">:</span>
-            <span class="n">send_html_mail</span><span class="p">(</span>
+            <span class="n">send_transactional_html_mail</span><span class="p">(</span>
                 <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
                 <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_ticket_opened.pt&#39;</span><span class="p">,</span>
                 <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;A ticket has been opened&quot;</span><span class="p">),</span>
@@ -264,7 +264,7 @@
         <span class="n">ticket</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;submitter_email&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">:</span>
-        <span class="n">send_html_mail</span><span class="p">(</span>
+        <span class="n">send_transactional_html_mail</span><span class="p">(</span>
             <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
             <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_event_rejected.pt&#39;</span><span class="p">,</span>
             <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your event was rejected&quot;</span><span class="p">),</span>

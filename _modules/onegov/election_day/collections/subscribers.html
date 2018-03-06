@@ -141,13 +141,17 @@
         <span class="n">optout</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="p">,</span> <span class="s1">&#39;unsubscribe-email&#39;</span><span class="p">)</span>
         <span class="n">token</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">new_url_safe_token</span><span class="p">({</span><span class="s1">&#39;address&#39;</span><span class="p">:</span> <span class="n">subscriber</span><span class="o">.</span><span class="n">address</span><span class="p">})</span>
 
-        <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span>
+        <span class="c1"># even though this is technically a transactional e-mail we send</span>
+        <span class="c1"># it as marketing, since the actual subscription is sent as</span>
+        <span class="c1"># a marketing e-mail as well</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_marketing_email</span><span class="p">(</span>
             <span class="n">subject</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span>
                 <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Successfully subscribed to the email service&quot;</span><span class="p">)</span>
             <span class="p">),</span>
             <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">address</span><span class="p">,</span> <span class="p">),</span>
             <span class="n">reply_to</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> &lt;</span><span class="si">{}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">mail_sender</span>
+                <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">mail</span><span class="p">[</span><span class="s1">&#39;marketing&#39;</span><span class="p">][</span><span class="s1">&#39;sender&#39;</span><span class="p">]</span>
             <span class="p">),</span>
             <span class="n">content</span><span class="o">=</span><span class="n">render_template</span><span class="p">(</span>
                 <span class="s1">&#39;mail_subscribed.pt&#39;</span><span class="p">,</span>

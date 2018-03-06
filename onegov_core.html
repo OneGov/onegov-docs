@@ -237,37 +237,34 @@ user has to submit a form, from the time it’s rendered.</p>
 <p>Defaults to 1‘200s (20 minutes).</p>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Mail_host:</th><td class="field-body"><p class="first">The mail server to send e-mails from.</p>
+<tr class="field-even field"><th class="field-name">Mail:</th><td class="field-body"><p class="first">A dictionary keyed by e-mail category (i.e. ‘marketing’,
+‘transactional’) with the following subkeys:</p>
+<blockquote>
+<div><ul class="simple">
+<li>host: The mail server to send e-mails from.</li>
+<li>port: The port used for the mail server.</li>
+<li>force_tls: True if TLS should be forced.</li>
+<li>username: The mail username</li>
+<li>password: The mail password</li>
+<li>sender: The mail sender</li>
+<li>use_directory: True if a mail directory should be used</li>
+<li>directory: Path to the directory that should be used</li>
+</ul>
+</div></blockquote>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Mail_port:</th><td class="field-body"><p class="first">The port used for the mail server.</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Mail_force_tls:</th><td class="field-body"><p class="first">True if TLS should be forced when connecting to the mail server.
-Defaults to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Mail_username:</th><td class="field-body"><p class="first">The username used for mail server authentication.</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Mail_password:</th><td class="field-body"><p class="first">The password used for mail server authentication.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Mail_sender:</th><td class="field-body"><p class="first">The sender e-mail address.</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Mail_use_directory:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">If true, mails are stored in the maildir defined through
+<tr class="field-odd field"><th class="field-name" colspan="2">Mail_use_directory:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">If true, mails are stored in the maildir defined through
 <code class="docutils literal notranslate"><span class="pre">mail_directory</span></code>. There, some other process is supposed to
 pick up the e-mails and send them.</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Mail_directory:</th><td class="field-body"><p class="first">The directory (maildir) where mails are stored if if
+<tr class="field-even field"><th class="field-name">Mail_directory:</th><td class="field-body"><p class="first">The directory (maildir) where mails are stored if if
 <code class="docutils literal notranslate"><span class="pre">mail_use_directory</span></code> is set to True.</p>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Sql_query_report:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">Prints out a report sql queries for each request, unless False.
+<tr class="field-odd field"><th class="field-name" colspan="2">Sql_query_report:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">Prints out a report sql queries for each request, unless False.
 Valid values are:</p>
 <ul class="simple">
 <li>‘summary’ (only show the number of queries)</li>
@@ -277,13 +274,13 @@ Valid values are:</p>
 <p>Do not use in production!</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Profile:</th><td class="field-body"><p class="first">If true, profiles the request and stores the result in the profiles
+<tr class="field-even field"><th class="field-name">Profile:</th><td class="field-body"><p class="first">If true, profiles the request and stores the result in the profiles
 folder with the following format: <code class="docutils literal notranslate"><span class="pre">YYYY-MM-DD</span> <span class="pre">hh:mm:ss.profile</span></code></p>
 <p>Do not use in production!</p>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Print_exceptions:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first last">If true, exceptions are printed to stderr. Note that you should
+<tr class="field-odd field"><th class="field-name" colspan="2">Print_exceptions:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first last">If true, exceptions are printed to stderr. Note that you should
 usually configure logging through onegov.server. This is mainly
 used for certain unit tests where we use WSGI more directly.</p>
 </td>
@@ -366,15 +363,45 @@ somehow influence the path</em>!</p>
 
 <dl class="attribute">
 <dt id="onegov.core.framework.Framework.postman">
-<code class="descname">postman</code><a class="headerlink" href="#onegov.core.framework.Framework.postman" title="Permalink to this definition">¶</a></dt>
+<code class="descname">postman</code><a class="reference internal" href="_modules/onegov/core/framework.html#Framework.postman"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.framework.Framework.postman" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a Mailthon postman configured with the mail settings in
 the settings view. See <a class="reference external" href="http://mailthon.readthedocs.org/">http://mailthon.readthedocs.org/</a> for
 more information.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="onegov.core.framework.Framework.send_marketing_email">
+<code class="descname">send_marketing_email</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/framework.html#Framework.send_marketing_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.framework.Framework.send_marketing_email" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sends an e-mail categorised as marketing. This includes but is not
+limited to:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Announcements</li>
+<li>Newsletters</li>
+<li>Promotional E-Mails</li>
+</ul>
+</div></blockquote>
+<p>When in doubt, send a marketing e-mail. Transactional e-mails are
+sacred and should only be used if necessary. This ensures that the
+important stuff is reaching our customers!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.core.framework.Framework.send_transactional_email">
+<code class="descname">send_transactional_email</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/framework.html#Framework.send_transactional_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.framework.Framework.send_transactional_email" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sends an e-mail categorised as transactional. This is limited to:</p>
+<ul class="simple">
+<li>Welcome emails</li>
+<li>Reset passwords emails</li>
+<li>Notifications</li>
+<li>Weekly digests</li>
+<li>Receipts and invoices</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
 <dt id="onegov.core.framework.Framework.send_email">
-<code class="descname">send_email</code><span class="sig-paren">(</span><em>reply_to</em>, <em>receivers=()</em>, <em>cc=()</em>, <em>bcc=()</em>, <em>subject=None</em>, <em>content=None</em>, <em>encoding='utf-8'</em>, <em>attachments=()</em>, <em>headers={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/framework.html#Framework.send_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.framework.Framework.send_email" title="Permalink to this definition">¶</a></dt>
+<code class="descname">send_email</code><span class="sig-paren">(</span><em>reply_to</em>, <em>category='marketing'</em>, <em>receivers=()</em>, <em>cc=()</em>, <em>bcc=()</em>, <em>subject=None</em>, <em>content=None</em>, <em>encoding='utf-8'</em>, <em>attachments=()</em>, <em>headers={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/framework.html#Framework.send_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.framework.Framework.send_email" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sends a plain-text e-mail using <a class="reference internal" href="#onegov.core.framework.Framework.postman" title="onegov.core.framework.Framework.postman"><code class="xref py py-attr docutils literal notranslate"><span class="pre">postman</span></code></a> to the given
 recipients. A reply to address is used to enable people to answer
 to the e-mail which is usually sent by a noreply kind of e-mail
@@ -4240,7 +4267,7 @@ is used with different asset environment instances.</p>
 <span id="mail"></span><h2>Mail<a class="headerlink" href="#module-onegov.core.mail" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="onegov.core.mail.email">
-<code class="descclassname">onegov.core.mail.</code><code class="descname">email</code><span class="sig-paren">(</span><em>sender=None</em>, <em>receivers=()</em>, <em>cc=()</em>, <em>bcc=()</em>, <em>subject=None</em>, <em>content=None</em>, <em>encoding='utf8'</em>, <em>attachments=()</em>, <em>category='onegov'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/mail.html#email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.mail.email" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">onegov.core.mail.</code><code class="descname">email</code><span class="sig-paren">(</span><em>sender=None</em>, <em>receivers=()</em>, <em>cc=()</em>, <em>bcc=()</em>, <em>subject=None</em>, <em>content=None</em>, <em>encoding='utf8'</em>, <em>attachments=()</em>, <em>category='marketing'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/mail.html#email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.mail.email" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates an Envelope object with a HTML <em>content</em>, as well as a <em>plaintext</em>
 alternative generated from the HTML content.</p>
 <table class="docutils field-list" frame="void" rules="none">

@@ -177,44 +177,54 @@
         <span class="n">template</span> <span class="o">=</span> <span class="s1">&#39;mail_</span><span class="si">{}</span><span class="s1">_results.pt&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="s1">&#39;vote&#39;</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Vote</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;election&#39;</span>
         <span class="p">)</span>
+        <span class="n">optout</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="p">,</span> <span class="s1">&#39;unsubscribe-email&#39;</span><span class="p">)</span>
+        <span class="n">reply_to</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> &lt;</span><span class="si">{}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">mail</span><span class="p">[</span><span class="s1">&#39;marketing&#39;</span><span class="p">][</span><span class="s1">&#39;sender&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
 
-        <span class="n">subscribers</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">EmailSubscriber</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">subscriber</span> <span class="ow">in</span> <span class="n">subscribers</span><span class="p">:</span>
-            <span class="n">locale</span> <span class="o">=</span> <span class="n">subscriber</span><span class="o">.</span><span class="n">locale</span>
+        <span class="k">for</span> <span class="n">locale</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">locales</span><span class="p">:</span>
+            <span class="n">addresses</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">EmailSubscriber</span><span class="o">.</span><span class="n">address</span><span class="p">)</span>
+            <span class="n">addresses</span> <span class="o">=</span> <span class="n">addresses</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">EmailSubscriber</span><span class="o">.</span><span class="n">locale</span> <span class="o">==</span> <span class="n">locale</span><span class="p">)</span>
+            <span class="n">addresses</span> <span class="o">=</span> <span class="n">addresses</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+            <span class="n">addresses</span> <span class="o">=</span> <span class="p">[</span><span class="n">address</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">address</span> <span class="ow">in</span> <span class="n">addresses</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">addresses</span><span class="p">:</span>
+                <span class="k">continue</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">set_locale</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">locale</span><span class="p">)</span>
-
-            <span class="n">optout</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="p">,</span> <span class="s1">&#39;unsubscribe-email&#39;</span><span class="p">)</span>
-            <span class="n">token</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">new_url_safe_token</span><span class="p">({</span><span class="s1">&#39;address&#39;</span><span class="p">:</span> <span class="n">subscriber</span><span class="o">.</span><span class="n">address</span><span class="p">})</span>
-
             <span class="n">model_title</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_title</span><span class="p">(</span><span class="n">locale</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">default_locale</span><span class="p">)</span>
             <span class="n">model_url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">SiteLocale</span><span class="p">(</span><span class="n">locale</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">model</span><span class="p">)))</span>
             <span class="n">subject</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> - </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                 <span class="n">model_title</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">subject_prefix</span><span class="p">)</span>
             <span class="p">)</span>
 
-            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span>
-                <span class="n">subject</span><span class="o">=</span><span class="n">subject</span><span class="p">,</span>
-                <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">address</span><span class="p">,</span> <span class="p">),</span>
-                <span class="n">reply_to</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> &lt;</span><span class="si">{}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">mail_sender</span>
-                <span class="p">),</span>
-                <span class="n">content</span><span class="o">=</span><span class="n">render_template</span><span class="p">(</span>
-                    <span class="n">template</span><span class="p">,</span>
-                    <span class="n">request</span><span class="p">,</span>
-                    <span class="p">{</span>
-                        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">subject</span><span class="p">,</span>
-                        <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span>
-                        <span class="s1">&#39;model_title&#39;</span><span class="p">:</span> <span class="n">model_title</span><span class="p">,</span>
-                        <span class="s1">&#39;model_url&#39;</span><span class="p">:</span> <span class="n">model_url</span><span class="p">,</span>
-                        <span class="s1">&#39;optout&#39;</span><span class="p">:</span> <span class="n">optout</span><span class="p">,</span>
-                        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">MailLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
-                    <span class="p">}</span>
-                <span class="p">),</span>
-                <span class="n">headers</span><span class="o">=</span><span class="p">{</span>
-                    <span class="s1">&#39;List-Unsubscribe&#39;</span><span class="p">:</span> <span class="s1">&#39;&lt;</span><span class="si">{}</span><span class="s1">?opaque=</span><span class="si">{}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">optout</span><span class="p">,</span> <span class="n">token</span><span class="p">),</span>
-                    <span class="s1">&#39;List-Unsubscribe-Post&#39;</span><span class="p">:</span> <span class="s1">&#39;List-Unsubscribe=One-Click&#39;</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">render_template</span><span class="p">(</span>
+                <span class="n">template</span><span class="p">,</span>
+                <span class="n">request</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">subject</span><span class="p">,</span>
+                    <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span>
+                    <span class="s1">&#39;model_title&#39;</span><span class="p">:</span> <span class="n">model_title</span><span class="p">,</span>
+                    <span class="s1">&#39;model_url&#39;</span><span class="p">:</span> <span class="n">model_url</span><span class="p">,</span>
+                    <span class="s1">&#39;optout&#39;</span><span class="p">:</span> <span class="n">optout</span><span class="p">,</span>
+                    <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">MailLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
                 <span class="p">}</span>
             <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">address</span> <span class="ow">in</span> <span class="n">addresses</span><span class="p">:</span>
+                <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_marketing_email</span><span class="p">(</span>
+                    <span class="n">subject</span><span class="o">=</span><span class="n">subject</span><span class="p">,</span>
+                    <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="p">),</span>
+                    <span class="n">reply_to</span><span class="o">=</span><span class="n">reply_to</span><span class="p">,</span>
+                    <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
+                    <span class="n">headers</span><span class="o">=</span><span class="p">{</span>
+                        <span class="s1">&#39;List-Unsubscribe&#39;</span><span class="p">:</span> <span class="s1">&#39;&lt;</span><span class="si">{}</span><span class="s1">?opaque=</span><span class="si">{}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">optout</span><span class="p">,</span>
+                            <span class="n">request</span><span class="o">.</span><span class="n">new_url_safe_token</span><span class="p">({</span><span class="s1">&#39;address&#39;</span><span class="p">:</span> <span class="n">address</span><span class="p">})</span>
+                        <span class="p">),</span>
+                        <span class="s1">&#39;List-Unsubscribe-Post&#39;</span><span class="p">:</span> <span class="s1">&#39;List-Unsubscribe=One-Click&#39;</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
 </div></div>
         <span class="bp">self</span><span class="o">.</span><span class="n">set_locale</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
 
