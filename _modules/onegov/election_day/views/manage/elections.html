@@ -31,7 +31,9 @@
             
   <h1>Source code for onegov.election_day.views.manage.elections</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">morepath</span> <span class="k">import</span> <span class="n">redirect</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span><span class="p">,</span> <span class="n">ElectionCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ElectionCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">groupbylist</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.collections</span> <span class="k">import</span> <span class="n">ArchivedResultCollection</span>
@@ -51,7 +53,7 @@
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">ManageElectionsLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">),</span>
         <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Elections&quot;</span><span class="p">),</span>
-        <span class="s1">&#39;elections&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch</span><span class="p">,</span>
+        <span class="s1">&#39;groups&#39;</span><span class="p">:</span> <span class="n">groupbylist</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">election</span><span class="p">:</span> <span class="n">election</span><span class="o">.</span><span class="n">date</span><span class="p">),</span>
         <span class="s1">&#39;new_election&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;new-election&#39;</span><span class="p">)</span></div>
     <span class="p">}</span>
 

@@ -55,6 +55,7 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">select</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.ext.hybrid</span> <span class="k">import</span> <span class="n">hybrid_property</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">backref</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
@@ -123,36 +124,50 @@
     <span class="c1">#: Absolute majority</span>
     <span class="n">absolute_majority</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
 
-    <span class="c1">#: Total number of political entities</span>
-    <span class="n">total_entities</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nd">@hybrid_property</span>
+    <span class="k">def</span> <span class="nf">counted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; True if all results have been counted. &quot;&quot;&quot;</span>
 
-    <span class="c1">#: Number of already counted political entitites</span>
-    <span class="n">counted_entities</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">count</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">counted</span><span class="p">)</span> <span class="o">==</span> <span class="n">count</span><span class="p">)</span>
+
+    <span class="nd">@counted</span><span class="o">.</span><span class="n">expression</span>
+    <span class="k">def</span> <span class="nf">counted</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">select</span><span class="p">([</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">bool_and</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">counted</span><span class="p">),</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="p">])</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;counted&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">expr</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">progress</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns a tuple with the first value being the number of counted</span>
-<span class="sd">        entities and the second value being the number of total entities.</span>
+<span class="sd">        election results and the second value being the number of total</span>
+<span class="sd">        results.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">counted_entities</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_entities</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">ElectionResult</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">counted</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">counted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Checks if there are results for all entitites. &quot;&quot;&quot;</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_entities</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">counted_entities</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_entities</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">counted_entities</span>
-
-        <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">has_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns True, if the election has any results. &quot;&quot;&quot;</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">first</span><span class="p">():</span>
-            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">counted</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
         <span class="k">return</span> <span class="kc">False</span>
 
     <span class="c1">#: An election contains n candidates</span>
@@ -173,8 +188,8 @@
         <span class="n">order_by</span><span class="o">=</span><span class="s1">&#39;ElectionResult.district, ElectionResult.name&#39;</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="c1">#: The total elegible voters</span>
-    <span class="n">elegible_voters</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;elegible_voters&#39;</span><span class="p">)</span>
+    <span class="c1">#: The total eligible voters</span>
+    <span class="n">eligible_voters</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;eligible_voters&#39;</span><span class="p">)</span>
 
     <span class="c1">#: The total recceived ballots</span>
     <span class="n">received_ballots</span> <span class="o">=</span> <span class="n">summarized_property</span><span class="p">(</span><span class="s1">&#39;received_ballots&#39;</span><span class="p">)</span>
@@ -278,8 +293,6 @@
 <div class="viewcode-block" id="Election.clear_results"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.election.Election.clear_results">[docs]</a>    <span class="k">def</span> <span class="nf">clear_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Clears all the results. &quot;&quot;&quot;</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">counted_entities</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">total_entities</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">absolute_majority</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -315,12 +328,11 @@
             <span class="n">Election</span><span class="o">.</span><span class="n">number_of_mandates</span><span class="p">,</span>
             <span class="n">Election</span><span class="o">.</span><span class="n">absolute_majority</span><span class="p">,</span>
             <span class="n">Election</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
-            <span class="n">Election</span><span class="o">.</span><span class="n">counted_entities</span><span class="p">,</span>
-            <span class="n">Election</span><span class="o">.</span><span class="n">total_entities</span><span class="p">,</span>
             <span class="n">ElectionResult</span><span class="o">.</span><span class="n">district</span><span class="p">,</span>
             <span class="n">ElectionResult</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="n">ElectionResult</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span>
-            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">elegible_voters</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">counted</span><span class="p">,</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">eligible_voters</span><span class="p">,</span>
             <span class="n">ElectionResult</span><span class="o">.</span><span class="n">received_ballots</span><span class="p">,</span>
             <span class="n">ElectionResult</span><span class="o">.</span><span class="n">blank_ballots</span><span class="p">,</span>
             <span class="n">ElectionResult</span><span class="o">.</span><span class="n">invalid_ballots</span><span class="p">,</span>
@@ -357,27 +369,26 @@
             <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_mandates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_absolute_majority&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="ow">or</span> <span class="s1">&#39;unknown&#39;</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_counted_entities&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;election_total_entities&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span>
 
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_district&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_elegible_voters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_received_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_blank_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_invalid_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_unaccounted_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">17</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_accounted_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">18</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_blank_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">19</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_invalid_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">20</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_accounted_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">21</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_district&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_counted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_eligible_voters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_received_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_blank_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_invalid_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_unaccounted_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_accounted_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">17</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_blank_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">18</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_invalid_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">19</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;entity_accounted_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">20</span><span class="p">]</span>
 
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_family_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">22</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_first_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">23</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">24</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_elected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">25</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_party&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">26</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_family_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">21</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_first_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">22</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">23</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_elected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">24</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_party&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">25</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s1">&#39;candidate_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
             <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>

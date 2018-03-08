@@ -34,11 +34,11 @@
 <span class="kn">import</span> <span class="nn">yaml</span>
 
 
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
 <span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span> <span class="nn">onegov.core.custom</span> <span class="k">import</span> <span class="n">json</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">onegov.core.custom</span> <span class="k">import</span> <span class="n">json</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">urlsplit</span>
@@ -67,14 +67,15 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">id_</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">domain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">available_domains</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">domains_election</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">domains_vote</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">entities</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">logo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#000&#39;</span><span class="p">,</span>
         <span class="n">base</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">analytics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">use_districts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">has_districts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">use_maps</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">fetch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">webhooks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -84,17 +85,18 @@
         <span class="n">pdf_signing</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">open_data</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="nb">all</span><span class="p">((</span><span class="n">id_</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">available_domains</span><span class="p">,</span> <span class="n">entities</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">((</span><span class="n">id_</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">domains_election</span><span class="p">,</span> <span class="n">domains_vote</span><span class="p">,</span> <span class="n">entities</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">id_</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">domain</span> <span class="o">=</span> <span class="n">domain</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">available_domains</span> <span class="o">=</span> <span class="n">available_domains</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">domains_election</span> <span class="o">=</span> <span class="n">domains_election</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">domains_vote</span> <span class="o">=</span> <span class="n">domains_vote</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">entities</span> <span class="o">=</span> <span class="n">entities</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logo</span> <span class="o">=</span> <span class="n">logo</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="n">color</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">analytics</span> <span class="o">=</span> <span class="n">analytics</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">use_districts</span> <span class="o">=</span> <span class="n">use_districts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_districts</span> <span class="o">=</span> <span class="n">has_districts</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_maps</span> <span class="o">=</span> <span class="n">use_maps</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fetch</span> <span class="o">=</span> <span class="n">fetch</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">webhooks</span> <span class="o">=</span> <span class="n">webhooks</span> <span class="ow">or</span> <span class="p">{}</span>
@@ -159,7 +161,12 @@
 
         <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;use_maps&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
-        <span class="n">available_domains</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">((</span>
+        <span class="n">domains_election</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">((</span>
+            <span class="p">(</span><span class="s1">&#39;federation&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Federal&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;region&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Regional&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;canton&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cantonal&quot;</span><span class="p">))</span>
+        <span class="p">))</span>
+        <span class="n">domains_vote</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">((</span>
             <span class="p">(</span><span class="s1">&#39;federation&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Federal&quot;</span><span class="p">)),</span>
             <span class="p">(</span><span class="s1">&#39;canton&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cantonal&quot;</span><span class="p">))</span>
         <span class="p">))</span>
@@ -173,11 +180,21 @@
             <span class="k">with</span> <span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.json&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">canton</span><span class="p">))</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">entities</span><span class="p">[</span><span class="n">year</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
+        <span class="c1"># Test if all entities have districts (use none, if ambiguous)</span>
+        <span class="n">districts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span>
+            <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;district&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="n">entities</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">year</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">])</span>
+        <span class="n">has_districts</span> <span class="o">=</span> <span class="kc">None</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">districts</span>
+
         <span class="nb">super</span><span class="p">(</span><span class="n">Canton</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">id_</span><span class="o">=</span><span class="n">canton</span><span class="p">,</span>
             <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;canton&#39;</span><span class="p">,</span>
-            <span class="n">available_domains</span><span class="o">=</span><span class="n">available_domains</span><span class="p">,</span>
+            <span class="n">domains_election</span><span class="o">=</span><span class="n">domains_election</span><span class="p">,</span>
+            <span class="n">domains_vote</span><span class="o">=</span><span class="n">domains_vote</span><span class="p">,</span>
             <span class="n">entities</span><span class="o">=</span><span class="n">entities</span><span class="p">,</span>
+            <span class="n">has_districts</span><span class="o">=</span><span class="n">has_districts</span><span class="p">,</span>
             <span class="n">use_maps</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
@@ -211,7 +228,7 @@
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">municipality</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">assert</span> <span class="n">municipality</span>
-        <span class="n">available_domains</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">((</span>
+        <span class="n">domains</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">((</span>
             <span class="p">(</span><span class="s1">&#39;federation&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Federal&quot;</span><span class="p">)),</span>
             <span class="p">(</span><span class="s1">&#39;canton&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cantonal&quot;</span><span class="p">)),</span>
             <span class="p">(</span><span class="s1">&#39;municipality&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Communal&quot;</span><span class="p">))</span>
@@ -231,9 +248,17 @@
                     <span class="p">}</span>
         <span class="k">if</span> <span class="n">entities</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">has_quarters</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="c1"># Test if all entities have districts (use none, if ambiguous)</span>
+            <span class="n">districts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span>
+                <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;district&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="n">entities</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">year</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="p">])</span>
+            <span class="n">has_districts</span> <span class="o">=</span> <span class="kc">None</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">districts</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># ... we have no static data, autogenerate it!</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">has_quarters</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">has_districts</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="n">entities</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="n">year</span><span class="p">:</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">municipality</span><span class="p">):</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)}}</span>
                 <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2002</span><span class="p">,</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">year</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
@@ -242,8 +267,10 @@
         <span class="nb">super</span><span class="p">(</span><span class="n">Municipality</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">id_</span><span class="o">=</span><span class="n">municipality</span><span class="p">,</span>
             <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;municipality&#39;</span><span class="p">,</span>
-            <span class="n">available_domains</span><span class="o">=</span><span class="n">available_domains</span><span class="p">,</span>
+            <span class="n">domains_election</span><span class="o">=</span><span class="n">domains</span><span class="p">,</span>
+            <span class="n">domains_vote</span><span class="o">=</span><span class="n">domains</span><span class="p">,</span>
             <span class="n">entities</span><span class="o">=</span><span class="n">entities</span><span class="p">,</span>
+            <span class="n">has_districts</span><span class="o">=</span><span class="n">has_districts</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 

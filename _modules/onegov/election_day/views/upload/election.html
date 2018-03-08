@@ -43,7 +43,6 @@
 <span class="kn">from</span> <span class="nn">onegov.election_day.formats</span> <span class="k">import</span> <span class="n">import_election_wabsti_proporz</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.formats</span> <span class="k">import</span> <span class="n">import_election_wabstic_majorz</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.formats</span> <span class="k">import</span> <span class="n">import_election_wabstic_proporz</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day.formats</span> <span class="k">import</span> <span class="n">import_election_wabstim_majorz</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.forms</span> <span class="k">import</span> <span class="n">UploadMajorzElectionForm</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.forms</span> <span class="k">import</span> <span class="n">UploadProporzElectionForm</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">ManageElectionsLayout</span>
@@ -88,11 +87,10 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">principal</span><span class="o">.</span><span class="n">is_year_available</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">map_required</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
             <span class="n">errors</span> <span class="o">=</span> <span class="p">[</span><span class="n">unsupported_year_error</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">)]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">entities</span> <span class="o">=</span> <span class="n">principal</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">file_format</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="s1">&#39;internal&#39;</span><span class="p">:</span>
                 <span class="n">errors</span> <span class="o">=</span> <span class="n">import_election_internal_majorz</span><span class="p">(</span>
                     <span class="bp">self</span><span class="p">,</span>
-                    <span class="n">entities</span><span class="p">,</span>
+                    <span class="n">principal</span><span class="p">,</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file</span><span class="p">,</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;mimetype&#39;</span><span class="p">]</span>
                 <span class="p">)</span>
@@ -100,18 +98,19 @@
                 <span class="n">elected</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">elected</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
                 <span class="n">errors</span> <span class="o">=</span> <span class="n">import_election_wabsti_majorz</span><span class="p">(</span>
                     <span class="bp">self</span><span class="p">,</span>
-                    <span class="n">entities</span><span class="p">,</span>
+                    <span class="n">principal</span><span class="p">,</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file</span><span class="p">,</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;mimetype&#39;</span><span class="p">],</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">elected</span><span class="o">.</span><span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file</span> <span class="k">if</span> <span class="n">elected</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">elected</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;mimetype&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">elected</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">absolute_majority</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">majority</span><span class="o">.</span><span class="n">data</span>
+                <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">majority</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">absolute_majority</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">majority</span><span class="o">.</span><span class="n">data</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;final&#39;</span> <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">complete</span><span class="o">.</span><span class="n">data</span> <span class="k">else</span> <span class="s1">&#39;interim&#39;</span>
             <span class="k">elif</span> <span class="n">form</span><span class="o">.</span><span class="n">file_format</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="s1">&#39;wabsti_m&#39;</span><span class="p">:</span>
-                <span class="n">errors</span> <span class="o">=</span> <span class="n">import_election_wabstim_majorz</span><span class="p">(</span>
+                <span class="n">errors</span> <span class="o">=</span> <span class="n">import_election_wabsti_majorz</span><span class="p">(</span>
                     <span class="bp">self</span><span class="p">,</span>
-                    <span class="n">entities</span><span class="p">,</span>
+                    <span class="n">principal</span><span class="p">,</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file</span><span class="p">,</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;mimetype&#39;</span><span class="p">],</span>
                 <span class="p">)</span>
@@ -120,9 +119,9 @@
                     <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
                         <span class="n">import_election_wabstic_majorz</span><span class="p">(</span>
                             <span class="bp">self</span><span class="p">,</span>
-                            <span class="n">entities</span><span class="p">,</span>
-                            <span class="n">source</span><span class="o">.</span><span class="n">district</span><span class="p">,</span>
+                            <span class="n">principal</span><span class="p">,</span>
                             <span class="n">source</span><span class="o">.</span><span class="n">number</span><span class="p">,</span>
+                            <span class="n">source</span><span class="o">.</span><span class="n">district</span><span class="p">,</span>
                             <span class="n">form</span><span class="o">.</span><span class="n">wm_wahl</span><span class="o">.</span><span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file</span><span class="p">,</span>
                             <span class="n">form</span><span class="o">.</span><span class="n">wm_wahl</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;mimetype&#39;</span><span class="p">],</span>
                             <span class="n">form</span><span class="o">.</span><span class="n">wmstatic_gemeinden</span><span class="o">.</span><span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file</span><span class="p">,</span>
@@ -190,11 +189,10 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">principal</span><span class="o">.</span><span class="n">is_year_available</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">map_required</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
             <span class="n">errors</span> <span class="o">=</span> <span class="p">[</span><span class="n">unsupported_year_error</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">)]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">entities</span> <span class="o">=</span> <span class="n">principal</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">file_format</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="s1">&#39;internal&#39;</span><span class="p">:</span>
                 <span class="n">errors</span> <span class="o">=</span> <span class="n">import_election_internal_proporz</span><span class="p">(</span>
                     <span class="bp">self</span><span class="p">,</span>
-                    <span class="n">entities</span><span class="p">,</span>
+                    <span class="n">principal</span><span class="p">,</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file</span><span class="p">,</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;mimetype&#39;</span><span class="p">]</span>
                 <span class="p">)</span>
@@ -204,7 +202,7 @@
                 <span class="n">elected</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">elected</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
                 <span class="n">errors</span> <span class="o">=</span> <span class="n">import_election_wabsti_proporz</span><span class="p">(</span>
                     <span class="bp">self</span><span class="p">,</span>
-                    <span class="n">entities</span><span class="p">,</span>
+                    <span class="n">principal</span><span class="p">,</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file</span><span class="p">,</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;mimetype&#39;</span><span class="p">],</span>
                     <span class="n">form</span><span class="o">.</span><span class="n">connections</span><span class="o">.</span><span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file</span> <span class="k">if</span> <span class="n">connections</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
@@ -220,9 +218,9 @@
                     <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
                         <span class="n">import_election_wabstic_proporz</span><span class="p">(</span>
                             <span class="bp">self</span><span class="p">,</span>
-                            <span class="n">entities</span><span class="p">,</span>
-                            <span class="n">source</span><span class="o">.</span><span class="n">district</span><span class="p">,</span>
+                            <span class="n">principal</span><span class="p">,</span>
                             <span class="n">source</span><span class="o">.</span><span class="n">number</span><span class="p">,</span>
+                            <span class="n">source</span><span class="o">.</span><span class="n">district</span><span class="p">,</span>
                             <span class="n">form</span><span class="o">.</span><span class="n">wp_wahl</span><span class="o">.</span><span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file</span><span class="p">,</span>
                             <span class="n">form</span><span class="o">.</span><span class="n">wp_wahl</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;mimetype&#39;</span><span class="p">],</span>
                             <span class="n">form</span><span class="o">.</span><span class="n">wpstatic_gemeinden</span><span class="o">.</span><span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">file</span><span class="p">,</span>
