@@ -34,10 +34,11 @@
 <span class="kn">import</span> <span class="nn">re</span>
 
 <span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
-<span class="kn">from</span> <span class="nn">elasticsearch.exceptions</span> <span class="k">import</span> <span class="n">NotFoundError</span><span class="p">,</span> <span class="n">TransportError</span>
+<span class="kn">from</span> <span class="nn">elasticsearch.exceptions</span> <span class="k">import</span> <span class="n">NotFoundError</span>
 <span class="kn">from</span> <span class="nn">langdetect.lang_detect_exception</span> <span class="k">import</span> <span class="n">LangDetectException</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">is_non_string_iterable</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">log</span><span class="p">,</span> <span class="n">Searchable</span><span class="p">,</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">onegov.search.errors</span> <span class="k">import</span> <span class="n">SearchOfflineError</span>
 <span class="kn">from</span> <span class="nn">queue</span> <span class="k">import</span> <span class="n">Queue</span><span class="p">,</span> <span class="n">Empty</span><span class="p">,</span> <span class="n">Full</span>
 
 
@@ -204,8 +205,7 @@
     <span class="k">def</span> <span class="nf">process_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">[</span><span class="s1">&#39;action&#39;</span><span class="p">])(</span><span class="n">task</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">TransportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Failure during elasticsearch index task&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">SearchOfflineError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">task_done</span><span class="p">()</span>

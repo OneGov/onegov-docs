@@ -34,6 +34,56 @@
 <div class="section" id="module-onegov.search.integration">
 <span id="integration"></span><h2>Integration<a class="headerlink" href="#module-onegov.search.integration" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
+<dt id="onegov.search.integration.TolerantTransport">
+<em class="property">class </em><code class="descclassname">onegov.search.integration.</code><code class="descname">TolerantTransport</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/search/integration.html#TolerantTransport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.search.integration.TolerantTransport" title="Permalink to this definition">¶</a></dt>
+<dd><p>A transport class that is less eager to rejoin connections when there’s
+a failure. Additionally logs all Elasticsearch transport errors in one
+location.</p>
+<dl class="attribute">
+<dt id="onegov.search.integration.TolerantTransport.skip_request">
+<code class="descname">skip_request</code><a class="headerlink" href="#onegov.search.integration.TolerantTransport.skip_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the request should be skipped.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.search.integration.TolerantTransport.seconds_remaining">
+<code class="descname">seconds_remaining</code><a class="headerlink" href="#onegov.search.integration.TolerantTransport.seconds_remaining" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the seconds remaining until the next try or 0.</p>
+<p>For each failure we wait an additional 10s (10s, then 20s, 30s, etc),
+up to a maximum of 300s (5 minutes).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.search.integration.TolerantTransport.perform_request">
+<code class="descname">perform_request</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/search/integration.html#TolerantTransport.perform_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.search.integration.TolerantTransport.perform_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform the actual request. Retrieve a connection from the connection
+pool, pass all the information to it’s perform_request method and
+return the data.</p>
+<p>If an exception was raised, mark the connection as failed and retry (up
+to <cite>max_retries</cite> times).</p>
+<p>If the operation was succesful and the connection used was previously
+marked as dead, mark it as live, resetting it’s failure count.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>method</strong> – HTTP method to use</li>
+<li><strong>url</strong> – absolute url (without host) to target</li>
+<li><strong>params</strong> – dictionary of query parameters, will be handed over to the
+underlying <code class="xref py py-class docutils literal notranslate"><span class="pre">Connection</span></code> class for serialization</li>
+<li><strong>body</strong> – body of the request, will be serializes using serializer and
+passed to the connection</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="onegov.search.integration.ElasticsearchApp">
 <em class="property">class </em><code class="descclassname">onegov.search.integration.</code><code class="descname">ElasticsearchApp</code><a class="reference internal" href="_modules/onegov/search/integration.html#ElasticsearchApp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.search.integration.ElasticsearchApp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Provides elasticsearch integration for
