@@ -45,8 +45,6 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">HSTORE</span>
-<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">increment_name</span>
-<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Date</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">desc</span>
@@ -78,7 +76,7 @@
         <span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;majorz&#39;</span>
     <span class="p">}</span>
 
-    <span class="c1">#: Identifies the result, may be used in the url</span>
+    <span class="c1">#: Identifies the election, may be used in the url</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1">#: all translations of the title</span>
@@ -91,17 +89,12 @@
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;title_translations&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">title_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">translations</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
-            <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">default_locale</span><span class="p">)</span>
-            <span class="nb">id</span> <span class="o">=</span> <span class="n">normalize_for_url</span><span class="p">(</span><span class="n">title</span> <span class="ow">or</span> <span class="s1">&#39;election&#39;</span><span class="p">)</span>
-            <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-            <span class="k">while</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="nb">id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">():</span>
-                <span class="nb">id</span> <span class="o">=</span> <span class="n">increment_name</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_from_title</span><span class="p">(</span><span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 
     <span class="c1">#: Shortcode for cantons that use it</span>
     <span class="n">shortcode</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="c1">#: Identifies the date of the vote</span>
+    <span class="c1">#: The date of the election</span>
     <span class="n">date</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Date</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="c1">#: Number of mandates</span>

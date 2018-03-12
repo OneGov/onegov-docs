@@ -395,12 +395,20 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">event_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">availability</span> <span class="o">&gt;=</span> <span class="mf">80.0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="s1">&#39;event-available&#39;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">availability</span> <span class="o">&gt;=</span> <span class="mf">20.0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="s1">&#39;event-partly-available&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">quota</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">quota_left</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">quota</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;event-available&#39;</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">quota_left</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;event-partly-available&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;event-unavailable&#39;</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="s1">&#39;event-unavailable&#39;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">availability</span> <span class="o">&gt;=</span> <span class="mf">80.0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;event-available&#39;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">availability</span> <span class="o">&gt;=</span> <span class="mf">20.0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;event-partly-available&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;event-unavailable&#39;</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">event_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
