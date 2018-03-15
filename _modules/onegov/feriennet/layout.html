@@ -36,6 +36,7 @@
 <span class="kn">from</span> <span class="nn">onegov.feriennet</span> <span class="k">import</span> <span class="n">security</span>
 <span class="kn">from</span> <span class="nn">onegov.feriennet.collections</span> <span class="k">import</span> <span class="n">BillingCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.feriennet.collections</span> <span class="k">import</span> <span class="n">NotificationTemplateCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.feriennet.collections</span> <span class="k">import</span> <span class="n">OccasionAttendeeCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.feriennet.collections</span> <span class="k">import</span> <span class="n">VacationActivityCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.feriennet.const</span> <span class="k">import</span> <span class="n">OWNER_EDITABLE_STATES</span>
 <span class="kn">from</span> <span class="nn">onegov.feriennet.models</span> <span class="k">import</span> <span class="n">InvoiceAction</span><span class="p">,</span> <span class="n">VacationActivity</span>
@@ -65,8 +66,35 @@
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">Occasion</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">activity</span><span class="o">.</span><span class="n">state</span> <span class="ow">in</span> <span class="n">OWNER_EDITABLE_STATES</span>
-</div>
+
         <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">offer_again_link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">activity</span><span class="p">,</span> <span class="n">title</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Link</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+            <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
+                <span class="n">VacationActivity</span><span class="p">,</span>
+                <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">activity</span><span class="o">.</span><span class="n">name</span><span class="p">},</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;offer-again&quot;</span>
+            <span class="p">),</span>
+            <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">Confirm</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span>
+                        <span class="s1">&#39;Do you really want to provide &quot;$</span><span class="si">{title}</span><span class="s1">&quot; again?&#39;</span><span class="p">,</span>
+                        <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">activity</span><span class="o">.</span><span class="n">title</span><span class="p">}</span>
+                    <span class="p">),</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;You will have to request publication again&quot;</span><span class="p">),</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Provide Again&quot;</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">Intercooler</span><span class="p">(</span>
+                    <span class="n">request_method</span><span class="o">=</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span>
+                    <span class="n">redirect_after</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
+                        <span class="n">VacationActivity</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">activity</span><span class="o">.</span><span class="n">name</span><span class="p">},</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;offer-again&#39;</span><span class="p">}</span></div>
+        <span class="p">)</span>
 
 
 <div class="viewcode-block" id="VacationActivityCollectionLayout"><a class="viewcode-back" href="../../../onegov_feriennet.html#onegov.feriennet.layout.VacationActivityCollectionLayout">[docs]</a><span class="k">class</span> <span class="nc">VacationActivityCollectionLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
@@ -102,36 +130,10 @@
 
         <span class="n">activities</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">link_for_activity</span><span class="p">(</span><span class="n">activity</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">Link</span><span class="p">(</span>
-                <span class="n">text</span><span class="o">=</span><span class="n">activity</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
-                <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
-                    <span class="n">VacationActivity</span><span class="p">,</span>
-                    <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">activity</span><span class="o">.</span><span class="n">name</span><span class="p">},</span>
-                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;offer-again&quot;</span>
-                <span class="p">),</span>
-                <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
-                    <span class="n">Confirm</span><span class="p">(</span>
-                        <span class="n">_</span><span class="p">(</span>
-                            <span class="s1">&#39;Do you really want to provide &quot;$</span><span class="si">{title}</span><span class="s1">&quot; again?&#39;</span><span class="p">,</span>
-                            <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">activity</span><span class="o">.</span><span class="n">title</span><span class="p">}</span>
-                        <span class="p">),</span>
-                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;You will have to request publication again&quot;</span><span class="p">),</span>
-                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Provide Again&quot;</span><span class="p">)</span>
-                    <span class="p">),</span>
-                    <span class="n">Intercooler</span><span class="p">(</span>
-                        <span class="n">request_method</span><span class="o">=</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span>
-                        <span class="n">redirect_after</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
-                            <span class="n">VacationActivity</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">activity</span><span class="o">.</span><span class="n">name</span><span class="p">},</span>
-                        <span class="p">)</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-
         <span class="k">if</span> <span class="n">activities</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">LinkGroup</span><span class="p">(</span>
                 <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Provide activity again&quot;</span><span class="p">),</span>
-                <span class="nb">tuple</span><span class="p">(</span><span class="n">link_for_activity</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">activities</span><span class="p">),</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">offer_again_link</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">title</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">activities</span><span class="p">),</span>
                 <span class="n">right_side</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">classes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;provide-activity-again&#39;</span><span class="p">,</span> <span class="p">)</span>
             <span class="p">)</span>
@@ -242,10 +244,27 @@
             <span class="k">return</span> <span class="n">tickets</span><span class="o">.</span><span class="n">by_handler_id</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
 
     <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">attendees</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">latest_request</span>
+
+        <span class="k">if</span> <span class="n">request</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">OccasionAttendeeCollection</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">active_period</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+            <span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">editbar_links</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">links</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">period</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">active_period</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_admin</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_owner</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;archived&#39;</span> <span class="ow">and</span> <span class="n">period</span><span class="p">:</span>
+                <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">offer_again_link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Provide Again&quot;</span><span class="p">)))</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_editable</span><span class="p">:</span>
-            <span class="n">links</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">period</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">active_period</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;preview&#39;</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">period</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">has_occasion_in_period</span><span class="p">(</span><span class="n">period</span><span class="p">):</span>
@@ -284,7 +303,7 @@
                     <span class="p">))</span>
 
                 <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
-                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Discard Activity&quot;</span><span class="p">),</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Discard&quot;</span><span class="p">),</span>
                     <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)),</span>
                     <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;delete-link&#39;</span><span class="p">},</span>
                     <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
@@ -306,7 +325,7 @@
                 <span class="p">))</span>
 
             <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
-                <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit Activity&quot;</span><span class="p">),</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit&quot;</span><span class="p">),</span>
                 <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;edit&#39;</span><span class="p">),</span>
                 <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;edit-link&#39;</span><span class="p">}</span>
             <span class="p">))</span>
@@ -334,14 +353,22 @@
                     <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;new-occasion&#39;</span><span class="p">}</span>
                 <span class="p">))</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_admin</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_admin</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_owner</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">attendees</span><span class="p">:</span>
                 <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
-                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Show Ticket&quot;</span><span class="p">),</span>
-                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="p">),</span>
-                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;show-ticket&#39;</span><span class="p">}</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Attendees&quot;</span><span class="p">),</span>
+                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attendees</span><span class="p">),</span>
+                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;show-attendees&#39;</span><span class="p">}</span>
                 <span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_admin</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="p">:</span>
+            <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Show Ticket&quot;</span><span class="p">),</span>
+                <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="p">),</span>
+                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;show-ticket&#39;</span><span class="p">}</span>
+            <span class="p">))</span>
 </div>
-            <span class="k">return</span> <span class="n">links</span>
+        <span class="k">return</span> <span class="n">links</span>
 
 
 <div class="viewcode-block" id="PeriodCollectionLayout"><a class="viewcode-back" href="../../../onegov_feriennet.html#onegov.feriennet.layout.PeriodCollectionLayout">[docs]</a><span class="k">class</span> <span class="nc">PeriodCollectionLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
@@ -618,6 +645,10 @@
             <span class="n">Link</span><span class="p">(</span>
                 <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Activities&quot;</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">VacationActivityCollection</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">Link</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">activity</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">activity</span><span class="p">)</span>
             <span class="p">),</span>
             <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Attendees&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">)</span></div>
         <span class="p">)</span>
