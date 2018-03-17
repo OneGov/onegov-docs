@@ -37,6 +37,7 @@
 <span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="k">import</span> <span class="ne">ConnectionError</span>  <span class="c1"># shadows a python builtin!</span>
 <span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="k">import</span> <span class="n">Elasticsearch</span>
 <span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="k">import</span> <span class="n">Transport</span>
+<span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="k">import</span> <span class="n">TransportError</span>
 <span class="kn">from</span> <span class="nn">more.transaction.main</span> <span class="k">import</span> <span class="n">transaction_tween_factory</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">Search</span><span class="p">,</span> <span class="n">log</span>
 <span class="kn">from</span> <span class="nn">onegov.search.errors</span> <span class="k">import</span> <span class="n">SearchOfflineError</span>
@@ -45,6 +46,7 @@
 <span class="kn">from</span> <span class="nn">onegov.search.indexer</span> <span class="k">import</span> <span class="n">TypeMappingRegistry</span>
 <span class="kn">from</span> <span class="nn">onegov.search.utils</span> <span class="k">import</span> <span class="n">searchable_sqlalchemy_models</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">inspect</span>
+<span class="kn">from</span> <span class="nn">urllib3.exceptions</span> <span class="k">import</span> <span class="n">HTTPError</span>
 
 
 <div class="viewcode-block" id="TolerantTransport"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.TolerantTransport">[docs]</a><span class="k">class</span> <span class="nc">TolerantTransport</span><span class="p">(</span><span class="n">Transport</span><span class="p">):</span>
@@ -91,15 +93,30 @@
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">response</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">perform_request</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">ConnectionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+        <span class="k">except</span> <span class="p">(</span><span class="n">TransportError</span><span class="p">,</span> <span class="n">HTTPError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+            <span class="c1"># transport errors might be caused by bugs (for example, when we</span>
+            <span class="c1"># refer to a non-existant index) -&gt; we are only tolerant of</span>
+            <span class="c1"># connection errors</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">TransportError</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="ne">ConnectionError</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_5xx_error</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+                        <span class="k">raise</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">failures</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">failure_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
 
             <span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Elasticsearch cluster is offline&quot;</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">SearchOfflineError</span><span class="p">()</span>
+
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">failures</span> <span class="o">=</span> <span class="mi">0</span></div></div>
             <span class="k">return</span> <span class="n">response</span>
+
+
+<span class="k">def</span> <span class="nf">is_5xx_error</span><span class="p">(</span><span class="n">error</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">error</span><span class="o">.</span><span class="n">status_code</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="n">status_code</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;5&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="ElasticsearchApp"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.ElasticsearchApp">[docs]</a><span class="k">class</span> <span class="nc">ElasticsearchApp</span><span class="p">(</span><span class="n">morepath</span><span class="o">.</span><span class="n">App</span><span class="p">):</span>
@@ -174,7 +191,7 @@
         <span class="k">if</span> <span class="n">verify_certs</span><span class="p">:</span>
             <span class="n">extra</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;verify_certs&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;ca_certs&#39;</span><span class="p">:</span> <span class="n">certifi</span><span class="o">.</span><span class="n">where</span><span class="p">()}</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">extra</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">extra</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;verify_certs&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">es_client</span> <span class="o">=</span> <span class="n">Elasticsearch</span><span class="p">(</span>
             <span class="n">hosts</span><span class="o">=</span><span class="n">hosts</span><span class="p">,</span>
