@@ -30,10 +30,8 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.election_day.views.election.data</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span> <span class="nn">morepath.request</span> <span class="k">import</span> <span class="n">Response</span>
+<span></span><span class="kn">from</span> <span class="nn">morepath.request</span> <span class="k">import</span> <span class="n">Response</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">PartyResult</span>
 <span class="kn">from</span> <span class="nn">onegov.core.csv</span> <span class="k">import</span> <span class="n">convert_list_of_dicts_to_csv</span>
 <span class="kn">from</span> <span class="nn">onegov.core.csv</span> <span class="k">import</span> <span class="n">convert_list_of_dicts_to_xlsx</span>
 <span class="kn">from</span> <span class="nn">onegov.core.custom</span> <span class="k">import</span> <span class="n">json</span>
@@ -144,24 +142,8 @@
     <span class="k">def</span> <span class="nf">add_last_modified</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
         <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="p">)</span>
 
-    <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">party_results</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
-        <span class="n">PartyResult</span><span class="o">.</span><span class="n">year</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span>
-        <span class="n">PartyResult</span><span class="o">.</span><span class="n">name</span>
-    <span class="p">)</span>
-
-    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
-        <span class="n">row</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
-        <span class="n">row</span><span class="p">[</span><span class="s1">&#39;year&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">year</span>
-        <span class="n">row</span><span class="p">[</span><span class="s1">&#39;total_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">total_votes</span>
-        <span class="n">row</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">name</span>
-        <span class="n">row</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">color</span>
-        <span class="n">row</span><span class="p">[</span><span class="s1">&#39;mandates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">number_of_mandates</span>
-        <span class="n">row</span><span class="p">[</span><span class="s1">&#39;votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">votes</span>
-        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
-        <span class="n">convert_list_of_dicts_to_csv</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span>
+        <span class="n">convert_list_of_dicts_to_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">export_parties</span><span class="p">()),</span>
         <span class="n">content_type</span><span class="o">=</span><span class="s1">&#39;text/csv&#39;</span><span class="p">,</span>
         <span class="n">content_disposition</span><span class="o">=</span><span class="s1">&#39;inline; filename=</span><span class="si">{}</span><span class="s1">.csv&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="n">normalize_for_url</span><span class="p">(</span>

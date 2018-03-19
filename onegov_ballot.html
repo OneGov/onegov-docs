@@ -364,6 +364,18 @@ default locale of the app)</p>
 </dd></dl>
 
 <dl class="attribute">
+<dt id="onegov.ballot.models.election.ElectionCompound.party_results">
+<code class="descname">party_results</code><a class="headerlink" href="#onegov.ballot.models.election.ElectionCompound.party_results" title="Permalink to this definition">¶</a></dt>
+<dd><p>An election compound may contains n party results</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ballot.models.election.ElectionCompound.panachage_results">
+<code class="descname">panachage_results</code><a class="headerlink" href="#onegov.ballot.models.election.ElectionCompound.panachage_results" title="Permalink to this definition">¶</a></dt>
+<dd><p>An election compound may contains n panachage results</p>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="onegov.ballot.models.election.ElectionCompound.number_of_mandates">
 <code class="descname">number_of_mandates</code><a class="headerlink" href="#onegov.ballot.models.election.ElectionCompound.number_of_mandates" title="Permalink to this definition">¶</a></dt>
 <dd><p>The (total) number of mandates.</p>
@@ -425,10 +437,28 @@ elections and the second value being the number of total elections.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="onegov.ballot.models.election.ElectionCompound.clear_results">
+<code class="descname">clear_results</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/ballot/models/election/election_compound.html#ElectionCompound.clear_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.ballot.models.election.ElectionCompound.clear_results" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clears all own results.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="onegov.ballot.models.election.ElectionCompound.export">
 <code class="descname">export</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/ballot/models/election/election_compound.html#ElectionCompound.export"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.ballot.models.election.ElectionCompound.export" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns all data connected to this election compound as list with
 dicts.</p>
+<p>This is meant as a base for json/csv/excel exports. The result is
+therefore a flat list of dictionaries with repeating values to avoid
+the nesting of values. Each record in the resulting list is a single
+candidate result for each political entity. Party results are not
+included in the export (since they are not really connected with the
+lists).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.ballot.models.election.ElectionCompound.export_panachage">
+<code class="descname">export_panachage</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/ballot/models/election/election_compound.html#ElectionCompound.export_panachage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.ballot.models.election.ElectionCompound.export_panachage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all panachage results as list with dicts.</p>
 <p>This is meant as a base for json/csv/excel exports. The result is
 therefore a flat list of dictionaries with repeating values to avoid
 the nesting of values. Each record in the resulting list is a single
@@ -723,14 +753,20 @@ as SQL expression.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="onegov.ballot.models.election.PanachageResult.target_list_id">
-<code class="descname">target_list_id</code><a class="headerlink" href="#onegov.ballot.models.election.PanachageResult.target_list_id" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.ballot.models.election.PanachageResult.owner">
+<code class="descname">owner</code><a class="headerlink" href="#onegov.ballot.models.election.PanachageResult.owner" title="Permalink to this definition">¶</a></dt>
+<dd><p>the owner of this result</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.ballot.models.election.PanachageResult.target">
+<code class="descname">target</code><a class="headerlink" href="#onegov.ballot.models.election.PanachageResult.target" title="Permalink to this definition">¶</a></dt>
 <dd><p>the target this result belongs to</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="onegov.ballot.models.election.PanachageResult.source_list_id">
-<code class="descname">source_list_id</code><a class="headerlink" href="#onegov.ballot.models.election.PanachageResult.source_list_id" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.ballot.models.election.PanachageResult.source">
+<code class="descname">source</code><a class="headerlink" href="#onegov.ballot.models.election.PanachageResult.source" title="Permalink to this definition">¶</a></dt>
 <dd><p>the source this result belongs to</p>
 </dd></dl>
 
@@ -747,9 +783,9 @@ as SQL expression.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="onegov.ballot.models.election.PartyResult.election_id">
-<code class="descname">election_id</code><a class="headerlink" href="#onegov.ballot.models.election.PartyResult.election_id" title="Permalink to this definition">¶</a></dt>
-<dd><p>the election this result belongs to</p>
+<dt id="onegov.ballot.models.election.PartyResult.owner">
+<code class="descname">owner</code><a class="headerlink" href="#onegov.ballot.models.election.PartyResult.owner" title="Permalink to this definition">¶</a></dt>
+<dd><p>the election or election  compound this result belongs to</p>
 </dd></dl>
 
 <dl class="attribute">

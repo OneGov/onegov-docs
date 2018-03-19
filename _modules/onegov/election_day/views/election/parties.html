@@ -40,23 +40,26 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 
 
-<div class="viewcode-block" id="get_party_results"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.parties.get_party_results">[docs]</a><span class="k">def</span> <span class="nf">get_party_results</span><span class="p">(</span><span class="n">election</span><span class="p">):</span>
+<div class="viewcode-block" id="get_party_results"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.parties.get_party_results">[docs]</a><span class="k">def</span> <span class="nf">get_party_results</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot; Returns the aggregated party results as list. &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="n">election</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s1">&#39;proporz&#39;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">election</span><span class="o">.</span><span class="n">party_results</span><span class="o">.</span><span class="n">first</span><span class="p">():</span>
-        <span class="k">return</span> <span class="p">[],</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;proporz&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="s1">&#39;proporz&#39;</span> <span class="ow">or</span>
+        <span class="ow">not</span> <span class="n">item</span><span class="o">.</span><span class="n">party_results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="p">):</span>
+            <span class="k">return</span> <span class="p">[],</span> <span class="p">{}</span>
 
-    <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="n">election</span><span class="p">)</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
 
     <span class="c1"># Get the totals votes per year</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">PartyResult</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">PartyResult</span><span class="o">.</span><span class="n">total_votes</span><span class="p">)</span>
-    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">PartyResult</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="n">election</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">PartyResult</span><span class="o">.</span><span class="n">owner</span> <span class="o">==</span> <span class="n">item</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
     <span class="n">totals</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
     <span class="n">years</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">totals</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
 
     <span class="n">parties</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">election</span><span class="o">.</span><span class="n">party_results</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">party_results</span><span class="p">:</span>
         <span class="n">party</span> <span class="o">=</span> <span class="n">parties</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">{})</span>
         <span class="n">year</span> <span class="o">=</span> <span class="n">party</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">year</span><span class="p">),</span> <span class="p">{})</span>
         <span class="n">year</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">color</span>

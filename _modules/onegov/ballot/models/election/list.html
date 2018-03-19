@@ -90,8 +90,10 @@
     <span class="c1">#: a (proporz) list contains votes from other other lists</span>
     <span class="n">panachage_results</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
         <span class="s1">&#39;PanachageResult&#39;</span><span class="p">,</span>
+        <span class="n">primaryjoin</span><span class="o">=</span><span class="p">(</span>
+            <span class="s1">&#39;foreign(PanachageResult.target) == cast(List.id, TEXT)&#39;</span>
+        <span class="p">),</span>
         <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
-        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;list&#39;</span><span class="p">),</span>
         <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span>
     <span class="p">)</span>
 

@@ -39,16 +39,19 @@
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.election.list</span> <span class="k">import</span> <span class="n">List</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.election.list_connection</span> <span class="k">import</span> <span class="n">ListConnection</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.election.list_result</span> <span class="k">import</span> <span class="n">ListResult</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.election.mixins</span> <span class="k">import</span> <span class="n">PartyResult</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.election.mixins</span> <span class="k">import</span> <span class="n">PartyResultsExportMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.election.panachage_result</span> <span class="k">import</span> <span class="n">PanachageResult</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot.models.election.party_result</span> <span class="k">import</span> <span class="n">PartyResult</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">cast</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">desc</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">String</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">aliased</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">backref</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
 
 
-<div class="viewcode-block" id="ProporzElection"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.election.ProporzElection">[docs]</a><span class="k">class</span> <span class="nc">ProporzElection</span><span class="p">(</span><span class="n">Election</span><span class="p">):</span>
+<div class="viewcode-block" id="ProporzElection"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.election.ProporzElection">[docs]</a><span class="k">class</span> <span class="nc">ProporzElection</span><span class="p">(</span><span class="n">Election</span><span class="p">,</span> <span class="n">PartyResultsExportMixin</span><span class="p">):</span>
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;proporz&#39;</span>
     <span class="p">}</span>
@@ -73,8 +76,10 @@
     <span class="c1">#: An election may contains n party results</span>
     <span class="n">party_results</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
         <span class="s1">&#39;PartyResult&#39;</span><span class="p">,</span>
+        <span class="n">primaryjoin</span><span class="o">=</span><span class="p">(</span>
+            <span class="s1">&#39;foreign(PartyResult.owner) == ProporzElection.id&#39;</span>
+        <span class="p">),</span>
         <span class="n">cascade</span><span class="o">=</span><span class="s1">&#39;all, delete-orphan&#39;</span><span class="p">,</span>
-        <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;election&#39;</span><span class="p">),</span>
         <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -126,14 +131,15 @@
             <span class="n">lists</span> <span class="o">=</span> <span class="n">lists</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ListResult</span><span class="o">.</span><span class="n">list_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
             <span class="n">lists</span> <span class="o">=</span> <span class="n">lists</span><span class="o">.</span><span class="n">first</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">lists</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
 
+            <span class="n">ids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">id_</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">id_</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">]</span>
             <span class="n">pan</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">PanachageResult</span><span class="o">.</span><span class="n">last_change</span><span class="p">)</span>
             <span class="n">pan</span> <span class="o">=</span> <span class="n">pan</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">desc</span><span class="p">(</span><span class="n">PanachageResult</span><span class="o">.</span><span class="n">last_change</span><span class="p">))</span>
-            <span class="n">pan</span> <span class="o">=</span> <span class="n">pan</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">PanachageResult</span><span class="o">.</span><span class="n">target_list_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+            <span class="n">pan</span> <span class="o">=</span> <span class="n">pan</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">PanachageResult</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
             <span class="n">pan</span> <span class="o">=</span> <span class="n">pan</span><span class="o">.</span><span class="n">first</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">pan</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
 
         <span class="n">parties</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">PartyResult</span><span class="o">.</span><span class="n">last_change</span><span class="p">)</span>
         <span class="n">parties</span> <span class="o">=</span> <span class="n">parties</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">desc</span><span class="p">(</span><span class="n">PartyResult</span><span class="o">.</span><span class="n">last_change</span><span class="p">))</span>
-        <span class="n">parties</span> <span class="o">=</span> <span class="n">parties</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">PartyResult</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">parties</span> <span class="o">=</span> <span class="n">parties</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">PartyResult</span><span class="o">.</span><span class="n">owner</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
         <span class="n">parties</span> <span class="o">=</span> <span class="n">parties</span><span class="o">.</span><span class="n">first</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">parties</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
 
         <span class="n">changes</span> <span class="o">=</span> <span class="p">[</span><span class="n">changed</span><span class="p">,</span> <span class="n">lists</span><span class="p">,</span> <span class="n">pan</span><span class="p">,</span> <span class="n">parties</span><span class="p">]</span>
@@ -146,11 +152,11 @@
 
         <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-        <span class="n">ids</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">String</span><span class="p">))</span>
         <span class="n">ids</span> <span class="o">=</span> <span class="n">ids</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
 
         <span class="n">results</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">PanachageResult</span><span class="p">)</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">PanachageResult</span><span class="o">.</span><span class="n">target_list_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">PanachageResult</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
@@ -261,7 +267,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_panachage_data</span><span class="p">:</span>
             <span class="n">panachage_results</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">PanachageResult</span><span class="p">)</span>
             <span class="n">panachage_results</span> <span class="o">=</span> <span class="n">panachage_results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-                <span class="n">PanachageResult</span><span class="o">.</span><span class="n">target_list_id</span><span class="o">.</span><span class="n">in_</span><span class="p">((</span><span class="nb">id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">list_ids</span><span class="p">))</span>
+                <span class="n">PanachageResult</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">in_</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="nb">id</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">list_ids</span><span class="p">))</span>
             <span class="p">)</span>
 
             <span class="n">panachage_lists</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">list_id</span><span class="p">)</span>
@@ -271,14 +277,14 @@
             <span class="n">panachage_lists</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">panachage_lists</span><span class="p">]</span>
             <span class="n">panachage_lists</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
                 <span class="nb">set</span><span class="p">(</span><span class="n">panachage_lists</span><span class="p">)</span> <span class="o">|</span>
-                <span class="nb">set</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">source_list_id</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">panachage_results</span><span class="p">])</span>
+                <span class="nb">set</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">source</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">panachage_results</span><span class="p">])</span>
             <span class="p">)</span>
 
-            <span class="n">list_lookup</span> <span class="o">=</span> <span class="p">{</span><span class="nb">id</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="nb">id</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">list_ids</span><span class="p">}</span>
+            <span class="n">list_lookup</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="nb">id</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span> <span class="nb">id</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">list_ids</span><span class="p">}</span>
             <span class="n">panachage</span> <span class="o">=</span> <span class="p">{</span><span class="nb">id</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">panachage_lists</span><span class="p">}</span>
             <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">panachage_results</span><span class="p">:</span>
-                <span class="n">key</span> <span class="o">=</span> <span class="n">list_lookup</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">target_list_id</span><span class="p">)</span>
-                <span class="n">panachage</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">result</span><span class="o">.</span><span class="n">source_list_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">votes</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">list_lookup</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">target</span><span class="p">)</span>
+                <span class="n">panachage</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">result</span><span class="o">.</span><span class="n">source</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">votes</span>
 
         <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>

@@ -236,23 +236,22 @@
         <span class="p">)</span>
 
     <span class="nd">@cached_property</span>
-    <span class="k">def</span> <span class="nf">ticket</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">request</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">latest_request</span>
+    <span class="k">def</span> <span class="nf">latest_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">latest_request</span>
 
-        <span class="k">if</span> <span class="n">request</span><span class="p">:</span>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">ticket</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">latest_request</span><span class="p">:</span>
             <span class="n">tickets</span> <span class="o">=</span> <span class="n">TicketCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">tickets</span><span class="o">.</span><span class="n">by_handler_id</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">tickets</span><span class="o">.</span><span class="n">by_handler_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latest_request</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">attendees</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">request</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">latest_request</span>
-
-        <span class="k">if</span> <span class="n">request</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">OccasionAttendeeCollection</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">active_period</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
-            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">OccasionAttendeeCollection</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">active_period</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+        <span class="p">)</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">editbar_links</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -302,27 +301,30 @@
                         <span class="p">)</span>
                     <span class="p">))</span>
 
-                <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
-                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Discard&quot;</span><span class="p">),</span>
-                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)),</span>
-                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;delete-link&#39;</span><span class="p">},</span>
-                    <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
-                        <span class="n">Confirm</span><span class="p">(</span>
-                            <span class="n">_</span><span class="p">(</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">publication_requests</span><span class="p">:</span>
+                    <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
+                        <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Discard&quot;</span><span class="p">),</span>
+                        <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+                        <span class="p">),</span>
+                        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;delete-link&#39;</span><span class="p">},</span>
+                        <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
+                            <span class="n">Confirm</span><span class="p">(</span><span class="n">_</span><span class="p">(</span>
                                 <span class="s1">&#39;Do you really want to discard &quot;$</span><span class="si">{title}</span><span class="s1">&quot;?&#39;</span><span class="p">,</span>
                                 <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">title</span><span class="p">}</span>
+                            <span class="p">),</span> <span class="n">_</span><span class="p">(</span>
+                                <span class="s2">&quot;This cannot be undone.&quot;</span>
+                            <span class="p">),</span> <span class="n">_</span><span class="p">(</span>
+                                <span class="s2">&quot;Discard Activity&quot;</span><span class="p">)</span>
                             <span class="p">),</span>
-                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Discard Activity&quot;</span><span class="p">)</span>
-                        <span class="p">),</span>
-                        <span class="n">Intercooler</span><span class="p">(</span>
-                            <span class="n">request_method</span><span class="o">=</span><span class="s2">&quot;DELETE&quot;</span><span class="p">,</span>
-                            <span class="n">redirect_after</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
-                                <span class="n">VacationActivityCollection</span>
+                            <span class="n">Intercooler</span><span class="p">(</span>
+                                <span class="n">request_method</span><span class="o">=</span><span class="s2">&quot;DELETE&quot;</span><span class="p">,</span>
+                                <span class="n">redirect_after</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
+                                    <span class="n">VacationActivityCollection</span>
+                                <span class="p">)</span>
                             <span class="p">)</span>
                         <span class="p">)</span>
-                    <span class="p">)</span>
-                <span class="p">))</span>
+                    <span class="p">))</span>
 
             <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
                 <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit&quot;</span><span class="p">),</span>
