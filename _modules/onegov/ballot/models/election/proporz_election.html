@@ -39,9 +39,9 @@
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.election.list</span> <span class="k">import</span> <span class="n">List</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.election.list_connection</span> <span class="k">import</span> <span class="n">ListConnection</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.election.list_result</span> <span class="k">import</span> <span class="n">ListResult</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot.models.election.mixins</span> <span class="k">import</span> <span class="n">PartyResult</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot.models.election.mixins</span> <span class="k">import</span> <span class="n">PartyResultsExportMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.election.party_result</span> <span class="k">import</span> <span class="n">PartyResult</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.election.panachage_result</span> <span class="k">import</span> <span class="n">PanachageResult</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.election.mixins</span> <span class="k">import</span> <span class="n">PartyResultExportMixin</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">cast</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">desc</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">String</span>
@@ -51,7 +51,7 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
 
 
-<div class="viewcode-block" id="ProporzElection"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.election.ProporzElection">[docs]</a><span class="k">class</span> <span class="nc">ProporzElection</span><span class="p">(</span><span class="n">Election</span><span class="p">,</span> <span class="n">PartyResultsExportMixin</span><span class="p">):</span>
+<div class="viewcode-block" id="ProporzElection"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.election.ProporzElection">[docs]</a><span class="k">class</span> <span class="nc">ProporzElection</span><span class="p">(</span><span class="n">Election</span><span class="p">,</span> <span class="n">PartyResultExportMixin</span><span class="p">):</span>
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;proporz&#39;</span>
     <span class="p">}</span>
@@ -170,8 +170,8 @@
             <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">connection</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">list_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lists</span><span class="p">:</span>
             <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">list_</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">party_results</span><span class="p">:</span></div>
-            <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">party_results</span><span class="p">:</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ProporzElection.export"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.election.ProporzElection.export">[docs]</a>    <span class="k">def</span> <span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns all data connected to this election as list with dicts.</span>
@@ -334,8 +334,8 @@
                 <span class="n">row</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">panachage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">22</span><span class="p">],</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">target_id</span><span class="p">)</span>
 
             <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
-</div></div>
-        <span class="k">return</span> <span class="n">rows</span>
+
+        <span class="k">return</span> <span class="n">rows</span></div></div>
 </pre></div>
 
           </div>
@@ -387,7 +387,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>

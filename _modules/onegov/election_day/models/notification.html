@@ -92,13 +92,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">last_modified</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Election</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">election_id</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">id</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Vote</span><span class="p">):</span></div>
-            <span class="bp">self</span><span class="o">.</span><span class="n">vote_id</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Vote</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vote_id</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">id</span></div>
 
 <div class="viewcode-block" id="Notification.trigger"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.models.notification.Notification.trigger">[docs]</a>    <span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Trigger the custom actions. &quot;&quot;&quot;</span>
-</div></div>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
 
 
 <div class="viewcode-block" id="WebhookNotification"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.models.notification.WebhookNotification">[docs]</a><span class="k">class</span> <span class="nc">WebhookNotification</span><span class="p">(</span><span class="n">Notification</span><span class="p">):</span>
@@ -129,8 +129,8 @@
                 <span class="n">PostThread</span><span class="p">(</span>
                     <span class="n">url</span><span class="p">,</span>
                     <span class="n">data</span><span class="p">,</span>
-                    <span class="nb">tuple</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">headers</span><span class="o">.</span><span class="n">items</span><span class="p">())</span></div></div>
-                <span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+                    <span class="nb">tuple</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">headers</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="EmailNotification"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.models.notification.EmailNotification">[docs]</a><span class="k">class</span> <span class="nc">EmailNotification</span><span class="p">(</span><span class="n">Notification</span><span class="p">):</span>
@@ -147,8 +147,8 @@
             <span class="n">locale</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;_old_locale&#39;</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">locale</span><span class="p">)</span>
 
         <span class="n">request</span><span class="o">.</span><span class="n">locale</span> <span class="o">=</span> <span class="n">locale</span>
-        <span class="k">if</span> <span class="s1">&#39;translator&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span></div>
-            <span class="k">del</span> <span class="n">request</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;translator&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;translator&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">request</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;translator&#39;</span><span class="p">]</span></div>
 
     <span class="k">def</span> <span class="nf">get_subject_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">completed</span><span class="p">:</span>
@@ -225,8 +225,8 @@
                         <span class="s1">&#39;List-Unsubscribe-Post&#39;</span><span class="p">:</span> <span class="s1">&#39;List-Unsubscribe=One-Click&#39;</span>
                     <span class="p">}</span>
                 <span class="p">)</span>
-</div></div>
-        <span class="bp">self</span><span class="o">.</span><span class="n">set_locale</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_locale</span><span class="p">(</span><span class="n">request</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="SmsNotification"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.models.notification.SmsNotification">[docs]</a><span class="k">class</span> <span class="nc">SmsNotification</span><span class="p">(</span><span class="n">Notification</span><span class="p">):</span>
@@ -259,8 +259,8 @@
             <span class="n">translator</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">translations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">locale</span><span class="p">)</span>
             <span class="n">translated</span> <span class="o">=</span> <span class="n">translator</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="k">if</span> <span class="n">translator</span> <span class="k">else</span> <span class="n">content</span>
             <span class="n">translated</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">translated</span><span class="p">)</span>
-</div></div>
-            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_sms</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">address</span><span class="p">,</span> <span class="n">translated</span><span class="p">)</span>
+
+            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_sms</span><span class="p">(</span><span class="n">subscriber</span><span class="o">.</span><span class="n">address</span><span class="p">,</span> <span class="n">translated</span><span class="p">)</span></div></div>
 </pre></div>
 
           </div>
@@ -312,7 +312,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>

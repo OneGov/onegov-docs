@@ -83,14 +83,14 @@
                 <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
                 <span class="k">return</span> <span class="kc">True</span>
 
-        <span class="k">except</span> <span class="p">(</span><span class="n">HTTPException</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">timeout</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span><span class="p">):</span></div>
-            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">HTTPException</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">timeout</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
 
     <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__del__</span><span class="p">()</span>
-        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span></div>
-            <span class="k">pass</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span></div>
 
 
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s1">&#39;session&#39;</span><span class="p">)</span>
@@ -107,8 +107,8 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">import</span> <span class="nn">warnings</span>
-    <span class="kn">from</span> <span class="nn">sqlalchemy.exc</span> <span class="k">import</span> <span class="n">SAWarning</span></div>
-    <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">,</span> <span class="n">SAWarning</span><span class="p">)</span>
+    <span class="kn">from</span> <span class="nn">sqlalchemy.exc</span> <span class="k">import</span> <span class="n">SAWarning</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">,</span> <span class="n">SAWarning</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="cache_password_hashing"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.cache_password_hashing">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s1">&#39;session&#39;</span><span class="p">,</span> <span class="n">autouse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -142,8 +142,8 @@
 
     <span class="n">monkeysession</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span>
         <span class="s1">&#39;onegov.core.crypto.password.bcrypt_sha256.encrypt&#39;</span><span class="p">,</span> <span class="n">cached_encrypt</span><span class="p">)</span>
-    <span class="n">monkeysession</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span></div>
-        <span class="s1">&#39;onegov.core.crypto.password.bcrypt_sha256.verify&#39;</span><span class="p">,</span> <span class="n">cached_verify</span><span class="p">)</span>
+    <span class="n">monkeysession</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span>
+        <span class="s1">&#39;onegov.core.crypto.password.bcrypt_sha256.verify&#39;</span><span class="p">,</span> <span class="n">cached_verify</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="postgres"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.postgres">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
@@ -164,8 +164,8 @@
     <span class="p">))</span>
 
     <span class="n">postgres</span> <span class="o">=</span> <span class="n">Postgresql</span><span class="p">(</span><span class="n">postgres_args</span><span class="o">=</span><span class="n">postgres_args</span><span class="p">)</span>
-    <span class="k">yield</span> <span class="n">postgres</span></div>
-    <span class="n">postgres</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+    <span class="k">yield</span> <span class="n">postgres</span>
+    <span class="n">postgres</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="postgres_dsn"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.postgres_dsn">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
@@ -202,8 +202,8 @@
         <span class="c1"># before finishing your test, or use the sesion_manager fixture!</span>
         <span class="n">engine</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;DROP SCHEMA &quot;</span><span class="si">{}</span><span class="s1">&quot; CASCADE&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">schema</span><span class="p">))</span>
 
-    <span class="n">engine</span><span class="o">.</span><span class="n">raw_connection</span><span class="p">()</span><span class="o">.</span><span class="n">invalidate</span><span class="p">()</span></div>
-    <span class="n">engine</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span>
+    <span class="n">engine</span><span class="o">.</span><span class="n">raw_connection</span><span class="p">()</span><span class="o">.</span><span class="n">invalidate</span><span class="p">()</span>
+    <span class="n">engine</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="session_manager"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.session_manager">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
@@ -226,8 +226,8 @@
             <span class="s1">&#39;echo&#39;</span><span class="p">:</span> <span class="s1">&#39;ECHO&#39;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
         <span class="p">}</span>
     <span class="p">)</span>
-    <span class="k">yield</span> <span class="n">mgr</span></div>
-    <span class="n">mgr</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span>
+    <span class="k">yield</span> <span class="n">mgr</span>
+    <span class="n">mgr</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="session"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.session">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
@@ -239,24 +239,24 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">session_manager</span><span class="o">.</span><span class="n">set_current_schema</span><span class="p">(</span><span class="s1">&#39;test_&#39;</span> <span class="o">+</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
     <span class="n">session_manager</span><span class="o">.</span><span class="n">set_locale</span><span class="p">(</span><span class="s1">&#39;de_CH&#39;</span><span class="p">,</span> <span class="s1">&#39;de_CH&#39;</span><span class="p">)</span>
-</div>
-    <span class="k">yield</span> <span class="n">session_manager</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
+
+    <span class="k">yield</span> <span class="n">session_manager</span><span class="o">.</span><span class="n">session</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="temporary_directory"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.temporary_directory">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">temporary_directory</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot; Provides a temporary directory that is removed after the test. &quot;&quot;&quot;</span>
     <span class="n">directory</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
-    <span class="k">yield</span> <span class="n">directory</span></div>
-    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+    <span class="k">yield</span> <span class="n">directory</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="temporary_path"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.temporary_path">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">temporary_path</span><span class="p">(</span><span class="n">temporary_directory</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Same as :func:`temporary_directory`, but providing a ``Path`` instead</span>
 <span class="sd">    of a string. &quot;&quot;&quot;</span>
-</div>
-    <span class="k">yield</span> <span class="n">Path</span><span class="p">(</span><span class="n">temporary_directory</span><span class="p">)</span>
+
+    <span class="k">yield</span> <span class="n">Path</span><span class="p">(</span><span class="n">temporary_directory</span><span class="p">)</span></div>
 
 
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
@@ -349,14 +349,14 @@
 
     <span class="k">yield</span> <span class="n">url</span>
 
-    <span class="n">es</span> <span class="o">=</span> <span class="n">Elasticsearch</span><span class="p">(</span><span class="n">url</span><span class="p">)</span></div>
-    <span class="n">es</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">)</span>
+    <span class="n">es</span> <span class="o">=</span> <span class="n">Elasticsearch</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="n">es</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="es_client"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.es_client">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">es_client</span><span class="p">(</span><span class="n">es_url</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Provides an elasticsearch client. &quot;&quot;&quot;</span></div>
-    <span class="k">yield</span> <span class="n">Elasticsearch</span><span class="p">(</span><span class="n">es_url</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot; Provides an elasticsearch client. &quot;&quot;&quot;</span>
+    <span class="k">yield</span> <span class="n">Elasticsearch</span><span class="p">(</span><span class="n">es_url</span><span class="p">)</span></div>
 
 
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
@@ -489,7 +489,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>

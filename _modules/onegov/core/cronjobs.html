@@ -140,8 +140,8 @@
             <span class="n">c</span><span class="o">.</span><span class="n">setopt</span><span class="p">(</span><span class="n">pycurl</span><span class="o">.</span><span class="n">WRITEFUNCTION</span><span class="p">,</span> <span class="k">lambda</span> <span class="nb">bytes</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="nb">bytes</span><span class="p">))</span>
             <span class="n">c</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
             <span class="n">c</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-</div>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">execute</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">execute</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Job.is_scheduled_at"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cronjobs.Job.is_scheduled_at">[docs]</a>    <span class="k">def</span> <span class="nf">is_scheduled_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">,</span> <span class="n">timezone</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns True if the job is scheduled to run at the given date.</span>
@@ -167,8 +167,8 @@
 
         <span class="n">start</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span> <span class="n">time</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">minute</span><span class="p">))</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
-</div></div>
-        <span class="k">return</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">point</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">point</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="ApplicationBoundCronjobs"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cronjobs.ApplicationBoundCronjobs">[docs]</a><span class="k">class</span> <span class="nc">ApplicationBoundCronjobs</span><span class="p">(</span><span class="n">Thread</span><span class="p">):</span>
@@ -234,8 +234,8 @@
         <span class="n">session</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
         <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stopping Cronjob Thread for </span><span class="si">{}</span><span class="s2">, already locked!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span></div>
-        <span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span>
+        <span class="p">))</span></div>
 
     <span class="k">def</span> <span class="nf">run_scheduled_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">point</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">(),</span> <span class="s1">&#39;UTC&#39;</span><span class="p">)</span>
@@ -251,8 +251,8 @@
                     <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                         <span class="s2">&quot;The job for </span><span class="si">{}</span><span class="s2"> at </span><span class="si">{}</span><span class="s2">:</span><span class="si">{}</span><span class="s2"> took too long (</span><span class="si">{}</span><span class="s2">s)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span> <span class="n">duration</span>
-                        <span class="p">)</span></div>
-                    <span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_job"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cronjobs.get_job">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Job</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/cronjobs/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">)</span>
@@ -260,14 +260,14 @@
     <span class="sd">&quot;&quot;&quot; The internal path to the cronjob. The id can&#39;t be guessed. &quot;&quot;&quot;</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">unsign</span><span class="p">(</span><span class="n">unquote_plus</span><span class="p">(</span><span class="nb">id</span><span class="p">))</span>
 
-    <span class="k">if</span> <span class="n">name</span><span class="p">:</span></div>
-        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">cronjob_registry</span><span class="p">,</span> <span class="s1">&#39;cronjobs&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">cronjob_registry</span><span class="p">,</span> <span class="s1">&#39;cronjobs&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="run_job"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cronjobs.run_job">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Job</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">run_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Executes the job. &quot;&quot;&quot;</span></div>
-    <span class="bp">self</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot; Executes the job. &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">request</span><span class="p">)</span></div>
 
 
 <span class="k">def</span> <span class="nf">register_cronjob</span><span class="p">(</span><span class="n">registry</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="p">,</span> <span class="n">timezone</span><span class="p">):</span>
@@ -330,7 +330,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>

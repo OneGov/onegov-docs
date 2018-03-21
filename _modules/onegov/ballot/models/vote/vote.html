@@ -119,8 +119,8 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">create</span><span class="p">:</span>
             <span class="n">result</span> <span class="o">=</span> <span class="n">Ballot</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">ballot_type</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-</div>
-        <span class="k">return</span> <span class="n">result</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">proposal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -213,8 +213,8 @@
 
 <div class="viewcode-block" id="Vote.aggregate_results"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.aggregate_results">[docs]</a>    <span class="k">def</span> <span class="nf">aggregate_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Gets the sum of the given attribute from the results. &quot;&quot;&quot;</span>
-</div>
-        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">ballot</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span> <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">ballot</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span> <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Vote.aggregate_results_expression"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.aggregate_results_expression">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">aggregate_results_expression</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
@@ -226,8 +226,8 @@
         <span class="n">expr</span> <span class="o">=</span> <span class="n">select</span><span class="p">([</span><span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">Ballot</span><span class="p">,</span> <span class="n">attribute</span><span class="p">))])</span>
         <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">Ballot</span><span class="o">.</span><span class="n">vote_id</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
         <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">attribute</span><span class="p">)</span>
-</div>
-        <span class="k">return</span> <span class="n">expr</span>
+
+        <span class="k">return</span> <span class="n">expr</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">last_modified</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -267,8 +267,8 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">:</span></div>
-            <span class="n">ballot</span><span class="o">.</span><span class="n">clear_results</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">:</span>
+            <span class="n">ballot</span><span class="o">.</span><span class="n">clear_results</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="Vote.export"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Vote.export">[docs]</a>    <span class="k">def</span> <span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns all data connected to this vote as list with dicts.</span>
@@ -307,8 +307,8 @@
                 <span class="n">row</span><span class="p">[</span><span class="s1">&#39;eligible_voters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">eligible_voters</span>
 
                 <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
-</div></div>
-        <span class="k">return</span> <span class="n">rows</span>
+
+        <span class="k">return</span> <span class="n">rows</span></div></div>
 </pre></div>
 
           </div>
@@ -360,7 +360,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>
