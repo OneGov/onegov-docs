@@ -74,7 +74,6 @@
 <span class="kn">from</span> <span class="nn">more.webassets.core</span> <span class="k">import</span> <span class="n">webassets_injector_tween</span>
 <span class="kn">from</span> <span class="nn">more.webassets.tweens</span> <span class="k">import</span> <span class="n">METHODS</span><span class="p">,</span> <span class="n">CONTENT_TYPES</span>
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">cache</span><span class="p">,</span> <span class="n">log</span><span class="p">,</span> <span class="n">utils</span>
-<span class="kn">from</span> <span class="nn">onegov.core.custom</span> <span class="k">import</span> <span class="n">json</span>
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">directives</span>
 <span class="kn">from</span> <span class="nn">onegov.core.cache</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">onegov.core.datamanager</span> <span class="k">import</span> <span class="n">MailDataManager</span>
@@ -749,44 +748,6 @@
 
         <span class="c1"># send e-mails through the transaction machinery</span>
         <span class="n">MailDataManager</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">postman</span><span class="p">(</span><span class="n">category</span><span class="p">),</span> <span class="n">envelope</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="Framework.send_hipchat"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.send_hipchat">[docs]</a>    <span class="k">def</span> <span class="nf">send_hipchat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message_from</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">message_format</span><span class="o">=</span><span class="s1">&#39;html&#39;</span><span class="p">,</span>
-                     <span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="n">notify</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Sends a hipchat message asynchronously.</span>
-
-<span class="sd">        We are using the room notification method of the hipchat API V2:</span>
-<span class="sd">        `&lt;https://www.hipchat.com/docs/apiv2/method/send_room_notification/&gt;`_</span>
-
-<span class="sd">        Make sure to generate a token for the room (Scope: Send Notifications)</span>
-<span class="sd">        and define it in the configuration.</span>
-
-<span class="sd">        Returns the thread object to allow waiting by calling join.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_token</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_room_id</span><span class="p">:</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
-                <span class="s1">&#39;from&#39;</span><span class="p">:</span> <span class="n">message_from</span><span class="p">,</span>
-                <span class="s1">&#39;message&#39;</span><span class="p">:</span> <span class="n">message</span><span class="p">,</span>
-                <span class="s1">&#39;message_format&#39;</span><span class="p">:</span> <span class="n">message_format</span><span class="p">,</span>
-                <span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="n">color</span><span class="p">,</span>
-                <span class="s1">&#39;notify&#39;</span><span class="p">:</span> <span class="n">notify</span>
-            <span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
-
-            <span class="n">headers</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="p">(</span><span class="s1">&#39;Authorization&#39;</span><span class="p">,</span> <span class="s1">&#39;Bearer </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hipchat_token</span><span class="p">)),</span>
-                <span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span> <span class="s1">&#39;application/json; charset=utf-8&#39;</span><span class="p">),</span>
-                <span class="p">(</span><span class="s1">&#39;Content-Length&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)),</span>
-            <span class="p">)</span>
-
-            <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;https://api.hipchat.com/v2/room/</span><span class="si">{}</span><span class="s1">/notification&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">hipchat_room_id</span>
-            <span class="p">)</span>
-
-            <span class="n">thread</span> <span class="o">=</span> <span class="n">PostThread</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
-            <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-
-            <span class="k">return</span> <span class="n">thread</span></div>
 
 <div class="viewcode-block" id="Framework.send_zulip"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.send_zulip">[docs]</a>    <span class="k">def</span> <span class="nf">send_zulip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">content</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Sends a hipchat message asynchronously.</span>
