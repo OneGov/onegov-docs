@@ -36,6 +36,7 @@
 
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">time</span>
+<span class="kn">from</span> <span class="nn">dateutil</span> <span class="k">import</span> <span class="n">rrule</span>
 <span class="kn">from</span> <span class="nn">onegov.core.cache</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">isodate</span> <span class="k">import</span> <span class="n">parse_date</span><span class="p">,</span> <span class="n">parse_datetime</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
@@ -676,6 +677,18 @@
             <span class="k">return</span> <span class="n">keywords</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">keywords</span><span class="p">),</span> <span class="s1">&#39;&#39;</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
             <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="n">v</span></div>
+
+
+<div class="viewcode-block" id="rrulestr"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.utils.rrulestr">[docs]</a><span class="k">def</span> <span class="nf">rrulestr</span><span class="p">(</span><span class="n">recurrence</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A dateutil rrulestr wrapper that works around</span>
+<span class="sd">    https://github.com/dateutil/dateutil/issues/652</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="s1">&#39;DTSTART&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">recurrence</span> <span class="ow">and</span> <span class="s1">&#39;dtstart&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;dtstart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sedate</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrulestr</span><span class="p">(</span><span class="n">recurrence</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

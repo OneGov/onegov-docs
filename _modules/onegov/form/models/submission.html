@@ -38,13 +38,18 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UTCDateTime</span>
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">AssociatedFiles</span><span class="p">,</span> <span class="n">File</span>
 <span class="kn">from</span> <span class="nn">onegov.form.display</span> <span class="k">import</span> <span class="n">render_field</span>
+<span class="kn">from</span> <span class="nn">onegov.form.extensions</span> <span class="k">import</span> <span class="n">Extendable</span>
 <span class="kn">from</span> <span class="nn">onegov.form.parser</span> <span class="k">import</span> <span class="n">parse_form</span>
 <span class="kn">from</span> <span class="nn">onegov.form.utils</span> <span class="k">import</span> <span class="n">extract_text_from_html</span><span class="p">,</span> <span class="n">hash_definition</span>
-<span class="kn">from</span> <span class="nn">onegov.form.extensions</span> <span class="k">import</span> <span class="n">Extendable</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">Payable</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">process_payment</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">CheckConstraint</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">ForeignKey</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Integer</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">TextAreaField</span>
@@ -117,6 +122,13 @@
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;polymorphic_on&quot;</span><span class="p">:</span> <span class="s1">&#39;state&#39;</span>
     <span class="p">}</span>
+
+    <span class="n">__table_args__</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">CheckConstraint</span><span class="p">(</span>
+            <span class="s1">&#39;COALESCE(claimed, 0) &lt;= spots&#39;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;claimed_no_more_than_requested&#39;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">form_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -191,7 +203,38 @@
         <span class="k">if</span> <span class="n">price</span> <span class="ow">and</span> <span class="n">price</span><span class="o">.</span><span class="n">amount</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">process_payment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">payment_method</span><span class="p">,</span> <span class="n">price</span><span class="p">,</span> <span class="n">provider</span><span class="p">,</span> <span class="n">token</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="kc">True</span></div></div>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="FormSubmission.claim"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.models.FormSubmission.claim">[docs]</a>    <span class="k">def</span> <span class="nf">claim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spots</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Claimes the given number of spots (defaults to the requested</span>
+<span class="sd">        number of spots).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">spots</span> <span class="o">=</span> <span class="n">spots</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">spots</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">registration_window</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">registration_window</span><span class="o">.</span><span class="n">limit</span><span class="p">:</span>
+            <span class="n">limit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">registration_window</span><span class="o">.</span><span class="n">limit</span>
+            <span class="n">claimed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">registration_window</span><span class="o">.</span><span class="n">claimed_spots</span>
+
+            <span class="k">assert</span> <span class="n">spots</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="n">limit</span> <span class="o">-</span> <span class="n">claimed</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="o">=</span> <span class="n">spots</span></div>
+
+<div class="viewcode-block" id="FormSubmission.disclaim"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.models.FormSubmission.disclaim">[docs]</a>    <span class="k">def</span> <span class="nf">disclaim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spots</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Disclaims the given number of spots (defaults to all spots that</span>
+<span class="sd">        were claimed so far).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">spots</span> <span class="o">=</span> <span class="n">spots</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">registration_window</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="o">-</span> <span class="n">spots</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="PendingFormSubmission"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.models.PendingFormSubmission">[docs]</a><span class="k">class</span> <span class="nc">PendingFormSubmission</span><span class="p">(</span><span class="n">FormSubmission</span><span class="p">):</span>

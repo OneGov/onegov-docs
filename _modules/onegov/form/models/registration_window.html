@@ -126,8 +126,7 @@
             <span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">,</span> <span class="s1">&#39;up&#39;</span>
         <span class="p">)</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">accepts_submissions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">accepts_submissions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">required_spots</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
 
@@ -140,17 +139,18 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">True</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_spots</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_spots</span> <span class="o">&gt;=</span> <span class="n">required_spots</span>
 
 <div class="viewcode-block" id="FormRegistrationWindow.disassociate"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.models.FormRegistrationWindow.disassociate">[docs]</a>    <span class="k">def</span> <span class="nf">disassociate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Disassociates all records linked to this window. &quot;&quot;&quot;</span>
 
         <span class="k">for</span> <span class="n">submission</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">submissions</span><span class="p">:</span>
+            <span class="n">submission</span><span class="o">.</span><span class="n">disclaim</span><span class="p">()</span>
             <span class="n">submission</span><span class="o">.</span><span class="n">registration_window_id</span> <span class="o">=</span> <span class="kc">None</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">available_spots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed_spots</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">requested_spots</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">limit</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed_spots</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">requested_spots</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">claimed_spots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -164,7 +164,7 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">requested_spots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">            SELECT SUM(GREATEST(COALESCE(spots, 0) - COALESCE(claimed, 0), 0))</span>
+<span class="s2">            SELECT GREATEST(SUM(spots - COALESCE(claimed, 0)), 0)</span>
 <span class="s2">            FROM submissions</span>
 <span class="s2">            WHERE registration_window_id = :id</span>
 <span class="s2">            AND submissions.state = &#39;complete&#39;</span>

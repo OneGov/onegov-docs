@@ -67,6 +67,7 @@
     <span class="n">SiteCollection</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">onegov.org.theme.org_theme</span> <span class="k">import</span> <span class="n">user_options</span>
+<span class="kn">from</span> <span class="nn">onegov.org.utils</span> <span class="k">import</span> <span class="n">rrulestr</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">PaymentCollection</span><span class="p">,</span> <span class="n">PaymentProviderCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">ResourceCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.people</span> <span class="k">import</span> <span class="n">PersonCollection</span>
@@ -1238,7 +1239,8 @@
                     <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Su&quot;</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">recurrence</span><span class="p">:</span>
-            <span class="n">rule</span> <span class="o">=</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrulestr</span><span class="p">(</span><span class="n">recurrence</span><span class="p">)</span>
+            <span class="n">rule</span> <span class="o">=</span> <span class="n">rrulestr</span><span class="p">(</span><span class="n">recurrence</span><span class="p">)</span>
+
             <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">_freq</span> <span class="o">==</span> <span class="n">rrule</span><span class="o">.</span><span class="n">WEEKLY</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">_</span><span class="p">(</span>
                     <span class="s2">&quot;Every $</span><span class="si">{days}</span><span class="s2"> until $</span><span class="si">{end}</span><span class="s2">&quot;</span><span class="p">,</span>
@@ -1814,14 +1816,18 @@
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">editbar_links</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_admin</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[</span>
-                <span class="n">Link</span><span class="p">(</span>
+
+        <span class="k">def</span> <span class="nf">links</span><span class="p">():</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_admin</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
                     <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Configure&quot;</span><span class="p">),</span>
                     <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;+edit&#39;</span><span class="p">),</span>
                     <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;edit-link&#39;</span><span class="p">}</span>
-                <span class="p">),</span>
-                <span class="n">Link</span><span class="p">(</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_manager</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
                     <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Export&quot;</span><span class="p">),</span>
                     <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
                         <span class="n">DirectoryEntryCollection</span><span class="p">,</span> <span class="p">{</span>
@@ -1829,8 +1835,9 @@
                         <span class="p">},</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;+export&#39;</span>
                     <span class="p">),</span>
                     <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;export-link&#39;</span><span class="p">}</span>
-                <span class="p">),</span>
-                <span class="n">Link</span><span class="p">(</span>
+                <span class="p">)</span>
+
+                <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
                     <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Import&quot;</span><span class="p">),</span>
                     <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
                         <span class="n">DirectoryEntryCollection</span><span class="p">,</span> <span class="p">{</span>
@@ -1838,8 +1845,10 @@
                         <span class="p">},</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;+import&#39;</span>
                     <span class="p">),</span>
                     <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;import-link&#39;</span><span class="p">}</span>
-                <span class="p">),</span>
-                <span class="n">Link</span><span class="p">(</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_admin</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
                     <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete&quot;</span><span class="p">),</span>
                     <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
@@ -1863,8 +1872,10 @@
                             <span class="p">)</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
-                <span class="p">),</span>
-                <span class="n">LinkGroup</span><span class="p">(</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_manager</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">LinkGroup</span><span class="p">(</span>
                     <span class="n">title</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Add&quot;</span><span class="p">),</span>
                     <span class="n">links</span><span class="o">=</span><span class="p">[</span>
                         <span class="n">Link</span><span class="p">(</span>
@@ -1876,8 +1887,9 @@
                             <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;new-directory-entry&#39;</span><span class="p">}</span>
                         <span class="p">)</span>
                     <span class="p">]</span>
-                <span class="p">),</span>
-            <span class="p">]</span></div>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">links</span><span class="p">())</span></div>
 
 
 <div class="viewcode-block" id="DirectoryEntryLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.DirectoryEntryLayout">[docs]</a><span class="k">class</span> <span class="nc">DirectoryEntryLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
