@@ -35,11 +35,20 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Date</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">text</span>
+<span class="kn">from</span> <span class="nn">onegov.form.models.submission</span> <span class="k">import</span> <span class="n">FormSubmission</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">and_</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Date</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">ForeignKey</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Integer</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">or_</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.dialects.postgresql</span> <span class="k">import</span> <span class="n">ExcludeConstraint</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span><span class="p">,</span> <span class="n">relationship</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.schema</span> <span class="k">import</span> <span class="n">CheckConstraint</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.sql.elements</span> <span class="k">import</span> <span class="n">quoted_name</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span><span class="p">,</span> <span class="n">relationship</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
 
 
@@ -127,6 +136,8 @@
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">accepts_submissions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">required_spots</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">required_spots</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
 
@@ -154,8 +165,12 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">claimed_spots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the number of actually claimed spots. &quot;&quot;&quot;</span>
+
         <span class="k">return</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">            SELECT SUM(COALESCE(claimed, 0))</span>
+<span class="s2">            SELECT SUM(</span>
+<span class="s2">                COALESCE(claimed, 0)</span>
+<span class="s2">            )</span>
 <span class="s2">            FROM submissions</span>
 <span class="s2">            WHERE registration_window_id = :id</span>
 <span class="s2">            AND submissions.state = &#39;complete&#39;</span>
@@ -163,12 +178,48 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">requested_spots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the number of requested spots.</span>
+
+<span class="sd">        When the claim has not been made yet, `spots` are counted as</span>
+<span class="sd">        requested. When the claim has been partially made, the difference is</span>
+<span class="sd">        counted as requested. If the claim has been fully made, the result is</span>
+<span class="sd">        0. If the claim has been relinquished, the result is 0.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">            SELECT GREATEST(SUM(spots - COALESCE(claimed, 0)), 0)</span>
+<span class="s2">            SELECT GREATEST(</span>
+<span class="s2">                SUM(</span>
+<span class="s2">                    CASE WHEN claimed IS NULL THEN spots</span>
+<span class="s2">                         WHEN claimed = 0 THEN 0</span>
+<span class="s2">                         ELSE spots - claimed</span>
+<span class="s2">                    END</span>
+<span class="s2">                ), 0</span>
+<span class="s2">            )</span>
 <span class="s2">            FROM submissions</span>
 <span class="s2">            WHERE registration_window_id = :id</span>
 <span class="s2">            AND submissions.state = &#39;complete&#39;</span>
 <span class="s2">        &quot;&quot;&quot;</span><span class="p">),</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">})</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span> <span class="ow">or</span> <span class="mi">0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">next_submission</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the submission next in line. In other words, the next</span>
+<span class="sd">        submission in order of first come, first serve.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">q</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FormSubmission</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FormSubmission</span><span class="o">.</span><span class="n">registration_window_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FormSubmission</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;complete&#39;</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span>
+            <span class="n">FormSubmission</span><span class="o">.</span><span class="n">claimed</span> <span class="o">==</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">and_</span><span class="p">(</span>
+                <span class="n">FormSubmission</span><span class="o">.</span><span class="n">claimed</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="n">FormSubmission</span><span class="o">.</span><span class="n">claimed</span> <span class="o">&lt;</span> <span class="n">FormSubmission</span><span class="o">.</span><span class="n">spots</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">))</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">FormSubmission</span><span class="o">.</span><span class="n">created</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">q</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">in_the_future</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

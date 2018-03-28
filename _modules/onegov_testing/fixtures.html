@@ -375,6 +375,28 @@
         <span class="k">def</span> <span class="nf">address</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">addr</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
 
+        <span class="k">def</span> <span class="nf">outbox_payloads</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">m</span><span class="o">.</span><span class="n">get_payload</span><span class="p">(</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">get_payload</span><span class="p">(</span><span class="n">decode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outbox</span>
+            <span class="p">]</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">sent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; Similar to the outbox property, this property returns the</span>
+<span class="sd">            sent e-mails, but only the decoded plaintext format.</span>
+
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">outbox_payloads</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">sent_html</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; Similar to the outbox property, this property returns the</span>
+<span class="sd">            sent e-mails, but only the decoded html format.</span>
+
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">outbox_payloads</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
     <span class="n">server</span> <span class="o">=</span> <span class="n">Server</span><span class="p">()</span>
     <span class="n">server</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
     <span class="k">yield</span> <span class="n">server</span>

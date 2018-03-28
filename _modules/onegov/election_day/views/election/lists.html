@@ -31,27 +31,15 @@
             
   <h1>Source code for onegov.election_day.views.election.lists</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">morepath.request</span> <span class="k">import</span> <span class="n">Response</span>
-<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span>
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">DefaultLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">ElectionLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">add_last_modified_header</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">desc</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.utils.election</span> <span class="k">import</span> <span class="n">get_list_results</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.utils.election</span> <span class="k">import</span> <span class="n">get_lists_data</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
-
-
-<div class="viewcode-block" id="get_list_results"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.lists.get_list_results">[docs]</a><span class="k">def</span> <span class="nf">get_list_results</span><span class="p">(</span><span class="n">election</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
-
-    <span class="sd">&quot;&quot;&quot; Returns the aggregated list results as list. &quot;&quot;&quot;</span>
-
-    <span class="n">result</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-        <span class="n">List</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">List</span><span class="o">.</span><span class="n">votes</span><span class="p">,</span> <span class="n">List</span><span class="o">.</span><span class="n">list_id</span><span class="p">,</span> <span class="n">List</span><span class="o">.</span><span class="n">number_of_mandates</span>
-    <span class="p">)</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">desc</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">votes</span><span class="p">))</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">List</span><span class="o">.</span><span class="n">election_id</span> <span class="o">==</span> <span class="n">election</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">result</span></div>
 
 
 <div class="viewcode-block" id="view_election_lists_data"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.lists.view_election_lists_data">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span>
@@ -63,23 +51,7 @@
 
     <span class="sd">&quot;&quot;&quot;&quot; View the lists as JSON. Used to for the lists bar chart. &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;majorz&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[],</span>
-            <span class="s1">&#39;majority&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span>
-        <span class="p">}</span>
-
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[{</span>
-            <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-            <span class="s1">&#39;value2&#39;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
-            <span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;active&#39;</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="k">else</span> <span class="s1">&#39;inactive&#39;</span><span class="p">,</span>
-        <span class="p">}</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">get_list_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">))],</span>
-        <span class="s1">&#39;majority&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span>
-    <span class="p">}</span></div>
+    <span class="k">return</span> <span class="n">get_lists_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="view_election_lists_chart"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.election.lists.view_election_lists_chart">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span>

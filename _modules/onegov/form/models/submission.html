@@ -44,12 +44,14 @@
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">Payable</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">process_payment</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">case</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">CheckConstraint</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Enum</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">ForeignKey</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Integer</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.ext.hybrid</span> <span class="k">import</span> <span class="n">hybrid_property</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">TextAreaField</span>
@@ -143,6 +145,29 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">form_class</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
 
+    <span class="nd">@hybrid_property</span>
+    <span class="k">def</span> <span class="nf">registration_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">spots</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;open&#39;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;cancelled&#39;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">spots</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;confirmed&#39;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">spots</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;partial&#39;</span>
+
+    <span class="nd">@registration_state</span><span class="o">.</span><span class="n">expression</span>
+    <span class="k">def</span> <span class="nf">registration_state</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">case</span><span class="p">((</span>
+            <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">spots</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">claimed</span> <span class="o">==</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;open&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">claimed</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;cancelled&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">claimed</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">spots</span><span class="p">,</span> <span class="s1">&#39;confirmed&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">claimed</span> <span class="o">&lt;</span> <span class="bp">cls</span><span class="o">.</span><span class="n">spots</span><span class="p">,</span> <span class="s1">&#39;partial&#39;</span><span class="p">)</span>
+        <span class="p">),</span> <span class="n">else_</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">get_email_field_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">form</span> <span class="o">=</span> <span class="n">form</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">form_obj</span>
 
@@ -220,14 +245,15 @@
 
             <span class="k">assert</span> <span class="n">spots</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="n">limit</span> <span class="o">-</span> <span class="n">claimed</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="o">=</span> <span class="n">spots</span></div>
+        <span class="k">assert</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">spots</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spots</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">spots</span></div>
 
 <div class="viewcode-block" id="FormSubmission.disclaim"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.models.FormSubmission.disclaim">[docs]</a>    <span class="k">def</span> <span class="nf">disclaim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spots</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Disclaims the given number of spots (defaults to all spots that</span>
 <span class="sd">        were claimed so far).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">spots</span> <span class="o">=</span> <span class="n">spots</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span>
+        <span class="n">spots</span> <span class="o">=</span> <span class="n">spots</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">spots</span>
 
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">registration_window</span>
 
