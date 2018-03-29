@@ -45,7 +45,7 @@
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span><span class="p">,</span> <span class="n">OrgApp</span>
 <span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">FormSubmissionLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.org.mail</span> <span class="k">import</span> <span class="n">send_transactional_html_mail</span>
-<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">TicketMessage</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">TicketMessage</span><span class="p">,</span> <span class="n">SubmissionMessage</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">Price</span>
 <span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
 
@@ -72,6 +72,45 @@
     <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">adjust_price</span><span class="p">(</span><span class="n">total</span><span class="p">)</span>
 
 
+<span class="k">def</span> <span class="nf">get_hints</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">window</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">window</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="k">if</span> <span class="n">window</span><span class="o">.</span><span class="n">in_the_past</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="s1">&#39;stop&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The registration has ended&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">window</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="s1">&#39;stop&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The registration is closed&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">window</span><span class="o">.</span><span class="n">enabled</span> <span class="ow">and</span> <span class="n">window</span><span class="o">.</span><span class="n">in_the_future</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The registration opens on $</span><span class="si">{day}</span><span class="s2">, $</span><span class="si">{date}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+            <span class="s1">&#39;day&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="n">window</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="s1">&#39;weekday_long&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="n">window</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="s1">&#39;date_long&#39;</span><span class="p">)</span>
+        <span class="p">})</span>
+
+    <span class="k">if</span> <span class="n">window</span><span class="o">.</span><span class="n">enabled</span> <span class="ow">and</span> <span class="n">window</span><span class="o">.</span><span class="n">in_the_present</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The registration closes on $</span><span class="si">{day}</span><span class="s2">, $</span><span class="si">{date}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+            <span class="s1">&#39;day&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="n">window</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="s1">&#39;weekday_long&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="n">window</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="s1">&#39;date_long&#39;</span><span class="p">)</span>
+        <span class="p">})</span>
+
+        <span class="k">if</span> <span class="n">window</span><span class="o">.</span><span class="n">limit</span> <span class="ow">and</span> <span class="n">window</span><span class="o">.</span><span class="n">overflow</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="s1">&#39;count&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;There&#39;s a limit of $</span><span class="si">{count}</span><span class="s2"> attendees&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="n">window</span><span class="o">.</span><span class="n">limit</span>
+            <span class="p">})</span>
+
+        <span class="k">if</span> <span class="n">window</span><span class="o">.</span><span class="n">limit</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">window</span><span class="o">.</span><span class="n">overflow</span><span class="p">:</span>
+            <span class="n">spots</span> <span class="o">=</span> <span class="n">window</span><span class="o">.</span><span class="n">available_spots</span>
+
+            <span class="k">if</span> <span class="n">spots</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="s1">&#39;stop&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;There are no spots left&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">spots</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="s1">&#39;count&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;There is one spot left&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="s1">&#39;count&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;There are $</span><span class="si">{count}</span><span class="s2"> spots left&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="n">spots</span>
+                <span class="p">})</span>
+
+
 <div class="viewcode-block" id="handle_defined_form"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.form_submission.handle_defined_form">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">FormDefinition</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;form.pt&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">,</span>
              <span class="n">form</span><span class="o">=</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">form_class</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">handle_defined_form</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
@@ -83,23 +122,34 @@
 
     <span class="n">collection</span> <span class="o">=</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_registration_window</span><span class="p">:</span>
+        <span class="n">spots</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">enabled</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">spots</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">enabled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_registration_window</span><span class="o">.</span><span class="n">accepts_submissions</span><span class="p">(</span><span class="n">spots</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">enabled</span> <span class="ow">and</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">:</span>
         <span class="n">submission</span> <span class="o">=</span> <span class="n">collection</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;pending&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;pending&#39;</span><span class="p">,</span> <span class="n">spots</span><span class="o">=</span><span class="n">spots</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">submission</span><span class="p">))</span>
 
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">FormSubmissionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="p">{</span>
-        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">FormSubmissionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">),</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
         <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
-        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
+        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">enabled</span> <span class="ow">and</span> <span class="n">form</span><span class="p">,</span>
         <span class="s1">&#39;definition&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
         <span class="s1">&#39;form_width&#39;</span><span class="p">:</span> <span class="s1">&#39;small&#39;</span><span class="p">,</span>
         <span class="s1">&#39;lead&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lead&#39;</span><span class="p">),</span>
         <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;text&#39;</span><span class="p">),</span>
         <span class="s1">&#39;people&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">people</span><span class="p">,</span>
         <span class="s1">&#39;contact&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">contact_html</span><span class="p">,</span>
-        <span class="s1">&#39;coordinates&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span>
+        <span class="s1">&#39;coordinates&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="p">,</span>
+        <span class="s1">&#39;hints&#39;</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">get_hints</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_registration_window</span><span class="p">)),</span>
+        <span class="s1">&#39;hints_callout&#39;</span><span class="p">:</span> <span class="ow">not</span> <span class="n">enabled</span>
     <span class="p">}</span></div>
 
 
@@ -225,6 +275,16 @@
             <span class="k">elif</span> <span class="n">payment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">payment</span> <span class="o">=</span> <span class="n">payment</span>
 
+            <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">registration_window</span>
+            <span class="k">if</span> <span class="n">window</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">window</span><span class="o">.</span><span class="n">accepts_submissions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spots</span><span class="p">):</span>
+                <span class="n">request</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Registrations are no longer possible&quot;</span><span class="p">))</span>
+                <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+            <span class="n">show_submission</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;send_by_email&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;show_submission&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">show_submission</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">changed</span><span class="p">()</span>
+
             <span class="n">collection</span> <span class="o">=</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
             <span class="n">collection</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">complete_submission</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
@@ -239,8 +299,6 @@
                 <span class="n">TicketMessage</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">ticket</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;opened&#39;</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">:</span>
-                <span class="n">show_submission</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;send_by_email&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span>
-
                 <span class="n">send_transactional_html_mail</span><span class="p">(</span>
                     <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
                     <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_ticket_opened.pt&#39;</span><span class="p">,</span>
@@ -249,13 +307,94 @@
                     <span class="n">content</span><span class="o">=</span><span class="p">{</span>
                         <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">ticket</span><span class="p">,</span>
                         <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
-                        <span class="s1">&#39;show_submission&#39;</span><span class="p">:</span> <span class="n">show_submission</span>
+                        <span class="s1">&#39;show_submission&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;show_submission&#39;</span><span class="p">]</span>
                     <span class="p">}</span>
                 <span class="p">)</span>
 
             <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Thank you for your submission!&quot;</span><span class="p">))</span>
 
             <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">ticket</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">))</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">CompleteFormSubmission</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;ticket&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_submission_ticket</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">ticket</span> <span class="o">=</span> <span class="n">TicketCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">by_handler_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">ticket</span><span class="p">))</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">CompleteFormSubmission</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;confirm-registration&#39;</span><span class="p">,</span>
+             <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_accept_registration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">handle_submission_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;confirmed&#39;</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">CompleteFormSubmission</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;deny-registration&#39;</span><span class="p">,</span>
+             <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_deny_registration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">handle_submission_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;denied&#39;</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">CompleteFormSubmission</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;cancel-registration&#39;</span><span class="p">,</span>
+             <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_cancel_registration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">handle_submission_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;cancelled&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">handle_submission_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s1">&#39;confirmed&#39;</span><span class="p">:</span>
+        <span class="n">subject</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your registration has been confirmed&quot;</span><span class="p">)</span>
+        <span class="n">success</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The registration has been confirmed&quot;</span><span class="p">)</span>
+        <span class="n">failure</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The registration could not be confirmed&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">execute</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">registration_window</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">claim</span><span class="p">()</span> <span class="ow">or</span> <span class="kc">True</span>
+
+    <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="s1">&#39;denied&#39;</span><span class="p">:</span>
+        <span class="n">subject</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your registration has been denied&quot;</span><span class="p">)</span>
+        <span class="n">success</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The registration has been denied&quot;</span><span class="p">)</span>
+        <span class="n">failure</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The registration could not be denied&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">execute</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">registration_window</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">disclaim</span><span class="p">()</span> <span class="ow">or</span> <span class="kc">True</span>
+
+    <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="s1">&#39;cancelled&#39;</span><span class="p">:</span>
+        <span class="n">subject</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your registration has been cancelled&quot;</span><span class="p">)</span>
+        <span class="n">success</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The registration has been cancelled&quot;</span><span class="p">)</span>
+        <span class="n">failure</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The registration could not be cancelled&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">execute</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">registration_window</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">claimed</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">disclaim</span><span class="p">()</span> <span class="ow">or</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="n">execute</span><span class="p">():</span>
+        <span class="n">ticket</span> <span class="o">=</span> <span class="n">TicketCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">by_handler_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">:</span>
+            <span class="n">send_transactional_html_mail</span><span class="p">(</span>
+                <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
+                <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_registration_action.pt&#39;</span><span class="p">,</span>
+                <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="p">),</span>
+                <span class="n">content</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+                    <span class="s1">&#39;action&#39;</span><span class="p">:</span> <span class="n">action</span><span class="p">,</span>
+                    <span class="s1">&#39;ticket&#39;</span><span class="p">:</span> <span class="n">ticket</span><span class="p">,</span>
+                    <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">form_obj</span><span class="p">,</span>
+                    <span class="s1">&#39;show_submission&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;show_submission&#39;</span><span class="p">)</span>
+                <span class="p">},</span>
+                <span class="n">subject</span><span class="o">=</span><span class="n">subject</span>
+            <span class="p">)</span>
+
+        <span class="n">SubmissionMessage</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">ticket</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span>
+
+        <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">success</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="n">failure</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 </pre></div>
 
           </div>

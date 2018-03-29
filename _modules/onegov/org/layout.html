@@ -679,7 +679,27 @@
             <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;export-link&#39;</span><span class="p">}</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="p">[</span><span class="n">edit_link</span><span class="p">,</span> <span class="n">delete_link</span><span class="p">,</span> <span class="n">export_link</span><span class="p">]</span></div>
+        <span class="n">registration_windows_link</span> <span class="o">=</span> <span class="n">LinkGroup</span><span class="p">(</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Registration Windows&quot;</span><span class="p">),</span>
+            <span class="n">links</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">Link</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Add&quot;</span><span class="p">),</span>
+                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;new-registration-window&#39;</span>
+                    <span class="p">),</span>
+                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;new-registration-window&#39;</span><span class="p">}</span>
+                <span class="p">),</span>
+                <span class="o">*</span><span class="p">(</span>
+                    <span class="n">Link</span><span class="p">(</span>
+                        <span class="n">text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">format_date_range</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">end</span><span class="p">),</span>
+                        <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">w</span><span class="p">),</span>
+                        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;view-link&#39;</span><span class="p">}</span>
+                    <span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">registration_windows</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">edit_link</span><span class="p">,</span> <span class="n">delete_link</span><span class="p">,</span> <span class="n">export_link</span><span class="p">,</span> <span class="n">registration_windows_link</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="FormCollectionLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.FormCollectionLayout">[docs]</a><span class="k">class</span> <span class="nc">FormCollectionLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
@@ -1745,6 +1765,14 @@
                         <span class="n">PaymentProviderCollection</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;sync&#39;</span>
                     <span class="p">),</span>
                     <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;sync&#39;</span><span class="p">}</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Link</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Export&quot;</span><span class="p">),</span>
+                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;export&#39;</span><span class="p">),</span>
+                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;export-link&#39;</span><span class="p">}</span>
                 <span class="p">)</span>
             <span class="p">)</span>
 

@@ -154,6 +154,8 @@
         <span class="k">for</span> <span class="n">processor</span> <span class="ow">in</span> <span class="n">preprocessors</span><span class="p">:</span>
             <span class="nb">next</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_fields</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
 <div class="viewcode-block" id="Form.clone"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.clone">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Creates an independent copy of the form class.</span>
@@ -305,6 +307,22 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">is_visible_through_dependencies</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;field_id&#39;</span><span class="p">])</span>
             <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">depends_on</span><span class="o">.</span><span class="n">dependencies</span>
         <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Form.is_hidden"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.is_hidden">[docs]</a>    <span class="k">def</span> <span class="nf">is_hidden</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; True if the given field should be hidden. The effect of this is</span>
+<span class="sd">        left to the application (it might not render the field, or add a</span>
+<span class="sd">        class which hides the field).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">field</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_fields</span></div>
+
+<div class="viewcode-block" id="Form.hide"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.hide">[docs]</a>    <span class="k">def</span> <span class="nf">hide</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Marks the given field as hidden. &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_fields</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Form.show"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.show">[docs]</a>    <span class="k">def</span> <span class="nf">show</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Marks the given field as visibile. &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_fields</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">id</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Form.prices"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.prices">[docs]</a>    <span class="k">def</span> <span class="nf">prices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns the prices of all selected items depending on the</span>

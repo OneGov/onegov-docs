@@ -53,9 +53,10 @@
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="p">(</span>
     <span class="n">FormDefinition</span><span class="p">,</span>
     <span class="n">FormCollection</span><span class="p">,</span>
+    <span class="n">FormRegistrationWindow</span><span class="p">,</span>
     <span class="n">CompleteFormSubmission</span><span class="p">,</span>
     <span class="n">PendingFormSubmission</span><span class="p">,</span>
-    <span class="n">FormFile</span>
+    <span class="n">FormFile</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">onegov.newsletter</span> <span class="k">import</span> <span class="p">(</span>
     <span class="n">Newsletter</span><span class="p">,</span>
@@ -188,6 +189,14 @@
 <span class="k">def</span> <span class="nf">get_complete_form_submission</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">submissions</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span>
         <span class="nb">id</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;complete&#39;</span><span class="p">,</span> <span class="n">current_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">FormRegistrationWindow</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/form-registration-window/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">,</span>
+    <span class="n">converters</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">UUID</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">get_form_registration_window</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">FormCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">registration_windows</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="get_file_for_org"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.path.get_file_for_org">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/storage/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">)</span>
