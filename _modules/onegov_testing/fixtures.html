@@ -45,6 +45,7 @@
 <span class="kn">from</span> <span class="nn">fs.tempfs</span> <span class="k">import</span> <span class="n">TempFS</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">mirakuru</span> <span class="k">import</span> <span class="n">HTTPExecutor</span> <span class="k">as</span> <span class="n">HTTPExecutorBase</span>
+<span class="kn">from</span> <span class="nn">mirakuru</span> <span class="k">import</span> <span class="n">TCPExecutor</span>
 <span class="kn">from</span> <span class="nn">mirakuru.compat</span> <span class="k">import</span> <span class="n">HTTPConnection</span><span class="p">,</span> <span class="n">HTTPException</span>
 <span class="kn">from</span> <span class="nn">onegov.core.crypto</span> <span class="k">import</span> <span class="n">hash_password</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">SessionManager</span>
@@ -407,6 +408,34 @@
 <span class="k">def</span> <span class="nf">smtp</span><span class="p">(</span><span class="n">smtp_server</span><span class="p">):</span>
     <span class="k">yield</span> <span class="n">smtp_server</span>
     <span class="k">del</span> <span class="n">smtp_server</span><span class="o">.</span><span class="n">outbox</span><span class="p">[:]</span>
+
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">memcached_server</span><span class="p">():</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s1">&#39;memcached&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Could not find memcached executable&quot;</span><span class="p">)</span>
+
+    <span class="n">host</span> <span class="o">=</span> <span class="s1">&#39;127.0.0.1&#39;</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="n">port_for</span><span class="o">.</span><span class="n">select_random</span><span class="p">()</span>
+
+    <span class="n">executor</span> <span class="o">=</span> <span class="n">TCPExecutor</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;memcached -l </span><span class="si">{host}</span><span class="s1"> -p </span><span class="si">{port}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
+    <span class="n">executor</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="k">yield</span> <span class="n">executor</span>
+
+    <span class="n">executor</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+    <span class="n">executor</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">memcached_url</span><span class="p">(</span><span class="n">memcached_server</span><span class="p">):</span>
+    <span class="n">host</span><span class="p">,</span> <span class="n">port</span> <span class="o">=</span> <span class="n">memcached_server</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">memcached_server</span><span class="o">.</span><span class="n">port</span>
+
+    <span class="k">yield</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{host}</span><span class="s1">:</span><span class="si">{port}</span><span class="s1">&#39;</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;echo &#39;flush_all&#39; | nc </span><span class="si">{host}</span><span class="s2"> </span><span class="si">{port}</span><span class="s2"> &gt; /dev/null&quot;</span><span class="p">)</span>
 
 
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>

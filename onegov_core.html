@@ -2358,30 +2358,16 @@ eventually be discarded by memcache if the cache is full).</p>
 <dl class="class">
 <dt id="onegov.core.cache.MemcachedBackend">
 <em class="property">class </em><code class="descclassname">onegov.core.cache.</code><code class="descname">MemcachedBackend</code><span class="sig-paren">(</span><em>arguments</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#MemcachedBackend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.MemcachedBackend" title="Permalink to this definition">¶</a></dt>
-<dd><p>A custom memcached backend with the following improvements:</p>
-<ul class="simple">
-<li>Uses dill instead of pickle, allowing for a wider range of cached objs.</li>
-</ul>
+<dd><p>A custom memcached backend used to pick custom memcached clients.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="onegov.core.cache.DillPickler">
-<em class="property">class </em><code class="descclassname">onegov.core.cache.</code><code class="descname">DillPickler</code><span class="sig-paren">(</span><em>file</em>, <em>protocol=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#DillPickler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.DillPickler" title="Permalink to this definition">¶</a></dt>
-<dd><p>A python-memcached pickler that uses dill instead of the builtin
-pickle module.</p>
-<p>Dill is an alternative implementation that supports a wider variety
-of objects which it can pickle.</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="onegov.core.cache.MemoryBackend">
-<em class="property">class </em><code class="descclassname">onegov.core.cache.</code><code class="descname">MemoryBackend</code><span class="sig-paren">(</span><em>arguments</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#MemoryBackend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.MemoryBackend" title="Permalink to this definition">¶</a></dt>
-<dd><p>A custom memory backend that uses dill to pickle values into a
-dictionary. This has the added benefit of using the same codepath as the
-memcached based backend, without actually requiring a memcached server.</p>
+<dt id="onegov.core.cache.DillSerialized">
+<em class="property">class </em><code class="descclassname">onegov.core.cache.</code><code class="descname">DillSerialized</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#DillSerialized"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.DillSerialized" title="Permalink to this definition">¶</a></dt>
+<dd><p>A proxy backend that pickles all non-byte values using dill.</p>
 <dl class="method">
-<dt id="onegov.core.cache.MemoryBackend.get">
-<code class="descname">get</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#MemoryBackend.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.MemoryBackend.get" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.core.cache.DillSerialized.get">
+<code class="descname">get</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#DillSerialized.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.DillSerialized.get" title="Permalink to this definition">¶</a></dt>
 <dd><p>Retrieve a value from the cache.</p>
 <p>The returned value should be an instance of
 <code class="xref py py-class docutils literal notranslate"><span class="pre">CachedValue</span></code>, or <code class="docutils literal notranslate"><span class="pre">NO_VALUE</span></code> if
@@ -2389,19 +2375,8 @@ not present.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="onegov.core.cache.MemoryBackend.get_multi">
-<code class="descname">get_multi</code><span class="sig-paren">(</span><em>keys</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#MemoryBackend.get_multi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.MemoryBackend.get_multi" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retrieve multiple values from the cache.</p>
-<p>The returned value should be a list, corresponding
-to the list of keys given.</p>
-<div class="versionadded">
-<p><span class="versionmodified">New in version 0.5.0.</span></p>
-</div>
-</dd></dl>
-
-<dl class="method">
-<dt id="onegov.core.cache.MemoryBackend.set">
-<code class="descname">set</code><span class="sig-paren">(</span><em>key</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#MemoryBackend.set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.MemoryBackend.set" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.core.cache.DillSerialized.set">
+<code class="descname">set</code><span class="sig-paren">(</span><em>key</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#DillSerialized.set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.DillSerialized.set" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set a value in the cache.</p>
 <p>The key will be whatever was passed
 to the registry, processed by the
@@ -2411,8 +2386,19 @@ of <code class="xref py py-class docutils literal notranslate"><span class="pre"
 </dd></dl>
 
 <dl class="method">
-<dt id="onegov.core.cache.MemoryBackend.set_multi">
-<code class="descname">set_multi</code><span class="sig-paren">(</span><em>mapping</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#MemoryBackend.set_multi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.MemoryBackend.set_multi" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.core.cache.DillSerialized.get_multi">
+<code class="descname">get_multi</code><span class="sig-paren">(</span><em>keys</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#DillSerialized.get_multi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.DillSerialized.get_multi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve multiple values from the cache.</p>
+<p>The returned value should be a list, corresponding
+to the list of keys given.</p>
+<div class="versionadded">
+<p><span class="versionmodified">New in version 0.5.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.core.cache.DillSerialized.set_multi">
+<code class="descname">set_multi</code><span class="sig-paren">(</span><em>mapping</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#DillSerialized.set_multi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.DillSerialized.set_multi" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set multiple values in the cache.</p>
 <p><code class="docutils literal notranslate"><span class="pre">mapping</span></code> is a dict in which
 the key will be whatever was passed
@@ -2427,97 +2413,6 @@ same ones returned to the upstream caller. If the subclass alters the
 values in any way, it must not do so ‘in-place’ on the <code class="docutils literal notranslate"><span class="pre">mapping</span></code> dict
 – that will have the undesirable effect of modifying the returned
 values as well.</p>
-<div class="versionadded">
-<p><span class="versionmodified">New in version 0.5.0.</span></p>
-</div>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="onegov.core.cache.IgnoreUnreachableBackend">
-<em class="property">class </em><code class="descclassname">onegov.core.cache.</code><code class="descname">IgnoreUnreachableBackend</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#IgnoreUnreachableBackend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.IgnoreUnreachableBackend" title="Permalink to this definition">¶</a></dt>
-<dd><p>A proxy backend that logs an error when memcached is down, but keeps
-running, albeit without using any caching.</p>
-<p>The idea is that a memcached outage will result in a slower/degraded
-user experience, not in complete breakage.</p>
-<dl class="method">
-<dt id="onegov.core.cache.IgnoreUnreachableBackend.get">
-<code class="descname">get</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#IgnoreUnreachableBackend.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.IgnoreUnreachableBackend.get" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retrieve a value from the cache.</p>
-<p>The returned value should be an instance of
-<code class="xref py py-class docutils literal notranslate"><span class="pre">CachedValue</span></code>, or <code class="docutils literal notranslate"><span class="pre">NO_VALUE</span></code> if
-not present.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="onegov.core.cache.IgnoreUnreachableBackend.set">
-<code class="descname">set</code><span class="sig-paren">(</span><em>key</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#IgnoreUnreachableBackend.set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.IgnoreUnreachableBackend.set" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set a value in the cache.</p>
-<p>The key will be whatever was passed
-to the registry, processed by the
-“key mangling” function, if any.
-The value will always be an instance
-of <code class="xref py py-class docutils literal notranslate"><span class="pre">CachedValue</span></code>.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="onegov.core.cache.IgnoreUnreachableBackend.delete">
-<code class="descname">delete</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#IgnoreUnreachableBackend.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.IgnoreUnreachableBackend.delete" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delete a value from the cache.</p>
-<p>The key will be whatever was passed
-to the registry, processed by the
-“key mangling” function, if any.</p>
-<p>The behavior here should be idempotent,
-that is, can be called any number of times
-regardless of whether or not the
-key exists.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="onegov.core.cache.IgnoreUnreachableBackend.get_multi">
-<code class="descname">get_multi</code><span class="sig-paren">(</span><em>keys</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#IgnoreUnreachableBackend.get_multi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.IgnoreUnreachableBackend.get_multi" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retrieve multiple values from the cache.</p>
-<p>The returned value should be a list, corresponding
-to the list of keys given.</p>
-<div class="versionadded">
-<p><span class="versionmodified">New in version 0.5.0.</span></p>
-</div>
-</dd></dl>
-
-<dl class="method">
-<dt id="onegov.core.cache.IgnoreUnreachableBackend.set_multi">
-<code class="descname">set_multi</code><span class="sig-paren">(</span><em>mapping</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#IgnoreUnreachableBackend.set_multi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.IgnoreUnreachableBackend.set_multi" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set multiple values in the cache.</p>
-<p><code class="docutils literal notranslate"><span class="pre">mapping</span></code> is a dict in which
-the key will be whatever was passed
-to the registry, processed by the
-“key mangling” function, if any.
-The value will always be an instance
-of <code class="xref py py-class docutils literal notranslate"><span class="pre">CachedValue</span></code>.</p>
-<p>When implementing a new <code class="xref py py-class docutils literal notranslate"><span class="pre">CacheBackend</span></code> or cutomizing via
-<code class="xref py py-class docutils literal notranslate"><span class="pre">ProxyBackend</span></code>, be aware that when this method is invoked by
-<code class="xref py py-meth docutils literal notranslate"><span class="pre">Region.get_or_create_multi()</span></code>, the <code class="docutils literal notranslate"><span class="pre">mapping</span></code> values are the
-same ones returned to the upstream caller. If the subclass alters the
-values in any way, it must not do so ‘in-place’ on the <code class="docutils literal notranslate"><span class="pre">mapping</span></code> dict
-– that will have the undesirable effect of modifying the returned
-values as well.</p>
-<div class="versionadded">
-<p><span class="versionmodified">New in version 0.5.0.</span></p>
-</div>
-</dd></dl>
-
-<dl class="method">
-<dt id="onegov.core.cache.IgnoreUnreachableBackend.delete_multi">
-<code class="descname">delete_multi</code><span class="sig-paren">(</span><em>keys</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#IgnoreUnreachableBackend.delete_multi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.IgnoreUnreachableBackend.delete_multi" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delete multiple values from the cache.</p>
-<p>The key will be whatever was passed
-to the registry, processed by the
-“key mangling” function, if any.</p>
-<p>The behavior here should be idempotent,
-that is, can be called any number of times
-regardless of whether or not the
-key exists.</p>
 <div class="versionadded">
 <p><span class="versionmodified">New in version 0.5.0.</span></p>
 </div>
