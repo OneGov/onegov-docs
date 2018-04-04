@@ -40,6 +40,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.datamanager</span> <span class="k">import</span> <span class="n">FileDataManager</span>
 <span class="kn">from</span> <span class="nn">onegov.core.filestorage</span> <span class="k">import</span> <span class="n">FilestorageFile</span>
 <span class="kn">from</span> <span class="nn">onegov.core.framework</span> <span class="k">import</span> <span class="n">current_language_tween_factory</span>
+<span class="kn">from</span> <span class="nn">onegov.core.framework</span> <span class="k">import</span> <span class="n">transaction_tween_factory</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.directives</span> <span class="k">import</span> <span class="n">ManageFormAction</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.directives</span> <span class="k">import</span> <span class="n">ManageHtmlAction</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.models</span> <span class="k">import</span> <span class="n">Principal</span>
@@ -177,7 +178,10 @@
     <span class="k">return</span> <span class="s1">&#39;de_CH&#39;</span>
 
 
-<span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">tween_factory</span><span class="p">(</span><span class="n">under</span><span class="o">=</span><span class="n">current_language_tween_factory</span><span class="p">)</span>
+<span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">tween_factory</span><span class="p">(</span>
+    <span class="n">under</span><span class="o">=</span><span class="n">current_language_tween_factory</span><span class="p">,</span>
+    <span class="n">over</span><span class="o">=</span><span class="n">transaction_tween_factory</span>
+<span class="p">)</span>
 <span class="k">def</span> <span class="nf">micro_cache_anonymous_pages_tween_factory</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
 
     <span class="n">cache_paths</span> <span class="o">=</span> <span class="p">(</span>

@@ -83,12 +83,11 @@
 
 <span class="kn">import</span> <span class="nn">click</span>
 <span class="kn">import</span> <span class="nn">multiprocessing</span>
-<span class="kn">import</span> <span class="nn">objgraph</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">resource</span>
 <span class="kn">import</span> <span class="nn">signal</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">import</span> <span class="nn">resource</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
 
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
@@ -226,6 +225,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_actual_port</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ready</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
+        <span class="c1"># memory usage over time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">memory_usage</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_memory_usage</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">memory_usage_max_count</span> <span class="o">=</span> <span class="mi">10</span>
+
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">stdin_fileno</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">fileno</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
@@ -239,18 +242,48 @@
     <span class="k">def</span> <span class="nf">port</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actual_port</span><span class="o">.</span><span class="n">value</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">current_memory_usage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">resource</span><span class="o">.</span><span class="n">getrusage</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RUSAGE_SELF</span><span class="p">)</span><span class="o">.</span><span class="n">ru_maxrss</span>
+
     <span class="k">def</span> <span class="nf">print_memory_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
 
-        <span class="n">total_memory</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">getrusage</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RUSAGE_SELF</span><span class="p">)</span><span class="o">.</span><span class="n">ru_maxrss</span>\
-            <span class="o">/</span> <span class="mi">1024</span> <span class="o">/</span> <span class="mi">1024</span>
+        <span class="c1"># these are only installed in the development environment</span>
+        <span class="kn">import</span> <span class="nn">objgraph</span>
+        <span class="kn">import</span> <span class="nn">plotille</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Total memory used: </span><span class="si">{0:.2f}</span><span class="s2"> mb&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">total_memory</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memory_usage</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory_usage_max_count</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">memory_usage</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">memory_usage</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_memory_usage</span><span class="p">)</span>
+        <span class="n">total_memory</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory_usage</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mi">1024</span> <span class="o">/</span> <span class="mi">1024</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memory_usage</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory_usage</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory_usage</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Total memory used: </span><span class="si">{total_memory:.2f}</span><span class="s2"> mb (Δ </span><span class="si">{delta}</span><span class="s2">b)&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Memory usage graph:&quot;</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memory_usage</span><span class="p">)))</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory_usage</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">plotille</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="n">X</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+            <span class="n">Y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+            <span class="n">width</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+            <span class="n">lc</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span>
+            <span class="n">Y_label</span><span class="o">=</span><span class="s1">&#39;bytes&#39;</span><span class="p">,</span>
+            <span class="n">X_label</span><span class="o">=</span><span class="s1">&#39;invocations&#39;</span>
+        <span class="p">))</span>
         <span class="nb">print</span><span class="p">()</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Most common types:&quot;</span><span class="p">)</span>
         <span class="n">objgraph</span><span class="o">.</span><span class="n">show_most_common_types</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">()</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Growth since last invocation:&quot;</span><span class="p">)</span>
         <span class="n">objgraph</span><span class="o">.</span><span class="n">show_growth</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">disable_systemwide_darwin_proxies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># System-wide proxy settings on darwin need to be disabled, because</span>
