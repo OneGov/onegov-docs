@@ -36,6 +36,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
+<span class="kn">from</span> <span class="nn">onegov.activity.models.occasion_date</span> <span class="k">import</span> <span class="n">DAYS</span>
 <span class="kn">from</span> <span class="nn">psycopg2.extras</span> <span class="k">import</span> <span class="n">NumericRange</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">case</span>
@@ -99,8 +100,8 @@
     <span class="c1">#: True if the occasion has been cancelled</span>
     <span class="n">cancelled</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="c1">#: The durations defined by the associated dates</span>
-    <span class="n">durations</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1">#: The duration defined by the associated dates</span>
+    <span class="n">duration</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="c1">#: The default order</span>
     <span class="n">order</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -157,26 +158,40 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">observe_dates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="p">)</span></div>
 
+    <span class="k">def</span> <span class="nf">compute_duration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">dates</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dates</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">dates</span><span class="p">))</span><span class="o">.</span><span class="n">duration</span><span class="p">)</span>
+
+        <span class="n">first</span> <span class="o">=</span> <span class="nb">min</span><span class="p">((</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dates</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">d</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">last</span> <span class="o">=</span> <span class="nb">max</span><span class="p">((</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dates</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">d</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">DAYS</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span>
+            <span class="n">first</span><span class="o">.</span><span class="n">localized_start</span><span class="p">,</span>
+            <span class="n">last</span><span class="o">.</span><span class="n">localized_end</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">last</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="n">first</span><span class="o">.</span><span class="n">start</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span>
+        <span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">compute_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">dates</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">start</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dates</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">compute_active_days</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">day</span> <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="p">(</span><span class="n">dates</span> <span class="ow">or</span> <span class="p">())</span> <span class="k">for</span> <span class="n">day</span> <span class="ow">in</span> <span class="n">date</span><span class="o">.</span><span class="n">active_days</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">compute_weekdays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">({</span><span class="n">day</span> <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="p">(</span><span class="n">dates</span> <span class="ow">or</span> <span class="p">())</span> <span class="k">for</span> <span class="n">day</span> <span class="ow">in</span> <span class="n">date</span><span class="o">.</span><span class="n">weekdays</span><span class="p">})</span>
+
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;dates&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">observe_dates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">dates</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">durations</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">duration</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dates</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">start</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dates</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">())</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">active_days</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">day</span>
-                <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">dates</span>
-                <span class="k">for</span> <span class="n">day</span> <span class="ow">in</span> <span class="n">date</span><span class="o">.</span><span class="n">active_days</span>
-            <span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">weekdays</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span>
-                <span class="n">day</span>
-                <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">dates</span>
-                <span class="k">for</span> <span class="n">day</span> <span class="ow">in</span> <span class="n">date</span><span class="o">.</span><span class="n">weekdays</span>
-            <span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">durations</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">active_days</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">weekdays</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">duration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_duration</span><span class="p">(</span><span class="n">dates</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_order</span><span class="p">(</span><span class="n">dates</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weekdays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_weekdays</span><span class="p">(</span><span class="n">dates</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active_days</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_active_days</span><span class="p">(</span><span class="n">dates</span><span class="p">)</span>
 
     <span class="nd">@validates</span><span class="p">(</span><span class="s1">&#39;dates&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">validate_dates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">date</span><span class="p">):</span>
