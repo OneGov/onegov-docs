@@ -1129,6 +1129,17 @@
     <span class="k">return</span> <span class="n">http_conflict_tween</span>
 
 
+<div class="viewcode-block" id="activate_session_manager_factory"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.activate_session_manager_factory">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">tween_factory</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="n">transaction_tween_factory</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">activate_session_manager_factory</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Activate the session manager before each transaction. &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">activate_session_manager</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">has_database_connection</span><span class="p">:</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">activate</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">handler</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">activate_session_manager</span></div>
+
+
 <span class="nd">@Framework</span><span class="o">.</span><span class="n">tween_factory</span><span class="p">(</span><span class="n">under</span><span class="o">=</span><span class="n">http_conflict_tween_factory</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">current_language_tween_factory</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">current_language_tween</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>

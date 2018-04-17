@@ -587,6 +587,12 @@ there are defined cronjobs, in which case they are there for a reason.</p>
 <dd><p>Adds the content security policy report settings from the yaml.</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="onegov.core.framework.activate_session_manager_factory">
+<code class="descclassname">onegov.core.framework.</code><code class="descname">activate_session_manager_factory</code><span class="sig-paren">(</span><em>app</em>, <em>handler</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/framework.html#activate_session_manager_factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.framework.activate_session_manager_factory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate the session manager before each transaction.</p>
+</dd></dl>
+
 </div>
 <div class="section" id="module-onegov.core.directives">
 <span id="directive"></span><h2>Directive<a class="headerlink" href="#module-onegov.core.directives" title="Permalink to this headline">¶</a></h2>
@@ -1500,14 +1506,35 @@ various orm events.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="onegov.core.orm.SessionManager.setup_manager_instance_sharing">
-<code class="descname">setup_manager_instance_sharing</code><span class="sig-paren">(</span><em>bases</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/session_manager.html#SessionManager.setup_manager_instance_sharing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.SessionManager.setup_manager_instance_sharing" title="Permalink to this definition">¶</a></dt>
-<dd><p>Shares this instance with all mapped classes of all bases.</p>
-<p>This enables each model to look up the current schema, the current
-locale and so on.</p>
-<p>This is a rather complicated way to make sure we don’t use a global
-variable. One might argue that this would warrant an exception
-to the rule…</p>
+<dt id="onegov.core.orm.SessionManager.activate">
+<code class="descname">activate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/session_manager.html#SessionManager.activate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.SessionManager.activate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the currently active session_manager - this is basically a
+global variable we require because we hook into the orm/query events
+where we don’t know yet which session is going to be used and therefore
+cannot be sure about the used session manager either</p>
+<p>For example, the Document model below needs access to the current
+session to get the current locale, but since it is instantiated without
+any session information, this can’t be known without a global variable:</p>
+<blockquote>
+<div>document = Document(localized_title=”Das Dokument”)</div></blockquote>
+<p>We can only work around that with a global variable:</p>
+<blockquote>
+<div>session_manager.activate()
+document = Document(localized_title=”Das Dokument”)</div></blockquote>
+<p>As a result session managers need to be activated, or they can’t be
+used (at least for translated columns). To do so in tests, use:</p>
+<blockquote>
+<div>session_manager.activate()</div></blockquote>
+<p>To ease the use of testing the last session_manager is however also
+automatically activated when the schema is set, which covers most
+use-cases outside of testing</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.core.orm.SessionManager.deactivate">
+<code class="descname">deactivate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/session_manager.html#SessionManager.deactivate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.SessionManager.deactivate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the currently active session manager to None, if it is equal
+to self.</p>
 </dd></dl>
 
 <dl class="method">

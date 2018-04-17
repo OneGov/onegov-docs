@@ -79,6 +79,9 @@
     <span class="c1">#   public schema.</span>
     <span class="n">_reserved_schemas</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;information_schema&#39;</span><span class="p">,</span> <span class="s1">&#39;public&#39;</span><span class="p">,</span> <span class="s1">&#39;extensions&#39;</span><span class="p">}</span>
 
+    <span class="c1"># holds thread local data</span>
+    <span class="n">_thread_bound</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">local</span><span class="p">()</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dsn</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span>
                  <span class="n">engine_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">session_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pool_config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Configures the data source name/dsn/database url and sets up the</span>
@@ -194,6 +197,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="s1">&#39;postgres&#39;</span> <span class="ow">in</span> <span class="n">dsn</span><span class="p">,</span> <span class="s2">&quot;Onegov only supports Postgres!&quot;</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">activate</span><span class="p">()</span>
+
         <span class="n">engine_config</span> <span class="o">=</span> <span class="n">engine_config</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="n">session_config</span> <span class="o">=</span> <span class="n">session_config</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="n">pool_config</span> <span class="o">=</span> <span class="n">pool_config</span> <span class="ow">or</span> <span class="p">{}</span>
@@ -252,7 +257,6 @@
             <span class="n">scopefunc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_scopefunc</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">register_session</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session_factory</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">setup_manager_instance_sharing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bases</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SessionManager.register_engine"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.orm.SessionManager.register_engine">[docs]</a>    <span class="k">def</span> <span class="nf">register_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes the given engine and registers it with the schema</span>
@@ -360,38 +364,62 @@
 
         <span class="n">zope</span><span class="o">.</span><span class="n">sqlalchemy</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">session</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SessionManager.setup_manager_instance_sharing"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.orm.SessionManager.setup_manager_instance_sharing">[docs]</a>    <span class="k">def</span> <span class="nf">setup_manager_instance_sharing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bases</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Shares this instance with all mapped classes of all bases.</span>
+<div class="viewcode-block" id="SessionManager.activate"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.orm.SessionManager.activate">[docs]</a>    <span class="k">def</span> <span class="nf">activate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sets the currently active session_manager - this is basically a</span>
+<span class="sd">        global variable we require because we hook into the orm/query events</span>
+<span class="sd">        where we don&#39;t know yet which session is going to be used and therefore</span>
+<span class="sd">        cannot be sure about the used session manager either</span>
 
-<span class="sd">        This enables each model to look up the current schema, the current</span>
-<span class="sd">        locale and so on.</span>
+<span class="sd">        For example, the Document model below needs access to the current</span>
+<span class="sd">        session to get the current locale, but since it is instantiated without</span>
+<span class="sd">        any session information, this can&#39;t be known without a global variable:</span>
 
-<span class="sd">        This is a rather complicated way to make sure we don&#39;t use a global</span>
-<span class="sd">        variable. One might argue that this would warrant an exception</span>
-<span class="sd">        to the rule...</span>
+<span class="sd">            document = Document(localized_title=&quot;Das Dokument&quot;)</span>
+
+<span class="sd">        We can only work around that with a global variable:</span>
+
+<span class="sd">            session_manager.activate()</span>
+<span class="sd">            document = Document(localized_title=&quot;Das Dokument&quot;)</span>
+
+<span class="sd">        As a result session managers need to be activated, or they can&#39;t be</span>
+<span class="sd">        used (at least for translated columns). To do so in tests, use:</span>
+
+<span class="sd">            session_manager.activate()</span>
+
+<span class="sd">        To ease the use of testing the last session_manager is however also</span>
+<span class="sd">        automatically activated when the schema is set, which covers most</span>
+<span class="sd">        use-cases outside of testing</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="c1"># the instance is shared with all classes, loaded or created</span>
-        <span class="k">def</span> <span class="nf">share_with_class</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">session_manager</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">set_active</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
-        <span class="c1"># and it is shared with all query types, at which point there is</span>
-        <span class="c1"># no type available yet.</span>
-        <span class="k">def</span> <span class="nf">share_with_query</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
-            <span class="n">session_manager</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+<div class="viewcode-block" id="SessionManager.deactivate"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.orm.SessionManager.deactivate">[docs]</a>    <span class="k">def</span> <span class="nf">deactivate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sets the currently active session manager to None, if it is equal</span>
+<span class="sd">        to self.</span>
 
-            <span class="k">for</span> <span class="n">desc</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">column_descriptions</span><span class="p">:</span>
-                <span class="n">desc</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">session_manager</span> <span class="o">=</span> <span class="n">session_manager</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">get_active</span><span class="p">()</span>
 
-        <span class="n">event</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="n">Query</span><span class="p">,</span> <span class="s1">&#39;before_compile&#39;</span><span class="p">,</span> <span class="n">share_with_query</span><span class="p">,</span> <span class="n">retval</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">active</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
 
-        <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">base</span><span class="p">:</span>
-                <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">base</span><span class="o">.</span><span class="n">_decl_class_registry</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">base</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
-                        <span class="n">event</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;init&#39;</span><span class="p">,</span> <span class="n">share_with_class</span><span class="p">)</span>
-                        <span class="n">event</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;load&#39;</span><span class="p">,</span> <span class="n">share_with_class</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">active</span><span class="o">.</span><span class="fm">__repr__</span><span class="o">.</span><span class="vm">__self__</span> <span class="ow">is</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_active</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">set_active</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">session_manager</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">session_manager</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_thread_bound</span><span class="o">.</span><span class="n">_active</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">proxy</span><span class="p">(</span><span class="n">session_manager</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_thread_bound</span><span class="o">.</span><span class="n">_active</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_active</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_thread_bound</span><span class="o">.</span><span class="n">_active</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">ReferenceError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="SessionManager.set_locale"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.orm.SessionManager.set_locale">[docs]</a>    <span class="k">def</span> <span class="nf">set_locale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default_locale</span><span class="p">,</span> <span class="n">current_locale</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Sets the default locale and the current locale so it may be</span>
@@ -423,7 +451,8 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">raw_connection</span><span class="p">()</span><span class="o">.</span><span class="n">invalidate</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deactivate</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="SessionManager.is_valid_schema"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.orm.SessionManager.is_valid_schema">[docs]</a>    <span class="k">def</span> <span class="nf">is_valid_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">schema</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns True if the given schema looks valid enough to be created</span>
@@ -472,7 +501,9 @@
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_valid_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">current_schema</span> <span class="o">=</span> <span class="n">schema</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ensure_schema_exists</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ensure_schema_exists</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">activate</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="SessionManager.create_schema"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.orm.SessionManager.create_schema">[docs]</a>    <span class="k">def</span> <span class="nf">create_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Creates the given schema. If said schema exists, expect this</span>

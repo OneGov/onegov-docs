@@ -36,6 +36,7 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">event</span><span class="p">,</span> <span class="n">inspect</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.ext.declarative</span> <span class="k">import</span> <span class="n">declarative_base</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">Query</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">TranslationHybrid</span>
 <span class="kn">from</span> <span class="nn">zope.sqlalchemy</span> <span class="k">import</span> <span class="n">mark_changed</span>
 
@@ -49,27 +50,6 @@
     <span class="c1">#: set by :class:`onegov.core.orm.cache.OrmCacheDescriptor`, this attribute</span>
     <span class="c1">#: indicates if the current model was loaded from cache</span>
     <span class="n">is_cached</span> <span class="o">=</span> <span class="kc">False</span>
-
-    <span class="k">def</span> <span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Makes sure the session manager attached to the model is not</span>
-<span class="sd">        pickled (stored in memcached). Not only does it not make sense to</span>
-<span class="sd">        have connection state stored, it also leads to errors.</span>
-
-<span class="sd">        Cached instances have to be merged back into the session as a result,</span>
-<span class="sd">        but that&#39;s something you have to do anyway when pickling sqlalchemy</span>
-<span class="sd">        models.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;session_manager&#39;</span><span class="p">,</span> <span class="p">):</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">state</span><span class="p">:</span>
-                <span class="k">del</span> <span class="n">state</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-
-        <span class="k">return</span> <span class="n">state</span>
-
-    <span class="k">def</span> <span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span> <span class="o">=</span> <span class="n">state</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">get_polymorphic_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">identity_value</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">MISSING</span><span class="p">):</span>
@@ -88,6 +68,10 @@
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">mapper</span> <span class="ow">and</span> <span class="n">mapper</span><span class="o">.</span><span class="n">class_</span> <span class="ow">or</span> <span class="n">default</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">session_manager</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">SessionManager</span><span class="o">.</span><span class="n">get_active</span><span class="p">()</span>
 
 
 <span class="n">Base</span> <span class="o">=</span> <span class="n">declarative_base</span><span class="p">(</span><span class="bp">cls</span><span class="o">=</span><span class="n">ModelBase</span><span class="p">)</span>
@@ -140,6 +124,16 @@
 
 
 <span class="n">event</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="n">ModelBase</span><span class="p">,</span> <span class="s1">&#39;attribute_instrument&#39;</span><span class="p">,</span> <span class="n">configure_listener</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">share_session_manager</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+    <span class="n">session_manager</span> <span class="o">=</span> <span class="n">SessionManager</span><span class="o">.</span><span class="n">get_active</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">desc</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">column_descriptions</span><span class="p">:</span>
+        <span class="n">desc</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">session_manager</span> <span class="o">=</span> <span class="n">session_manager</span>
+
+
+<span class="n">event</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="n">Query</span><span class="p">,</span> <span class="s1">&#39;before_compile&#39;</span><span class="p">,</span> <span class="n">share_session_manager</span><span class="p">,</span> <span class="n">retval</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
