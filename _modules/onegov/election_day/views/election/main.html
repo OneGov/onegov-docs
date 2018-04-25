@@ -37,6 +37,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">ElectionLayout</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">add_cors_header</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">add_last_modified_header</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">get_election_summary</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils.election</span> <span class="k">import</span> <span class="n">get_candidates_results</span>
@@ -67,7 +68,8 @@
     <span class="n">last_modified</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span>
 
     <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
-    <span class="k">def</span> <span class="nf">add_last_modified</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">add_headers</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="n">add_cors_header</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
         <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">last_modified</span><span class="p">)</span>
 
     <span class="n">embed</span> <span class="o">=</span> <span class="p">{}</span>
@@ -213,7 +215,8 @@
     <span class="sd">&quot;&quot;&quot; View the summary of the election as JSON. &quot;&quot;&quot;</span>
 
     <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
-    <span class="k">def</span> <span class="nf">add_last_modified</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">add_headers</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="n">add_cors_header</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
         <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">get_election_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span></div>
@@ -295,7 +298,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>
