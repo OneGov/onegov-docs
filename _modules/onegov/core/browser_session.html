@@ -30,7 +30,8 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.core.browser_session</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">dogpile.cache.api</span> <span class="k">import</span> <span class="n">NO_VALUE</span>
+<span></span><span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">suppress</span>
+<span class="kn">from</span> <span class="nn">dogpile.cache.api</span> <span class="k">import</span> <span class="n">NO_VALUE</span>
 
 
 <div class="viewcode-block" id="BrowserSession"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.browser_session.BrowserSession">[docs]</a><span class="k">class</span> <span class="nc">BrowserSession</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -81,6 +82,24 @@
 <div class="viewcode-block" id="BrowserSession.has"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.browser_session.BrowserSession.has">[docs]</a>    <span class="k">def</span> <span class="nf">has</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns true if the given name exists in the cache. &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mangle</span><span class="p">(</span><span class="n">name</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">NO_VALUE</span></div>
+
+<div class="viewcode-block" id="BrowserSession.pop"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.browser_session.BrowserSession.pop">[docs]</a>    <span class="k">def</span> <span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the value for the given name, removing the value in</span>
+<span class="sd">        the process.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">)</span>
+
+        <span class="c1"># we can run into a race condition here when two requests come in</span>
+        <span class="c1"># simultaneously - one request will get the value and delete it, the</span>
+        <span class="c1"># other will get the value and fail with an error when trying to</span>
+        <span class="c1"># delete it</span>
+        <span class="c1">#</span>
+        <span class="c1"># we can be pragmatic - if it&#39;s gone, it doesn&#39;t need to be deleted</span>
+        <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">):</span>
+            <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">value</span></div>
 
     <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mangle</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
