@@ -134,7 +134,11 @@
     <span class="k">if</span> <span class="n">user_locale</span> <span class="ow">in</span> <span class="n">locales</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">user_locale</span>
 
-    <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">accept_language</span><span class="o">.</span><span class="n">best_match</span><span class="p">(</span><span class="n">locales</span><span class="p">)</span></div>
+    <span class="c1"># we need to check if there is a valid header before matching it</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">accept_language</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">accept_language</span><span class="o">.</span><span class="n">best_match</span><span class="p">(</span><span class="n">locales</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="pofiles"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.i18n.pofiles">[docs]</a><span class="k">def</span> <span class="nf">pofiles</span><span class="p">(</span><span class="n">localedir</span><span class="p">):</span>
