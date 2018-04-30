@@ -45,6 +45,12 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils.aggregates</span> <span class="k">import</span> <span class="n">manager</span> <span class="k">as</span> <span class="n">aggregates_manager</span>
 
 
+<span class="c1"># Limits the lifteime of sessions for n seconds. Postgres will automatically</span>
+<span class="c1"># reap connections which are unused for longer and we will automatically</span>
+<span class="c1"># recreate connections which are activated after that</span>
+<span class="n">CONNECTION_LIFETIME</span> <span class="o">=</span> <span class="mi">60</span>
+
+
 <span class="k">class</span> <span class="nc">ForceFetchQueryClass</span><span class="p">(</span><span class="n">Query</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Alters the buitlin query class, ensuring that the delete query always</span>
 <span class="sd">    fetches the data first, which is important for the bulk delete events</span>
@@ -257,6 +263,7 @@
 
             <span class="c1"># connections which are kept open when returned to the pool</span>
             <span class="n">engine_config</span><span class="p">[</span><span class="s1">&#39;pool_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5</span>
+            <span class="n">engine_config</span><span class="p">[</span><span class="s1">&#39;pool_recycle&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">CONNECTION_LIFETIME</span> <span class="o">-</span> <span class="mi">1</span>
 
             <span class="c1"># connections which are closed when returned (unlimited)</span>
             <span class="n">engine_config</span><span class="p">[</span><span class="s1">&#39;max_overflow&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
@@ -285,25 +292,32 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="nd">@event</span><span class="o">.</span><span class="n">listens_for</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="s2">&quot;before_cursor_execute&quot;</span><span class="p">)</span>
-        <span class="k">def</span> <span class="nf">_activate_schema</span><span class="p">(</span>
-            <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">statement</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">executemany</span>
-        <span class="p">):</span>
+        <span class="k">def</span> <span class="nf">activate_schema</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
             <span class="sd">&quot;&quot;&quot; Share the &#39;info&#39; dictionary of Session with Connection</span>
 <span class="sd">            objects.</span>
 
 <span class="sd">            &quot;&quot;&quot;</span>
 
             <span class="c1"># execution options have priority!</span>
-            <span class="k">if</span> <span class="s1">&#39;schema&#39;</span> <span class="ow">in</span> <span class="n">conn</span><span class="o">.</span><span class="n">_execution_options</span><span class="p">:</span>
-                <span class="n">schema</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">_execution_options</span><span class="p">[</span><span class="s1">&#39;schema&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;schema&#39;</span> <span class="ow">in</span> <span class="n">connection</span><span class="o">.</span><span class="n">_execution_options</span><span class="p">:</span>
+                <span class="n">schema</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">_execution_options</span><span class="p">[</span><span class="s1">&#39;schema&#39;</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="s1">&#39;session&#39;</span> <span class="ow">in</span> <span class="n">conn</span><span class="o">.</span><span class="n">info</span><span class="p">:</span>
-                    <span class="n">schema</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;session&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;schema&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s1">&#39;session&#39;</span> <span class="ow">in</span> <span class="n">connection</span><span class="o">.</span><span class="n">info</span><span class="p">:</span>
+                    <span class="n">schema</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;session&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;schema&#39;</span><span class="p">]</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">schema</span> <span class="o">=</span> <span class="kc">None</span>
 
             <span class="k">if</span> <span class="n">schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SET search_path TO </span><span class="si">%s</span><span class="s2">, extensions&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="p">))</span></div>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SET search_path TO </span><span class="si">%s</span><span class="s2">, extensions&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="p">))</span>
+
+        <span class="nd">@event</span><span class="o">.</span><span class="n">listens_for</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="s2">&quot;before_cursor_execute&quot;</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">limit_session_lifetime</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">cursor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; Kills idle sessions after a while, freeing up memory. &quot;&quot;&quot;</span>
+
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="s2">&quot;SET SESSION idle_in_transaction_session_timeout = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">f</span><span class="s1">&#39;</span><span class="si">{CONNECTION_LIFETIME}</span><span class="s1">s&#39;</span><span class="p">,</span> <span class="p">)</span>
+            <span class="p">)</span></div>
 
 <div class="viewcode-block" id="SessionManager.register_session"><a class="viewcode-back" href="../../../../onegov_core.html#onegov.core.orm.SessionManager.register_session">[docs]</a>    <span class="k">def</span> <span class="nf">register_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes the given session and registers it with zope.sqlalchemy and</span>
