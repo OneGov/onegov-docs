@@ -47,8 +47,13 @@
 
 <span class="c1"># Limits the lifteime of sessions for n seconds. Postgres will automatically</span>
 <span class="c1"># reap connections which are unused for longer and we will automatically</span>
-<span class="c1"># recreate connections which are activated after that</span>
-<span class="n">CONNECTION_LIFETIME</span> <span class="o">=</span> <span class="mi">60</span>
+<span class="c1"># recreate connections which are activated after that.</span>
+<span class="c1">#</span>
+<span class="c1"># This boils down to connections being recycled once an hour. As each</span>
+<span class="c1"># connection is handled by a separate process by Postgres - a process which</span>
+<span class="c1"># may grow quite large - this alleviates memory fragmentation/high water mark</span>
+<span class="c1"># issues that we&#39;ve been seeing on some servers.</span>
+<span class="n">CONNECTION_LIFETIME</span> <span class="o">=</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span>
 
 
 <span class="k">class</span> <span class="nc">ForceFetchQueryClass</span><span class="p">(</span><span class="n">Query</span><span class="p">):</span>
