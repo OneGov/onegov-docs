@@ -43,11 +43,12 @@
 <span class="kn">from</span> <span class="nn">csv</span> <span class="k">import</span> <span class="n">Error</span> <span class="k">as</span> <span class="n">CsvError</span>
 <span class="kn">from</span> <span class="nn">csv</span> <span class="k">import</span> <span class="n">reader</span> <span class="k">as</span> <span class="n">csv_reader</span>
 <span class="kn">from</span> <span class="nn">csv</span> <span class="k">import</span> <span class="n">writer</span> <span class="k">as</span> <span class="n">csv_writer</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">editdistance</span> <span class="k">import</span> <span class="nb">eval</span> <span class="k">as</span> <span class="n">distance</span>
-<span class="kn">from</span> <span class="nn">onegov.core.cache</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">BytesIO</span><span class="p">,</span> <span class="n">StringIO</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">permutations</span>
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">errors</span>
+<span class="kn">from</span> <span class="nn">onegov.core.cache</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">ordered_set</span> <span class="k">import</span> <span class="n">OrderedSet</span>
 <span class="kn">from</span> <span class="nn">unidecode</span> <span class="k">import</span> <span class="n">unidecode</span>
 <span class="kn">from</span> <span class="nn">xlsxwriter.workbook</span> <span class="k">import</span> <span class="n">Workbook</span>
@@ -314,7 +315,7 @@
                     <span class="n">value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">cell</span><span class="o">.</span><span class="n">ctype</span> <span class="o">==</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">XL_CELL_DATE</span><span class="p">:</span>
                 <span class="n">value</span> <span class="o">=</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">xldate_as_tuple</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">excel</span><span class="o">.</span><span class="n">datemode</span><span class="p">)</span>
-                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="o">*</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
