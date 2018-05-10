@@ -173,11 +173,28 @@
 <span class="sd">        That is it acts like more forgiving session.merge().</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">if</span> <span class="n">sqlalchemy</span><span class="o">.</span><span class="n">inspect</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">raiseerr</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">requires_merge</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
             <span class="n">obj</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">load</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">obj</span><span class="o">.</span><span class="n">is_cached</span> <span class="o">=</span> <span class="kc">True</span>
+
         <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="k">def</span> <span class="nf">requires_merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns true if the given object requires a merge, which is the</span>
+<span class="sd">        case if the object is detached.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># no need for an expensive sqlalchemy.inspect call for these</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">set</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">info</span> <span class="o">=</span> <span class="n">sqlalchemy</span><span class="o">.</span><span class="n">inspect</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">raiseerr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">info</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="n">info</span><span class="o">.</span><span class="n">detached</span>
 
     <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Loads the object from the database or cache. &quot;&quot;&quot;</span>
@@ -195,12 +212,17 @@
         <span class="c1"># make sure that inside a request we always get the exact same instance</span>
         <span class="c1"># (otherwise we don&#39;t see changes reflected)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_key</span> <span class="ow">in</span> <span class="n">app</span><span class="o">.</span><span class="n">request_cache</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">app</span><span class="o">.</span><span class="n">request_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_key</span><span class="p">]</span>
 
-        <span class="n">obj</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
-            <span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_key</span><span class="p">,</span>
-            <span class="n">creator</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
-        <span class="p">)</span>
+            <span class="c1"># it is possible for objects in the request cache to become</span>
+            <span class="c1"># detached - in this case we need to merge them again</span>
+            <span class="c1"># (the merge function only does this if necessary)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">app</span><span class="o">.</span><span class="n">request_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_key</span><span class="p">])</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+                <span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_key</span><span class="p">,</span>
+                <span class="n">creator</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+            <span class="p">)</span>
 
         <span class="c1"># named tuples</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="s1">&#39;_make&#39;</span><span class="p">):</span>
