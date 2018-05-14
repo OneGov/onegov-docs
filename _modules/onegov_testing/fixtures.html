@@ -42,6 +42,7 @@
 <span class="kn">import</span> <span class="nn">urllib3</span>
 
 <span class="kn">from</span> <span class="nn">_pytest.monkeypatch</span> <span class="k">import</span> <span class="n">MonkeyPatch</span>
+<span class="kn">from</span> <span class="nn">distutils.spawn</span> <span class="k">import</span> <span class="n">find_executable</span>
 <span class="kn">from</span> <span class="nn">fs.tempfs</span> <span class="k">import</span> <span class="n">TempFS</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">mirakuru</span> <span class="k">import</span> <span class="n">HTTPExecutor</span> <span class="k">as</span> <span class="n">HTTPExecutorBase</span>
@@ -51,6 +52,8 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">SessionManager</span>
 <span class="kn">from</span> <span class="nn">onegov_testing.browser</span> <span class="k">import</span> <span class="n">ExtendedBrowser</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">pytest_redis</span> <span class="k">import</span> <span class="n">factories</span>
+<span class="kn">from</span> <span class="nn">redis</span> <span class="k">import</span> <span class="n">Redis</span>
 <span class="kn">from</span> <span class="nn">selenium.webdriver.chrome.options</span> <span class="k">import</span> <span class="n">Options</span>
 <span class="kn">from</span> <span class="nn">splinter</span> <span class="k">import</span> <span class="n">Browser</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">create_engine</span>
@@ -58,11 +61,16 @@
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
 <span class="kn">from</span> <span class="nn">webdriver_manager.chrome</span> <span class="k">import</span> <span class="n">ChromeDriverManager</span>
 
+
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="k">import</span> <span class="n">Elasticsearch</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="k">def</span> <span class="nf">Elasticsearch</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Elasticsearch is not installed&quot;</span>
+
+
+<span class="n">redis_path</span> <span class="o">=</span> <span class="n">find_executable</span><span class="p">(</span><span class="s1">&#39;redis-server&#39;</span><span class="p">)</span>
+<span class="n">redis_server</span> <span class="o">=</span> <span class="n">factories</span><span class="o">.</span><span class="n">redis_proc</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="n">executable</span><span class="o">=</span><span class="n">redis_path</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="HTTPExecutor"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.HTTPExecutor">[docs]</a><span class="k">class</span> <span class="nc">HTTPExecutor</span><span class="p">(</span><span class="n">HTTPExecutorBase</span><span class="p">):</span>
@@ -489,6 +497,14 @@
 
     <span class="k">with</span> <span class="n">browser_extension</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">Browser</span><span class="p">,</span> <span class="n">webdriver</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span> <span class="k">as</span> <span class="n">browser</span><span class="p">:</span>
         <span class="k">yield</span> <span class="n">browser</span>
+
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">redis_url</span><span class="p">(</span><span class="n">redis_server</span><span class="p">):</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;redis://</span><span class="si">{redis_server.host}</span><span class="s1">:</span><span class="si">{redis_server.port}</span><span class="s1">/0&#39;</span>
+    <span class="k">yield</span> <span class="n">url</span>
+
+    <span class="n">Redis</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">flushall</span><span class="p">()</span>
 </pre></div>
 
           </div>
