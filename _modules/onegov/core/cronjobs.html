@@ -73,7 +73,8 @@
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">suppress</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">onegov.core.framework</span> <span class="k">import</span> <span class="n">Framework</span><span class="p">,</span> <span class="n">log</span>
-<span class="kn">from</span> <span class="nn">onegov.core.locking</span> <span class="k">import</span> <span class="n">lock</span><span class="p">,</span> <span class="n">AlreadyLockedError</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">local_lock</span>
+<span class="kn">from</span> <span class="nn">onegov.core.errors</span> <span class="k">import</span> <span class="n">AlreadyLockedError</span>
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">ensure_timezone</span><span class="p">,</span> <span class="n">replace_timezone</span>
 <span class="kn">from</span> <span class="nn">threading</span> <span class="k">import</span> <span class="n">Thread</span>
@@ -188,16 +189,21 @@
 
 <span class="sd">    Each application id is meant to have its own thread. To avoid extra</span>
 <span class="sd">    work we make sure that only one thread per application exists on each</span>
-<span class="sd">    server. This is accomplished by holding a postgres advisory lock during</span>
+<span class="sd">    server. This is accomplished by holding a local lock during</span>
 <span class="sd">    the lifetime of the thread.</span>
+
+<span class="sd">    WARNING This doesn&#39;t work on distributed systems. That is if the onegov</span>
+<span class="sd">    processes are distributed over many servers the lock isn&#39;t shared.</span>
+
+<span class="sd">    This can be achieved, but it&#39;s difficult to get right, so for now we</span>
+<span class="sd">    do not implement it, as we do not have distributed systems yet.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">jobs</span><span class="p">,</span> <span class="n">session_manager</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">jobs</span><span class="p">):</span>
         <span class="n">Thread</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">application_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">jobs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">as_request_call</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span> <span class="o">=</span> <span class="n">session_manager</span>
 
         <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Cronjob Thread for </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="p">))</span>
 
@@ -207,14 +213,13 @@
             <span class="p">)</span>
 
 <div class="viewcode-block" id="ApplicationBoundCronjobs.run"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cronjobs.ApplicationBoundCronjobs.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">session</span><span class="p">()</span>
         <span class="n">previous_check</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">min</span>
 
         <span class="c1"># the lock ensures that only one thread per application id is</span>
         <span class="c1"># in charge of running the scheduled jobs. If another thread already</span>
         <span class="c1"># has the lock, this thread will end immediately and be GC&#39;d.</span>
         <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="n">AlreadyLockedError</span><span class="p">):</span>
-            <span class="k">with</span> <span class="n">lock</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="s1">&#39;cronjobs-thread&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">local_lock</span><span class="p">(</span><span class="s1">&#39;cronjobs-thread&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="p">):</span>
                 <span class="k">while</span> <span class="ow">not</span> <span class="n">sleep</span><span class="p">(</span><span class="n">CRONJOB_POLL_RESOLUTION</span><span class="p">):</span>
 
                     <span class="c1"># make sure we only run the jobs once a minute (we poll</span>
@@ -229,9 +234,6 @@
 
                     <span class="n">previous_check</span> <span class="o">=</span> <span class="n">this_check</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">run_scheduled_jobs</span><span class="p">()</span>
-
-        <span class="c1"># we need to close the session again or it will stay open forever</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
         <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stopping Cronjob Thread for </span><span class="si">{}</span><span class="s2">, already locked!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span>

@@ -32,6 +32,45 @@
   <h1>Source code for onegov.core.browser_session</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">suppress</span>
 <span class="kn">from</span> <span class="nn">dogpile.cache.api</span> <span class="k">import</span> <span class="n">NO_VALUE</span>
+<span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">blake2b</span>
+
+
+<span class="k">class</span> <span class="nc">Prefixed</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">cache</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">24</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="n">cache</span>
+
+    <span class="k">def</span> <span class="nf">mangle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">key</span>
+        <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.prefix}</span><span class="s1">:</span><span class="si">{key}</span><span class="s1">&#39;</span>
+
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mangle</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mangle</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mangle</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># note, this cannot be used in a Redis cluster - if we use that</span>
+        <span class="c1"># we have to keep track of all keys separately</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">proxied</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            return #redis.pcall(&#39;keys&#39;, ARGV[1])</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;*:</span><span class="si">{self.prefix}</span><span class="s1">:*&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># note, this cannot be used in a Redis cluster - if we use that</span>
+        <span class="c1"># we have to keep track of all keys separately</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">proxied</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            if #redis.pcall(&#39;keys&#39;, ARGV[1]) &gt; 0 then</span>
+<span class="s2">                return redis.pcall(&#39;del&#39;, unpack(redis.call(&#39;keys&#39;, ARGV[1])))</span>
+<span class="s2">            end</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;*:</span><span class="si">{self.prefix}</span><span class="s1">:*&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="BrowserSession"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.browser_session.BrowserSession">[docs]</a><span class="k">class</span> <span class="nc">BrowserSession</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -55,33 +94,25 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">on_dirty</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span> <span class="o">=</span> <span class="n">namespace</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">on_dirty</span><span class="o">=</span><span class="k">lambda</span> <span class="n">session</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># make it impossible to get the session token through key listing</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">blake2b</span><span class="p">(</span><span class="n">token</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span> <span class="n">digest_size</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="n">Prefixed</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_token</span> <span class="o">=</span> <span class="n">token</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="n">cache</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_on_dirty</span> <span class="o">=</span> <span class="n">on_dirty</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_on_dirty</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_is_dirty</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_on_dirty</span> <span class="o">=</span> <span class="n">on_dirty</span>
 
-    <span class="k">def</span> <span class="nf">_on_dirty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">token</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Called when the browser session gets dirty. That is, the first time</span>
-<span class="sd">        a change is made to the cache.</span>
+    <span class="k">def</span> <span class="nf">has</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">NO_VALUE</span>
 
-<span class="sd">        Use ``on_dirty`` in the :meth:`__init__` method to override.</span>
+    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mark_as_dirty</span><span class="p">()</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">pass</span>
-
-<div class="viewcode-block" id="BrowserSession.mangle"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.browser_session.BrowserSession.mangle">[docs]</a>    <span class="k">def</span> <span class="nf">mangle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Takes the given name and returns a key bound to the namespace and</span>
-<span class="sd">        token.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">name</span>  <span class="c1"># may not be empty or None</span>
-        <span class="k">return</span> <span class="s1">&#39;:&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_token</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span></div>
-
-<div class="viewcode-block" id="BrowserSession.has"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.browser_session.BrowserSession.has">[docs]</a>    <span class="k">def</span> <span class="nf">has</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns true if the given name exists in the cache. &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mangle</span><span class="p">(</span><span class="n">name</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">NO_VALUE</span></div>
+    <span class="k">def</span> <span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
 
 <div class="viewcode-block" id="BrowserSession.pop"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.browser_session.BrowserSession.pop">[docs]</a>    <span class="k">def</span> <span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns the value for the given name, removing the value in</span>
@@ -101,52 +132,48 @@
 
         <span class="k">return</span> <span class="n">value</span></div>
 
+    <span class="k">def</span> <span class="nf">mark_as_dirty</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_dirty</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_on_dirty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_token</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_dirty</span> <span class="o">=</span> <span class="kc">True</span>
+
     <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mangle</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
-
-        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="n">NO_VALUE</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">default</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">value</span>
-
-    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mangle</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="n">NO_VALUE</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">AttributeError</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">result</span>
+            <span class="k">return</span> <span class="n">default</span>
 
-    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
-            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mangle</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
 
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_dirty</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_on_dirty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_token</span><span class="p">)</span>
-
-            <span class="bp">self</span><span class="o">.</span><span class="n">_is_dirty</span> <span class="o">=</span> <span class="kc">True</span>
-
-    <span class="k">def</span> <span class="nf">__delattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
-            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__delattr__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mangle</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
-
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_dirty</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_on_dirty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_token</span><span class="p">)</span>
-
-            <span class="bp">self</span><span class="o">.</span><span class="n">_is_dirty</span> <span class="o">=</span> <span class="kc">True</span>
-
-    <span class="c1"># act like a dict</span>
     <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mangle</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="n">NO_VALUE</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">KeyError</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">result</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="n">NO_VALUE</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mark_as_dirty</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__delattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__delattr__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mark_as_dirty</span><span class="p">()</span>
 
     <span class="fm">__setitem__</span> <span class="o">=</span> <span class="fm">__setattr__</span>
     <span class="fm">__delitem__</span> <span class="o">=</span> <span class="fm">__delattr__</span>

@@ -39,7 +39,7 @@ features for applications deriving from it:</p>
 <div><ul class="simple">
 <li>Virtual hosting in conjunction with <code class="xref py py-mod docutils literal notranslate"><span class="pre">onegov.server</span></code>.</li>
 <li>Access to an SQLAlchemy session bound to a specific Postgres schema.</li>
-<li>A cache backed by memcached, shared by multiple processes.</li>
+<li>A cache backed by redis, shared by multiple processes.</li>
 <li>An identity policy with basic rules, permissions and role.</li>
 <li>The ability to serve static files and css/js assets.</li>
 </ul>
@@ -173,28 +173,7 @@ a really long, really random key that you will never share
 with anyone!</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Memcached_url:</th><td class="field-body"><p class="first">The memcached url (default is 127.0.0.1:11211). If memcached
-isn’t running the cache will not be used, though the memcached
-server can be started at any time at which point the application
-will connect to it again.</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Cache_connections:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">The maximum number of connections to the cache that are available.
-Defaults to 100. This is mostly relevant for memcached, though
-it works for all kinds of caches.</p>
-<p>This limit prevents a sophisticated attacker from starting a denial
-of service attack should he figure out a way to spawn lots of
-applications.</p>
-<p>Normally you want the combined memcached connection limit of all
-configured applications to be lower than the actual connection
-limit configured on memcached.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name" colspan="2">Disable_memcached:</th></tr>
-<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">If True, memcache will not be used. The cache will be entirely in
-the memory of the current process (so no sharing between multiple
-processes).</p>
+<tr class="field-odd field"><th class="field-name">Redis_url:</th><td class="field-body"><p class="first">The redis url used (default is ‘redis://localhost:6379/0’).</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">File_storage:</th><td class="field-body"><p class="first">The file_storage module to use. See
@@ -299,19 +278,14 @@ is present.</p>
 
 <dl class="method">
 <dt id="onegov.core.framework.Framework.get_cache">
-<code class="descname">get_cache</code><span class="sig-paren">(</span><em>namespace</em>, <em>expiration_time=None</em>, <em>backend=None</em>, <em>backend_args=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/framework.html#Framework.get_cache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.framework.Framework.get_cache" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates a new cache backend for this application or reuses an
-existing one. Each backend is bound to a namespace and has its own
-expiration time (ttl).</p>
-<p>Once the <cite>cache_connections</cite> limit defined in
-<a class="reference internal" href="#onegov.core.framework.Framework.configure_application" title="onegov.core.framework.Framework.configure_application"><code class="xref py py-meth docutils literal notranslate"><span class="pre">configure_application()</span></code></a> is reached, the backends are removed,
-with the least recently used one being discarded first.</p>
+<code class="descname">get_cache</code><span class="sig-paren">(</span><em>name</em>, <em>expiration_time</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/framework.html#Framework.get_cache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.framework.Framework.get_cache" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets a cache bound to this application id.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="onegov.core.framework.Framework.session_cache">
 <code class="descname">session_cache</code><a class="headerlink" href="#onegov.core.framework.Framework.session_cache" title="Permalink to this definition">¶</a></dt>
-<dd><p>A cache that is kept for as long as possible.</p>
+<dd><p>A cache that is kept for a long-ish time.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -2401,13 +2375,7 @@ on all morepath views:</p>
 </div>
 <p>But no such method exists yet.</p>
 <p>Currently there is one cache per app that never expires (though values will
-eventually be discarded by memcache if the cache is full).</p>
-<dl class="class">
-<dt id="onegov.core.cache.MemcachedBackend">
-<em class="property">class </em><code class="descclassname">onegov.core.cache.</code><code class="descname">MemcachedBackend</code><span class="sig-paren">(</span><em>arguments</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#MemcachedBackend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.MemcachedBackend" title="Permalink to this definition">¶</a></dt>
-<dd><p>A custom memcached backend used to pick custom memcached clients.</p>
-</dd></dl>
-
+eventually be discarded by redis if the cache is full).</p>
 <dl class="class">
 <dt id="onegov.core.cache.DillSerialized">
 <em class="property">class </em><code class="descclassname">onegov.core.cache.</code><code class="descname">DillSerialized</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cache.html#DillSerialized"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cache.DillSerialized" title="Permalink to this definition">¶</a></dt>
@@ -2472,7 +2440,7 @@ values as well.</p>
 <span id="browser-session"></span><h2>Browser Session<a class="headerlink" href="#module-onegov.core.browser_session" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="onegov.core.browser_session.BrowserSession">
-<em class="property">class </em><code class="descclassname">onegov.core.browser_session.</code><code class="descname">BrowserSession</code><span class="sig-paren">(</span><em>namespace</em>, <em>token</em>, <em>cache</em>, <em>on_dirty=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/browser_session.html#BrowserSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.browser_session.BrowserSession" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">onegov.core.browser_session.</code><code class="descname">BrowserSession</code><span class="sig-paren">(</span><em>cache</em>, <em>token</em>, <em>on_dirty=&lt;function BrowserSession.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/browser_session.html#BrowserSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.browser_session.BrowserSession" title="Permalink to this definition">¶</a></dt>
 <dd><p>A session bound to a token (session_id cookie). Used to store data
 about a client on the server.</p>
 <p>Instances should be called <code class="docutils literal notranslate"><span class="pre">browser_session</span></code> to make sure we don’t
@@ -2486,19 +2454,6 @@ assert client.session.name == ‘Foo’
 del client.session.name</div></blockquote>
 <p>This class can act like an object, through attribute access, or like a
 dict, through square brackets. Whatever you prefer.</p>
-<dl class="method">
-<dt id="onegov.core.browser_session.BrowserSession.mangle">
-<code class="descname">mangle</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/browser_session.html#BrowserSession.mangle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.browser_session.BrowserSession.mangle" title="Permalink to this definition">¶</a></dt>
-<dd><p>Takes the given name and returns a key bound to the namespace and
-token.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="onegov.core.browser_session.BrowserSession.has">
-<code class="descname">has</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/browser_session.html#BrowserSession.has"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.browser_session.BrowserSession.has" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns true if the given name exists in the cache.</p>
-</dd></dl>
-
 <dl class="method">
 <dt id="onegov.core.browser_session.BrowserSession.pop">
 <code class="descname">pop</code><span class="sig-paren">(</span><em>name</em>, <em>default=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/browser_session.html#BrowserSession.pop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.browser_session.BrowserSession.pop" title="Permalink to this definition">¶</a></dt>
@@ -2763,72 +2718,8 @@ detect that though.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-onegov.core.locking">
-<span id="distributed-locks"></span><h2>Distributed Locks<a class="headerlink" href="#module-onegov.core.locking" title="Permalink to this headline">¶</a></h2>
-<p>Provides a distributed lock implementation using Postgres Advisory Locks
-as a backend.</p>
-<dl class="function">
-<dt id="onegov.core.locking.lock">
-<code class="descclassname">onegov.core.locking.</code><code class="descname">lock</code><span class="sig-paren">(</span><em>session</em>, <em>namespace</em>, <em>key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/locking.html#lock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.locking.lock" title="Permalink to this definition">¶</a></dt>
-<dd><p>A context manager which creates a distributed lock on the database.</p>
-<p>This is used to make sure that only one process at a time does something.
-This is not limited to database work (in fact this would usually be
-handled automatically). For example if multiple cronjobs are scheduled
-to run at the same time, but you only want one to actually run on
-the system on any given time, then you may use this lock.</p>
-<p>The locks are bound to the session and are not relased automatically
-if the current transaction is commited or rolled back. You don’t have
-to worry about that though, the context manager releases all locks
-it creates once it’s done.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Session:</th><td class="field-body">The session to use for locking. The same lock may be acquired multiple
-times by the same session.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Namespace:</th><td class="field-body">The namespace of the lock (any string).</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Key:</th><td class="field-body">The key of the lock (any string). The namespace combined with the
-key is used as the unique identifier which identifies the acquired
-lock.</td>
-</tr>
-</tbody>
-</table>
-<p>If the lock cannot be acquired the contextmanager raises a
-<code class="xref py py-class docutils literal notranslate"><span class="pre">AlreadyLockedError</span></code>.</p>
-<p>By deafult sessions in onegov.core are bound to the thread as well as
-the current database schema. Therefore the lock is bound to those too.</p>
-<p>This is not a problem in practice however, as the request is bound the
-same way. At worst this makes it harder to share the lock, which is not a
-feature we are interested in. We want a guarantee that only one process or
-thread at any given time is doing something using a lock. This works.</p>
-<p>Example:</p>
-<blockquote>
-<div><dl class="docutils">
-<dt>with lock(session, ‘cronjobs’, ‘send-email’):</dt>
-<dd>pass  # send email</dd>
-</dl>
-</div></blockquote>
-</dd></dl>
-
-<dl class="function">
-<dt id="onegov.core.locking.get_lock_id">
-<code class="descclassname">onegov.core.locking.</code><code class="descname">get_lock_id</code><span class="sig-paren">(</span><em>namespace</em>, <em>key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/locking.html#get_lock_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.locking.get_lock_id" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a lock id for the given namespace and key. The lock id is
-an integer between -2**63 - 1 and 2**63 - 1 (signed 64bit int).</p>
-<p>Because that leaves us with a rather small space to generate a unique
-lock id from namespace and key we use two crc32 bit hashes and combine
-them.</p>
-<p>This still leaves us with a chance of duplicate locks. Since those strings
-are static at this point we keep a list of existing locks around to
-catch any such case during testing. If that ever happens we need to change
-our strings.</p>
-<p>Note: We can’t just use an incrementing counter because those strings
-have to match up over multiple processes which wouldn’t necessarily
-count up in the same order.</p>
-</dd></dl>
-
+<div class="section" id="distributed-locks">
+<h2>Distributed Locks<a class="headerlink" href="#distributed-locks" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-onegov.core.cronjobs">
 <span id="cronjobs"></span><h2>Cronjobs<a class="headerlink" href="#module-onegov.core.cronjobs" title="Permalink to this headline">¶</a></h2>
@@ -2909,7 +2800,7 @@ to be a match (i.e anywhere within 0’ - 59‘999.99999)</td>
 
 <dl class="class">
 <dt id="onegov.core.cronjobs.ApplicationBoundCronjobs">
-<em class="property">class </em><code class="descclassname">onegov.core.cronjobs.</code><code class="descname">ApplicationBoundCronjobs</code><span class="sig-paren">(</span><em>request</em>, <em>jobs</em>, <em>session_manager</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cronjobs.html#ApplicationBoundCronjobs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cronjobs.ApplicationBoundCronjobs" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">onegov.core.cronjobs.</code><code class="descname">ApplicationBoundCronjobs</code><span class="sig-paren">(</span><em>request</em>, <em>jobs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cronjobs.html#ApplicationBoundCronjobs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cronjobs.ApplicationBoundCronjobs" title="Permalink to this definition">¶</a></dt>
 <dd><p>A daemon thread which runs the cronjobs it is given in the background.</p>
 <p>The cronjobs are not actually run in the same thread. Instead a request to
 the actual cronjob is made. This way the thread is pretty much limited to
@@ -2922,8 +2813,12 @@ OneGov applications in a thread safe way. The actual work is always done
 on the main thread.</p>
 <p>Each application id is meant to have its own thread. To avoid extra
 work we make sure that only one thread per application exists on each
-server. This is accomplished by holding a postgres advisory lock during
+server. This is accomplished by holding a local lock during
 the lifetime of the thread.</p>
+<p>WARNING This doesn’t work on distributed systems. That is if the onegov
+processes are distributed over many servers the lock isn’t shared.</p>
+<p>This can be achieved, but it’s difficult to get right, so for now we
+do not implement it, as we do not have distributed systems yet.</p>
 <dl class="method">
 <dt id="onegov.core.cronjobs.ApplicationBoundCronjobs.run">
 <code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cronjobs.html#ApplicationBoundCronjobs.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cronjobs.ApplicationBoundCronjobs.run" title="Permalink to this definition">¶</a></dt>
@@ -3814,6 +3709,19 @@ to each upgrade task.</p>
 </div>
 <div class="section" id="module-onegov.core.utils">
 <span id="utils"></span><h2>Utils<a class="headerlink" href="#module-onegov.core.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="onegov.core.utils.local_lock">
+<code class="descclassname">onegov.core.utils.</code><code class="descname">local_lock</code><span class="sig-paren">(</span><em>namespace</em>, <em>key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/utils.html#local_lock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.utils.local_lock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Locks the given namespace/key combination on the current system,
+automatically freeing it after the with statement has been completed or
+once the process is killed.</p>
+<p>Usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">lock</span><span class="p">(</span><span class="s1">&#39;namespace&#39;</span><span class="p">,</span> <span class="s1">&#39;key&#39;</span><span class="p">):</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+</dd></dl>
+
 <dl class="function">
 <dt id="onegov.core.utils.normalize_for_url">
 <code class="descclassname">onegov.core.utils.</code><code class="descname">normalize_for_url</code><span class="sig-paren">(</span><em>text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/utils.html#normalize_for_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.utils.normalize_for_url" title="Permalink to this definition">¶</a></dt>

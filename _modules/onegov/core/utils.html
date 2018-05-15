@@ -32,6 +32,7 @@
   <h1>Source code for onegov.core.utils</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">base64</span>
 <span class="kn">import</span> <span class="nn">bleach</span>
+<span class="kn">import</span> <span class="nn">fcntl</span>
 <span class="kn">import</span> <span class="nn">gzip</span>
 <span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">importlib</span>
@@ -51,6 +52,7 @@
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">onegov.core.cache</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">onegov.core.custom</span> <span class="k">import</span> <span class="n">json</span>
+<span class="kn">from</span> <span class="nn">onegov.core.errors</span> <span class="k">import</span> <span class="n">AlreadyLockedError</span>
 <span class="kn">from</span> <span class="nn">importlib</span> <span class="k">import</span> <span class="n">import_module</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span><span class="p">,</span> <span class="n">tee</span><span class="p">,</span> <span class="n">zip_longest</span>
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">log</span>
@@ -75,6 +77,29 @@
     <span class="s2">&quot;{|}~-]+)*(@|\sat\s)(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(\.|&quot;</span>
     <span class="s2">&quot;\sdot\s))+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)&quot;</span>
 <span class="p">))</span>
+
+
+<div class="viewcode-block" id="local_lock"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.utils.local_lock">[docs]</a><span class="nd">@contextmanager</span>
+<span class="k">def</span> <span class="nf">local_lock</span><span class="p">(</span><span class="n">namespace</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Locks the given namespace/key combination on the current system,</span>
+<span class="sd">    automatically freeing it after the with statement has been completed or</span>
+<span class="sd">    once the process is killed.</span>
+
+<span class="sd">    Usage::</span>
+
+<span class="sd">        with lock(&#39;namespace&#39;, &#39;key&#39;):</span>
+<span class="sd">            pass</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{namespace}</span><span class="s1">-</span><span class="si">{key}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;/tmp/</span><span class="si">{name}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;w+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fcntl</span><span class="o">.</span><span class="n">flock</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">fcntl</span><span class="o">.</span><span class="n">LOCK_EX</span> <span class="o">|</span> <span class="n">fcntl</span><span class="o">.</span><span class="n">LOCK_NB</span><span class="p">)</span>
+            <span class="k">yield</span>
+            <span class="n">fcntl</span><span class="o">.</span><span class="n">flock</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">fcntl</span><span class="o">.</span><span class="n">LOCK_UN</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">BlockingIOError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AlreadyLockedError</span></div>
 
 
 <div class="viewcode-block" id="normalize_for_url"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.utils.normalize_for_url">[docs]</a><span class="k">def</span> <span class="nf">normalize_for_url</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
@@ -243,10 +268,13 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="k">def</span> <span class="nf">hash_path</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+
     <span class="c1"># this is a very cachable result - though it&#39;s possible that a file</span>
     <span class="c1"># changes it&#39;s content type, it should usually not, especially since</span>
     <span class="c1"># we emphasize the use of random filenames</span>
-    <span class="nd">@request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">cache_on_arguments</span><span class="p">()</span>
+    <span class="nd">@request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">cache_on_arguments</span><span class="p">(</span><span class="n">to_str</span><span class="o">=</span><span class="n">hash_path</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">get_content_type</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
         <span class="n">content_type</span> <span class="o">=</span> <span class="n">mimetypes</span><span class="o">.</span><span class="n">guess_type</span><span class="p">(</span><span class="n">file_path</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 

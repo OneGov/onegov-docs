@@ -62,58 +62,39 @@
 <span class="sd">But no such method exists yet.</span>
 
 <span class="sd">Currently there is one cache per app that never expires (though values will</span>
-<span class="sd">eventually be discarded by memcache if the cache is full).</span>
+<span class="sd">eventually be discarded by redis if the cache is full).</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">dill</span>
-<span class="kn">import</span> <span class="nn">libmc</span>
 
 <span class="kn">from</span> <span class="nn">fastcache</span> <span class="k">import</span> <span class="n">clru_cache</span> <span class="k">as</span> <span class="n">lru_cache</span>  <span class="c1"># noqa</span>
-<span class="kn">from</span> <span class="nn">dogpile.cache</span> <span class="k">import</span> <span class="n">make_region</span><span class="p">,</span> <span class="n">register_backend</span>
-<span class="kn">from</span> <span class="nn">dogpile.cache.backends.memcached</span> <span class="k">import</span> <span class="n">GenericMemcachedBackend</span>
+<span class="kn">from</span> <span class="nn">dogpile.cache</span> <span class="k">import</span> <span class="n">make_region</span>
 <span class="kn">from</span> <span class="nn">dogpile.cache.api</span> <span class="k">import</span> <span class="n">NO_VALUE</span>
 <span class="kn">from</span> <span class="nn">dogpile.cache.proxy</span> <span class="k">import</span> <span class="n">ProxyBackend</span>
-<span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">sha1</span>
+<span class="kn">from</span> <span class="nn">redis</span> <span class="k">import</span> <span class="n">ConnectionPool</span>
 
 
-<div class="viewcode-block" id="MemcachedBackend"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cache.MemcachedBackend">[docs]</a><span class="k">class</span> <span class="nc">MemcachedBackend</span><span class="p">(</span><span class="n">GenericMemcachedBackend</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; A custom memcached backend used to pick custom memcached clients. &quot;&quot;&quot;</span>
+<span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">namespace</span><span class="p">,</span> <span class="n">expiration_time</span><span class="p">,</span> <span class="n">redis_url</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">_create_client</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">libmc</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">key_mangler</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{namespace}</span><span class="s1">:</span><span class="si">{key}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_imports</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="kn">import</span> <span class="nn">libmc</span>  <span class="c1"># noqa</span></div>
-
-
-<span class="n">register_backend</span><span class="p">(</span>
-    <span class="s1">&#39;onegov.core.memcached&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;onegov.core.cache&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;MemcachedBackend&#39;</span>
-<span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">create_backend</span><span class="p">(</span><span class="n">namespace</span><span class="p">,</span> <span class="n">backend</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{},</span> <span class="n">expiration_time</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-
-    <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">:&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">namespace</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">make_region</span><span class="p">(</span><span class="n">key_mangler</span><span class="o">=</span><span class="n">prefix_key_mangler</span><span class="p">(</span><span class="n">prefix</span><span class="p">))</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
-        <span class="n">backend</span><span class="p">,</span>
-        <span class="n">expiration_time</span><span class="o">=</span><span class="n">expiration_time</span><span class="p">,</span>
-        <span class="n">arguments</span><span class="o">=</span><span class="n">arguments</span><span class="p">,</span>
+    <span class="k">return</span> <span class="n">make_region</span><span class="p">(</span><span class="n">key_mangler</span><span class="o">=</span><span class="n">key_mangler</span><span class="p">)</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+        <span class="s1">&#39;dogpile.cache.redis&#39;</span><span class="p">,</span>
+        <span class="n">arguments</span><span class="o">=</span><span class="p">{</span>
+            <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">redis_url</span><span class="p">,</span>
+            <span class="s1">&#39;redis_expiration_time&#39;</span><span class="p">:</span> <span class="n">expiration_time</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">&#39;connection_pool&#39;</span><span class="p">:</span> <span class="n">get_pool</span><span class="p">(</span><span class="n">redis_url</span><span class="p">)</span>
+        <span class="p">},</span>
         <span class="n">wrap</span><span class="o">=</span><span class="p">(</span><span class="n">DillSerialized</span><span class="p">,</span> <span class="p">)</span>
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">prefix_key_mangler</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
-
-    <span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">key_mangler</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">sha1</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">key</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-
-    <span class="k">return</span> <span class="n">key_mangler</span>
+<span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_pool</span><span class="p">(</span><span class="n">redis_url</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ConnectionPool</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="n">redis_url</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="DillSerialized"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cache.DillSerialized">[docs]</a><span class="k">class</span> <span class="nc">DillSerialized</span><span class="p">(</span><span class="n">ProxyBackend</span><span class="p">):</span>
