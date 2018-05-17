@@ -31,8 +31,12 @@
             
   <h1>Source code for onegov.election_day.forms.election</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ElectionAssociation</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">Form</span>
+<span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">MultiCheckboxField</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">or_</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">BooleanField</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">IntegerField</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">RadioField</span>
@@ -56,6 +60,28 @@
             <span class="n">InputRequired</span><span class="p">()</span>
         <span class="p">],</span>
         <span class="n">default</span><span class="o">=</span><span class="s1">&#39;majorz&#39;</span>
+    <span class="p">)</span>
+
+    <span class="n">majority_type</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Majority Type&quot;</span><span class="p">),</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s1">&#39;absolute&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Absolute&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;relative&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Relative&quot;</span><span class="p">)),</span>
+        <span class="p">],</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;absolute&#39;</span><span class="p">,</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">InputRequired</span><span class="p">()</span>
+        <span class="p">],</span>
+        <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;election_type&#39;</span><span class="p">,</span> <span class="s1">&#39;majorz&#39;</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">absolute_majority</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Absolute majority&quot;</span><span class="p">),</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">Optional</span><span class="p">(),</span>
+            <span class="n">NumberRange</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">],</span>
+        <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;majority_type&#39;</span><span class="p">,</span> <span class="s1">&#39;absolute&#39;</span><span class="p">),</span>
     <span class="p">)</span>
 
     <span class="n">domain</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span>
@@ -121,13 +147,9 @@
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Related link&quot;</span><span class="p">)</span>
     <span class="p">)</span>
 
-    <span class="n">absolute_majority</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Absolute majority&quot;</span><span class="p">),</span>
-        <span class="n">validators</span><span class="o">=</span><span class="p">[</span>
-            <span class="n">Optional</span><span class="p">(),</span>
-            <span class="n">NumberRange</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="p">],</span>
-        <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;election_type&#39;</span><span class="p">,</span> <span class="s1">&#39;majorz&#39;</span><span class="p">),</span>
+    <span class="n">related_elections</span> <span class="o">=</span> <span class="n">MultiCheckboxField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Related elections&quot;</span><span class="p">),</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[]</span>
     <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">on_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -146,6 +168,11 @@
         <span class="k">if</span> <span class="n">default_locale</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;rm&#39;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">election_de</span><span class="o">.</span><span class="n">validators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">InputRequired</span><span class="p">())</span>
 
+        <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Election</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">Election</span><span class="o">.</span><span class="n">shortcode</span><span class="p">)</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="p">[(</span><span class="n">election</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">election</span><span class="o">.</span><span class="n">title</span><span class="p">)</span> <span class="k">for</span> <span class="n">election</span> <span class="ow">in</span> <span class="n">query</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">related_elections</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="n">choices</span>
+
     <span class="k">def</span> <span class="nf">set_domain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">principal</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">principal</span><span class="o">.</span><span class="n">domains_election</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
@@ -157,7 +184,8 @@
         <span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">election_type</span><span class="o">.</span><span class="n">data</span>
         <span class="n">model</span><span class="o">.</span><span class="n">shortcode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shortcode</span><span class="o">.</span><span class="n">data</span>
         <span class="n">model</span><span class="o">.</span><span class="n">number_of_mandates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mandates</span><span class="o">.</span><span class="n">data</span>
-        <span class="n">model</span><span class="o">.</span><span class="n">absolute_majority</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">absolute_majority</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">majority_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">majority_type</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">absolute_majority</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">absolute_majority</span><span class="o">.</span><span class="n">data</span> <span class="ow">or</span> <span class="kc">None</span>
         <span class="n">model</span><span class="o">.</span><span class="n">related_link</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_link</span><span class="o">.</span><span class="n">data</span>
         <span class="n">model</span><span class="o">.</span><span class="n">tacit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tacit</span><span class="o">.</span><span class="n">data</span>
         <span class="n">model</span><span class="o">.</span><span class="n">distinct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distinct</span><span class="o">.</span><span class="n">data</span>
@@ -173,6 +201,24 @@
             <span class="n">titles</span><span class="p">[</span><span class="s1">&#39;rm_CH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">election_rm</span><span class="o">.</span><span class="n">data</span>
         <span class="n">model</span><span class="o">.</span><span class="n">title_translations</span> <span class="o">=</span> <span class="n">titles</span>
 
+        <span class="c1"># use symetric relationships</span>
+        <span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">session</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">ElectionAssociation</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">or_</span><span class="p">(</span>
+                <span class="n">ElectionAssociation</span><span class="o">.</span><span class="n">source_id</span> <span class="o">==</span> <span class="n">model</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">ElectionAssociation</span><span class="o">.</span><span class="n">target_id</span> <span class="o">==</span> <span class="n">model</span><span class="o">.</span><span class="n">id</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">association</span> <span class="ow">in</span> <span class="n">query</span><span class="p">:</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">association</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">id_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_elections</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">id_from_title</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ElectionAssociation</span><span class="p">(</span><span class="n">source_id</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">target_id</span><span class="o">=</span><span class="n">id_</span><span class="p">))</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ElectionAssociation</span><span class="p">(</span><span class="n">source_id</span><span class="o">=</span><span class="n">id_</span><span class="p">,</span> <span class="n">target_id</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
+
     <span class="k">def</span> <span class="nf">apply_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
         <span class="n">titles</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">title_translations</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">election_de</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">titles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;de_CH&#39;</span><span class="p">)</span>
@@ -185,6 +231,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">shortcode</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">shortcode</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">election_type</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mandates</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">number_of_mandates</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">majority_type</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">majority_type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">absolute_majority</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">absolute_majority</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">related_link</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">related_link</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tacit</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">tacit</span>
@@ -200,7 +247,15 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">election_type</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="p">(</span><span class="s1">&#39;proporz&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Election based on proportional representation&quot;</span><span class="p">))</span>
             <span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">election_type</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;proporz&#39;</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">election_type</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;proporz&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">related_elections</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">choice</span> <span class="k">for</span> <span class="n">choice</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_elections</span><span class="o">.</span><span class="n">choices</span>
+            <span class="k">if</span> <span class="n">choice</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">model</span><span class="o">.</span><span class="n">id</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">related_elections</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">association</span><span class="o">.</span><span class="n">target_id</span> <span class="k">for</span> <span class="n">association</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">related_elections</span>
+        <span class="p">]</span></div>
 </pre></div>
 
           </div>
