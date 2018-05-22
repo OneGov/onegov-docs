@@ -37,7 +37,7 @@
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
 <span class="kn">from</span> <span class="nn">onegov.chat</span> <span class="k">import</span> <span class="n">MessageCollection</span>
-<span class="kn">from</span> <span class="nn">onegov.core.converters</span> <span class="k">import</span> <span class="n">extended_date_converter</span>
+<span class="kn">from</span> <span class="nn">onegov.core.converters</span> <span class="k">import</span> <span class="n">extended_date_converter</span><span class="p">,</span> <span class="n">json_converter</span>
 <span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">Directory</span>
 <span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryEntryCollection</span>
@@ -572,16 +572,27 @@
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
     <span class="n">model</span><span class="o">=</span><span class="n">DirectoryEntryCollection</span><span class="p">,</span>
     <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/directories/</span><span class="si">{directory_name}</span><span class="s1">&#39;</span><span class="p">,</span>
-    <span class="n">converters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="n">keywords_converter</span><span class="p">})</span>
-<span class="k">def</span> <span class="nf">get_directory_entries</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">directory_name</span><span class="p">,</span> <span class="n">keywords</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="n">converters</span><span class="o">=</span><span class="p">{</span>
+        <span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="n">keywords_converter</span><span class="p">,</span>
+        <span class="s1">&#39;search_query&#39;</span><span class="p">:</span> <span class="n">json_converter</span><span class="p">,</span>
+    <span class="p">})</span>
+<span class="k">def</span> <span class="nf">get_directory_entries</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">directory_name</span><span class="p">,</span> <span class="n">keywords</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                          <span class="n">search</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">search_query</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">directory</span> <span class="o">=</span> <span class="n">DirectoryCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">directory_name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">search</span> <span class="ow">and</span> <span class="n">search</span> <span class="ow">in</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">directory_search_widget_registry</span><span class="p">:</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">directory_search_widget_registry</span><span class="p">[</span><span class="n">search</span><span class="p">]</span>
+        <span class="n">searchwidget</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="n">search_query</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">searchwidget</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="n">directory</span><span class="p">:</span>
         <span class="n">collection</span> <span class="o">=</span> <span class="n">DirectoryEntryCollection</span><span class="p">(</span>
             <span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;extended&#39;</span><span class="p">,</span>
             <span class="n">keywords</span><span class="o">=</span><span class="n">keywords</span><span class="p">,</span>
-            <span class="n">page</span><span class="o">=</span><span class="n">page</span>
+            <span class="n">page</span><span class="o">=</span><span class="n">page</span><span class="p">,</span>
+            <span class="n">searchwidget</span><span class="o">=</span><span class="n">searchwidget</span>
         <span class="p">)</span>
 
         <span class="n">collection</span><span class="o">.</span><span class="n">is_hidden_from_public</span> <span class="o">=</span> <span class="n">directory</span><span class="o">.</span><span class="n">is_hidden_from_public</span>

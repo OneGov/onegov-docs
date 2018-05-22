@@ -61,9 +61,15 @@
 <dd><p>Registers a user link group.</p>
 </dd></dl>
 
+<dl class="classmethod">
+<dt id="onegov.org.app.OrgApp.directory_search_widget">
+<em class="property">classmethod </em><code class="descname">directory_search_widget</code><span class="sig-paren">(</span><em>*args</em>, <em>**kw</em><span class="sig-paren">)</span><a class="headerlink" href="#onegov.org.app.OrgApp.directory_search_widget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a directory search widget.</p>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="onegov.org.app.OrgApp.version">
-<code class="descname">version</code><em class="property"> = '0.28.0'</em><a class="headerlink" href="#onegov.org.app.OrgApp.version" title="Permalink to this definition">¶</a></dt>
+<code class="descname">version</code><em class="property"> = '0.28.1'</em><a class="headerlink" href="#onegov.org.app.OrgApp.version" title="Permalink to this definition">¶</a></dt>
 <dd><p>the version of this application (do not change manually!)</p>
 </dd></dl>
 
@@ -370,6 +376,60 @@ by the <code class="docutils literal notranslate"><span class="pre">config</span
 <dl class="method">
 <dt id="onegov.org.directives.UserlinkAction.perform">
 <code class="descname">perform</code><span class="sig-paren">(</span><em>func</em>, <em>linkgroup_registry</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/directives.html#UserlinkAction.perform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.directives.UserlinkAction.perform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do whatever configuration is needed for <code class="docutils literal notranslate"><span class="pre">obj</span></code>.</p>
+<p>Needs to be implemented by the <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code> subclass.</p>
+<p>Raise a <code class="xref py py-exc docutils literal notranslate"><span class="pre">DirectiveError</span></code> to indicate that the action
+cannot be performed due to incorrect configuration.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>obj</strong> – the object that the action should be performed
+for. Typically a function or a class object.</li>
+<li><strong>**kw</strong> – a dictionary of configuration objects as specified
+by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.directives.DirectorySearchWidgetAction">
+<em class="property">class </em><code class="descclassname">onegov.org.directives.</code><code class="descname">DirectorySearchWidgetAction</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/directives.html#DirectorySearchWidgetAction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.directives.DirectorySearchWidgetAction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a directory search widget.</p>
+<dl class="method">
+<dt id="onegov.org.directives.DirectorySearchWidgetAction.identifier">
+<code class="descname">identifier</code><span class="sig-paren">(</span><em>directory_search_widget_registry</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/directives.html#DirectorySearchWidgetAction.identifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.directives.DirectorySearchWidgetAction.identifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an immutable that uniquely identifies this config.</p>
+<p>Needs to be implemented by the <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code> subclass.</p>
+<p>Used for overrides and conflict detection.</p>
+<p>If two actions in the same group have the same identifier in
+the same configurable, those two actions are in conflict and a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ConflictError</span></code> is raised during <code class="xref py py-func docutils literal notranslate"><span class="pre">commit()</span></code>.</p>
+<p>If an action in an extending configurable has the same
+identifier as the configurable being extended, that action
+overrides the original one in the extending configurable.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>**kw</strong> – a dictionary of configuration objects as specified
+by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">an immutable value uniquely identifying this action.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.directives.DirectorySearchWidgetAction.perform">
+<code class="descname">perform</code><span class="sig-paren">(</span><em>cls</em>, <em>directory_search_widget_registry</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/directives.html#DirectorySearchWidgetAction.perform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.directives.DirectorySearchWidgetAction.perform" title="Permalink to this definition">¶</a></dt>
 <dd><p>Do whatever configuration is needed for <code class="docutils literal notranslate"><span class="pre">obj</span></code>.</p>
 <p>Needs to be implemented by the <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code> subclass.</p>
 <p>Raise a <code class="xref py py-exc docutils literal notranslate"><span class="pre">DirectiveError</span></code> to indicate that the action
