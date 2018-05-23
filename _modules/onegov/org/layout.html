@@ -31,6 +31,7 @@
             
   <h1>Source code for onegov.org.layout</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">babel.dates</span>
+<span class="kn">import</span> <span class="nn">re</span>
 
 <span class="kn">from</span> <span class="nn">babel</span> <span class="k">import</span> <span class="n">Locale</span>
 <span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
@@ -77,6 +78,9 @@
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">to_timezone</span>
 
 
+<span class="n">capitalised_name</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[A-Z]</span><span class="si">{1}</span><span class="s1">[a-z]+&#39;</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="Layout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.Layout">[docs]</a><span class="k">class</span> <span class="nc">Layout</span><span class="p">(</span><span class="n">ChameleonLayout</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Contains methods to render a page inheriting from layout.pt.</span>
 
@@ -99,6 +103,17 @@
 
     <span class="n">date_long_without_year_format</span> <span class="o">=</span> <span class="s1">&#39;E d. MMMM&#39;</span>
     <span class="n">datetime_long_without_year_format</span> <span class="o">=</span> <span class="s1">&#39;E d. MMMM HH:mm&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Takes the class name of the layout and generates a name which</span>
+<span class="sd">        can be used as a class. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">token</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">capitalised_name</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">org</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -153,6 +168,8 @@
             <span class="k">yield</span> <span class="s1">&#39;role-</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">current_role</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">yield</span> <span class="s1">&#39;is-logged-out&#39;</span>
+
+        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">top_navigation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
