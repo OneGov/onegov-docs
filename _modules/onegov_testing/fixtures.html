@@ -209,7 +209,7 @@
         <span class="c1"># having a bad day because your test doesn&#39;t work if run with others?</span>
         <span class="c1"># did you use a session manager? if yes, make sure to use mgr.dispose()</span>
         <span class="c1"># before finishing your test, or use the sesion_manager fixture!</span>
-        <span class="n">engine</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;DROP SCHEMA &quot;</span><span class="si">{}</span><span class="s1">&quot; CASCADE&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">schema</span><span class="p">))</span>
+        <span class="n">engine</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;DROP SCHEMA &quot;</span><span class="si">{schema}</span><span class="s1">&quot; CASCADE&#39;</span><span class="p">)</span>
 
     <span class="n">engine</span><span class="o">.</span><span class="n">raw_connection</span><span class="p">()</span><span class="o">.</span><span class="n">invalidate</span><span class="p">()</span>
     <span class="n">engine</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span></div>
@@ -270,7 +270,7 @@
 
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">es_default_version</span><span class="p">():</span>
-    <span class="k">return</span> <span class="s1">&#39;5.5.1&#39;</span>
+    <span class="k">return</span> <span class="s1">&#39;6.2.4&#39;</span>
 
 
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
@@ -280,29 +280,18 @@
 
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">es_archive</span><span class="p">(</span><span class="n">es_version</span><span class="p">):</span>
-    <span class="n">archive</span> <span class="o">=</span> <span class="s1">&#39;/tmp/elasticsearch-</span><span class="si">{}</span><span class="s1">.tar.gz&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">es_version</span><span class="p">)</span>
+    <span class="n">archive</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;elasticsearch-</span><span class="si">{es_version}</span><span class="s1">.tar.gz&#39;</span>
+    <span class="n">archive_path</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;/tmp/</span><span class="si">{archive}</span><span class="s1">&#39;</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">archive</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">es_version</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;5&#39;</span><span class="p">):</span>
-            <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">                https://artifacts.elastic.co/</span>
-<span class="s2">                downloads/elasticsearch/elasticsearch-</span><span class="si">{}</span><span class="s2">.tar.gz</span>
-<span class="s2">            &quot;&quot;&quot;</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">                https://download.elastic.co/</span>
-<span class="s2">                elasticsearch/elasticsearch/elasticsearch-</span><span class="si">{}</span><span class="s2">.tar.gz</span>
-<span class="s2">            &quot;&quot;&quot;</span>
-
-        <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">es_version</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
-
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">archive_path</span><span class="p">):</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;https://artifacts.elastic.co/downloads/elasticsearch/</span><span class="si">{archive}</span><span class="s1">&#39;</span>
         <span class="n">http</span> <span class="o">=</span> <span class="n">urllib3</span><span class="o">.</span><span class="n">PoolManager</span><span class="p">()</span>
 
         <span class="k">with</span> <span class="n">http</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">preload_content</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">r</span><span class="p">:</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">archive</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">archive_path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">shutil</span><span class="o">.</span><span class="n">copyfileobj</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">archive</span>
+    <span class="k">return</span> <span class="n">archive_path</span>
 
 
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
@@ -311,7 +300,7 @@
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
-            <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;tar xzvf </span><span class="si">{}</span><span class="s2"> --strip-components=1&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">es_archive</span><span class="p">)),</span>
+            <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;tar xzvf </span><span class="si">{es_archive}</span><span class="s2"> --strip-components=1&quot;</span><span class="p">),</span>
             <span class="n">cwd</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
             <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">DEVNULL</span><span class="p">,</span>
             <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">DEVNULL</span><span class="p">,</span>
@@ -327,15 +316,8 @@
     <span class="n">port</span> <span class="o">=</span> <span class="n">port_for</span><span class="o">.</span><span class="n">select_random</span><span class="p">()</span>
     <span class="n">pid</span> <span class="o">=</span> <span class="n">es_binary</span> <span class="o">+</span> <span class="s1">&#39;.pid&#39;</span>
 
-    <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{binary}</span><span class="s2"> -p </span><span class="si">{pidfile}</span><span class="s2"> --http.port=</span><span class="si">{port}</span><span class="s2">&quot;</span>
-
-    <span class="k">if</span> <span class="n">es_version</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;5&#39;</span><span class="p">):</span>
-        <span class="n">command</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="s1">&#39;-E&#39;</span><span class="p">)</span>
-
-    <span class="n">command</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">binary</span><span class="o">=</span><span class="n">es_binary</span><span class="p">,</span> <span class="n">pidfile</span><span class="o">=</span><span class="n">pid</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">)</span>
-
-    <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;http://127.0.0.1:</span><span class="si">{}</span><span class="s1">/_cluster/health?wait_for_status=green&#39;</span>
-    <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">port</span><span class="p">)</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{es_binary}</span><span class="s2"> -p </span><span class="si">{pid}</span><span class="s2"> -E http.port=</span><span class="si">{port}</span><span class="s2">&quot;</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;http://127.0.0.1:</span><span class="si">{port}</span><span class="s1">/_cluster/health?wait_for_status=green&#39;</span>
 
     <span class="n">executor</span> <span class="o">=</span> <span class="n">HTTPExecutor</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;GET&#39;</span><span class="p">)</span>
     <span class="n">executor</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>

@@ -200,7 +200,26 @@
             <span class="k">raise</span> <span class="n">errors</span><span class="o">.</span><span class="n">ApplicationConflictError</span><span class="p">(</span>
                 <span class="s2">&quot;the alias &#39;</span><span class="si">{}</span><span class="s2">&#39; is already in use&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">alias</span><span class="p">))</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="n">application_id</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="n">application_id</span></div>
+
+<div class="viewcode-block" id="Application.handle_exception"><a class="viewcode-back" href="../../../onegov_server.html#onegov.server.application.Application.handle_exception">[docs]</a>    <span class="k">def</span> <span class="nf">handle_exception</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exception</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Default exception handling - this can be used to return a different</span>
+<span class="sd">        response when an unhandle exception occurs inside a request or before</span>
+<span class="sd">        a request is handled by the application (when any of the above methods</span>
+<span class="sd">        are called).</span>
+
+<span class="sd">        By default we just raise the exception.</span>
+
+<span class="sd">        Typically, returning an error is what you might want to do::</span>
+
+<span class="sd">            def handle_exception(exception, environ, start_response):</span>
+<span class="sd">                if isinstance(exception, UnderMaintenanceError):</span>
+<span class="sd">                    error = webob.exc.HTTPInternalServerError()</span>
+<span class="sd">                    return error(environ, start_response)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="n">exception</span></div></div>
 </pre></div>
 
           </div>

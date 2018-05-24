@@ -85,10 +85,10 @@
 <span class="kn">from</span> <span class="nn">onegov.server.utils</span> <span class="k">import</span> <span class="n">load_class</span>
 <span class="kn">from</span> <span class="nn">psycopg2.extensions</span> <span class="k">import</span> <span class="n">TransactionRollbackError</span>
 <span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.exc</span> <span class="k">import</span> <span class="n">OperationalError</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.exc</span> <span class="k">import</span> <span class="n">InterfaceError</span><span class="p">,</span> <span class="n">OperationalError</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span> <span class="k">as</span> <span class="n">new_uuid</span>
 <span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">urlencode</span>
-<span class="kn">from</span> <span class="nn">webob.exc</span> <span class="k">import</span> <span class="n">HTTPConflict</span>
+<span class="kn">from</span> <span class="nn">webob.exc</span> <span class="k">import</span> <span class="n">HTTPConflict</span><span class="p">,</span> <span class="n">HTTPServiceUnavailable</span>
 
 
 <div class="viewcode-block" id="Framework"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework">[docs]</a><span class="k">class</span> <span class="nc">Framework</span><span class="p">(</span>
@@ -218,6 +218,16 @@
     <span class="k">def</span> <span class="nf">has_filestorage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns true if :attr:`fs` is available. &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_file_storage</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Framework.handle_exception"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.handle_exception">[docs]</a>    <span class="k">def</span> <span class="nf">handle_exception</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exception</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Stops database connection errors from bubbling all the way up</span>
+<span class="sd">        to our exception handling services (sentry.io).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exception</span><span class="p">,</span> <span class="p">(</span><span class="n">OperationalError</span><span class="p">,</span> <span class="n">InterfaceError</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">HTTPServiceUnavailable</span><span class="p">()(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">handle_exception</span><span class="p">(</span><span class="n">exception</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Framework.configure_application"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.configure_application">[docs]</a>    <span class="k">def</span> <span class="nf">configure_application</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Configures the application. This function calls all methods on</span>

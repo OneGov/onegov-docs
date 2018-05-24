@@ -169,6 +169,23 @@ example.org. You can do this as follows:</p>
 and the customer just points the DNS to your ip address.</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="onegov.server.application.Application.handle_exception">
+<code class="descname">handle_exception</code><span class="sig-paren">(</span><em>exception</em>, <em>environ</em>, <em>start_response</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/server/application.html#Application.handle_exception"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.server.application.Application.handle_exception" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default exception handling - this can be used to return a different
+response when an unhandle exception occurs inside a request or before
+a request is handled by the application (when any of the above methods
+are called).</p>
+<p>By default we just raise the exception.</p>
+<p>Typically, returning an error is what you might want to do:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">handle_exception</span><span class="p">(</span><span class="n">exception</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exception</span><span class="p">,</span> <span class="n">UnderMaintenanceError</span><span class="p">):</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="n">webob</span><span class="o">.</span><span class="n">exc</span><span class="o">.</span><span class="n">HTTPInternalServerError</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">error</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
 </dd></dl>
 
 </div>
