@@ -30,7 +30,9 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.core.orm</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">onegov.core.orm.cache</span> <span class="k">import</span> <span class="n">orm_cached</span>
+<span></span><span class="kn">import</span> <span class="nn">psycopg2</span>
+
+<span class="kn">from</span> <span class="nn">onegov.core.orm.cache</span> <span class="k">import</span> <span class="n">orm_cached</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.session_manager</span> <span class="k">import</span> <span class="n">SessionManager</span><span class="p">,</span> <span class="n">query_schemas</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.sql</span> <span class="k">import</span> <span class="n">as_selectable</span><span class="p">,</span> <span class="n">as_selectable_from_path</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">event</span><span class="p">,</span> <span class="n">inspect</span>
@@ -39,9 +41,17 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">Query</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">TranslationHybrid</span>
 <span class="kn">from</span> <span class="nn">zope.sqlalchemy</span> <span class="k">import</span> <span class="n">mark_changed</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.exc</span> <span class="k">import</span> <span class="n">InterfaceError</span><span class="p">,</span> <span class="n">OperationalError</span>
 
 
 <span class="n">MISSING</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+
+<span class="n">DB_CONNECTION_ERRORS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">OperationalError</span><span class="p">,</span>
+    <span class="n">InterfaceError</span><span class="p">,</span>
+    <span class="n">psycopg2</span><span class="o">.</span><span class="n">OperationalError</span><span class="p">,</span>
+    <span class="n">psycopg2</span><span class="o">.</span><span class="n">InterfaceError</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <span class="c1">#: The base for all OneGov Core ORM Models</span>
