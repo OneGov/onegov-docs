@@ -9,7 +9,7 @@
     <title>onegov.newsletter.models &#8212; OneGov Docs 0.0.1 documentation</title>
     <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
@@ -36,15 +36,16 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UTCDateTime</span><span class="p">,</span> <span class="n">UUID</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="p">(</span>
-    <span class="n">column</span><span class="p">,</span>
-    <span class="n">Boolean</span><span class="p">,</span>
-    <span class="n">Column</span><span class="p">,</span>
-    <span class="n">ForeignKey</span><span class="p">,</span>
-    <span class="n">Index</span><span class="p">,</span>
-    <span class="n">Table</span><span class="p">,</span>
-    <span class="n">Text</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">and_</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">column</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">ForeignKey</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Index</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">not_</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">select</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.ext.declarative</span> <span class="k">import</span> <span class="n">declared_attr</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span><span class="p">,</span> <span class="n">validates</span><span class="p">,</span> <span class="n">relationship</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
@@ -104,6 +105,9 @@
     <span class="c1">#: null if not sent yet, otherwise the date this newsletter was first sent</span>
     <span class="n">sent</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UTCDateTime</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="c1">#: time the newsletter is scheduled to be sent (in UTC)</span>
+    <span class="n">scheduled</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UTCDateTime</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
     <span class="c1">#: the recipients of this newsletter, meant in part as a tracking feature</span>
     <span class="c1">#: to answer the question &quot;who got which newsletters?&quot; - for this to work</span>
     <span class="c1">#: the user of onegov.newsletter has to make sure that sent out</span>
@@ -112,7 +116,21 @@
     <span class="n">recipients</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
         <span class="s1">&#39;Recipient&#39;</span><span class="p">,</span>
         <span class="n">secondary</span><span class="o">=</span><span class="n">newsletter_recipients</span><span class="p">,</span>
-        <span class="n">back_populates</span><span class="o">=</span><span class="s1">&#39;newsletters&#39;</span><span class="p">)</span></div>
+        <span class="n">back_populates</span><span class="o">=</span><span class="s1">&#39;newsletters&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">open_recipients</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">received</span> <span class="o">=</span> <span class="n">select</span><span class="p">([</span><span class="n">newsletter_recipients</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">recipient_id</span><span class="p">])</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">newsletter_recipients</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">newsletter_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Recipient</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">and_</span><span class="p">(</span>
+                <span class="n">not_</span><span class="p">(</span>
+                    <span class="n">Recipient</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">received</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">Recipient</span><span class="o">.</span><span class="n">confirmed</span> <span class="o">==</span> <span class="kc">True</span>
+            <span class="p">)</span>
+        <span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Recipient"><a class="viewcode-back" href="../../../onegov_newsletter.html#onegov.newsletter.models.Recipient">[docs]</a><span class="k">class</span> <span class="nc">Recipient</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
@@ -252,7 +270,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.5</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>

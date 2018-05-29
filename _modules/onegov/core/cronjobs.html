@@ -9,7 +9,7 @@
     <title>onegov.core.cronjobs &#8212; OneGov Docs 0.0.1 documentation</title>
     <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
@@ -71,12 +71,12 @@
 <span class="kn">import</span> <span class="nn">pycurl</span>
 
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">suppress</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">onegov.core.framework</span> <span class="k">import</span> <span class="n">Framework</span><span class="p">,</span> <span class="n">log</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">local_lock</span>
 <span class="kn">from</span> <span class="nn">onegov.core.errors</span> <span class="k">import</span> <span class="n">AlreadyLockedError</span>
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
-<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">ensure_timezone</span><span class="p">,</span> <span class="n">replace_timezone</span>
+<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">ensure_timezone</span><span class="p">,</span> <span class="n">replace_timezone</span><span class="p">,</span> <span class="n">utcnow</span><span class="p">,</span> <span class="n">to_timezone</span>
 <span class="kn">from</span> <span class="nn">threading</span> <span class="k">import</span> <span class="n">Thread</span>
 <span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">sleep</span>
 <span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">quote_plus</span><span class="p">,</span> <span class="n">unquote_plus</span>
@@ -162,12 +162,15 @@
 <span class="sd">            to be a match (i.e anywhere within 0&#39; - 59&#39;999.99999)</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">timezone</span> <span class="ow">or</span> <span class="n">point</span><span class="o">.</span><span class="n">tzinfo</span>
 
-        <span class="k">assert</span> <span class="n">point</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">or</span> <span class="n">timezone</span>
         <span class="n">point</span> <span class="o">=</span> <span class="n">point</span> <span class="k">if</span> <span class="n">point</span><span class="o">.</span><span class="n">tzinfo</span> <span class="k">else</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">timezone</span><span class="p">)</span>
+        <span class="n">point</span> <span class="o">=</span> <span class="n">to_timezone</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
 
-        <span class="n">start</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span> <span class="n">time</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">minute</span><span class="p">))</span>
-        <span class="n">start</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="n">hour</span><span class="o">=</span><span class="n">point</span><span class="o">.</span><span class="n">hour</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hour</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span>
+            <span class="n">minute</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">minute</span>
+        <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">point</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span></div></div>
 
@@ -205,12 +208,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">application_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">jobs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">as_request_call</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">)</span>
 
-        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Cronjob Thread for </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="p">))</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Starting Cronjob Thread for </span><span class="si">{self.application_id}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">:</span>
-            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;Enabling Cronjob </span><span class="si">{}</span><span class="s2"> (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">job</span><span class="p">))</span>
-            <span class="p">)</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Enabling Cronjob </span><span class="si">{job.name}</span><span class="s2"> ({request.link(job)})&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="ApplicationBoundCronjobs.run"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.cronjobs.ApplicationBoundCronjobs.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">previous_check</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">min</span>
@@ -240,7 +241,7 @@
         <span class="p">))</span></div>
 
     <span class="k">def</span> <span class="nf">run_scheduled_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">point</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">(),</span> <span class="s1">&#39;UTC&#39;</span><span class="p">)</span>
+        <span class="n">point</span> <span class="o">=</span> <span class="n">utcnow</span><span class="p">()</span>
 
         <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobs</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">is_scheduled_at</span><span class="p">(</span><span class="n">point</span><span class="p">):</span>
@@ -274,6 +275,7 @@
 
 <span class="k">def</span> <span class="nf">register_cronjob</span><span class="p">(</span><span class="n">registry</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="p">,</span> <span class="n">timezone</span><span class="p">):</span>
     <span class="k">assert</span> <span class="n">minute</span> <span class="o">%</span> <span class="mi">5</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;The cronjobs must be added in 5 minute increments&quot;</span>
+    <span class="k">assert</span> <span class="n">hour</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hour</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">registry</span><span class="p">,</span> <span class="s1">&#39;cronjobs&#39;</span><span class="p">):</span>
         <span class="n">registry</span><span class="o">.</span><span class="n">cronjobs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -332,7 +334,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.5</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
     </div>
