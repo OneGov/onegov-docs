@@ -216,16 +216,15 @@
             <span class="p">)</span>
 
             <span class="k">for</span> <span class="n">address</span> <span class="ow">in</span> <span class="n">addresses</span><span class="p">:</span>
+                <span class="n">token</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">new_url_safe_token</span><span class="p">({</span><span class="s1">&#39;address&#39;</span><span class="p">:</span> <span class="n">address</span><span class="p">})</span>
+                <span class="n">optout_custom</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{optout}</span><span class="s1">?opaque=</span><span class="si">{token}</span><span class="s1">&#39;</span>
                 <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">send_marketing_email</span><span class="p">(</span>
                     <span class="n">subject</span><span class="o">=</span><span class="n">subject</span><span class="p">,</span>
                     <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="p">),</span>
                     <span class="n">reply_to</span><span class="o">=</span><span class="n">reply_to</span><span class="p">,</span>
-                    <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
+                    <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">optout</span><span class="p">,</span> <span class="n">optout_custom</span><span class="p">),</span>
                     <span class="n">headers</span><span class="o">=</span><span class="p">{</span>
-                        <span class="s1">&#39;List-Unsubscribe&#39;</span><span class="p">:</span> <span class="s1">&#39;&lt;</span><span class="si">{}</span><span class="s1">?opaque=</span><span class="si">{}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                            <span class="n">optout</span><span class="p">,</span>
-                            <span class="n">request</span><span class="o">.</span><span class="n">new_url_safe_token</span><span class="p">({</span><span class="s1">&#39;address&#39;</span><span class="p">:</span> <span class="n">address</span><span class="p">})</span>
-                        <span class="p">),</span>
+                        <span class="s1">&#39;List-Unsubscribe&#39;</span><span class="p">:</span> <span class="n">f</span><span class="s1">&#39;&lt;</span><span class="si">{optout_custom}</span><span class="s1">&gt;&#39;</span><span class="p">,</span>
                         <span class="s1">&#39;List-Unsubscribe-Post&#39;</span><span class="p">:</span> <span class="s1">&#39;List-Unsubscribe=One-Click&#39;</span>
                     <span class="p">}</span>
                 <span class="p">)</span>

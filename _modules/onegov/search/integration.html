@@ -46,6 +46,7 @@
 <span class="kn">from</span> <span class="nn">onegov.search.indexer</span> <span class="k">import</span> <span class="n">ORMEventTranslator</span>
 <span class="kn">from</span> <span class="nn">onegov.search.indexer</span> <span class="k">import</span> <span class="n">TypeMappingRegistry</span>
 <span class="kn">from</span> <span class="nn">onegov.search.utils</span> <span class="k">import</span> <span class="n">searchable_sqlalchemy_models</span>
+<span class="kn">from</span> <span class="nn">sortedcontainers</span> <span class="k">import</span> <span class="n">SortedSet</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">inspect</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">undefer</span>
 <span class="kn">from</span> <span class="nn">urllib3.exceptions</span> <span class="k">import</span> <span class="n">HTTPError</span>
@@ -329,13 +330,13 @@
 
         <span class="n">result</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">suggest</span>
 
-        <span class="n">suggestions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">suggestions</span> <span class="o">=</span> <span class="n">SortedSet</span><span class="p">()</span>
 
         <span class="k">for</span> <span class="n">suggestion</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s1">&#39;es_suggestion&#39;</span><span class="p">,</span> <span class="p">[]):</span>
             <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">suggestion</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">]:</span>
-                <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">])</span>
+                <span class="n">suggestions</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
 
-        <span class="k">return</span> <span class="n">suggestions</span></div>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">suggestions</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ElasticsearchApp.es_suggestions_by_request"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.integration.ElasticsearchApp.es_suggestions_by_request">[docs]</a>    <span class="k">def</span> <span class="nf">es_suggestions_by_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span>
                                   <span class="n">limit_to_request_language</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>

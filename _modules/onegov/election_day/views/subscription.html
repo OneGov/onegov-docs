@@ -95,12 +95,19 @@
     <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
     <span class="n">subscribers</span> <span class="o">=</span> <span class="n">EmailSubscriberCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
 
-    <span class="n">token</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;opaque&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;POST&#39;</span> <span class="ow">and</span> <span class="n">token</span><span class="p">:</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">load_url_safe_token</span><span class="p">(</span><span class="n">token</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
-        <span class="n">subscribers</span><span class="o">.</span><span class="n">unsubscribe</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;address&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">email</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;opaque&#39;</span><span class="p">)</span>
+        <span class="n">email</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">load_url_safe_token</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+        <span class="n">email</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;address&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+        <span class="n">email</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># one-click unsubscribe</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;POST&#39;</span> <span class="ow">and</span> <span class="n">email</span><span class="p">:</span>
+        <span class="n">subscribers</span><span class="o">.</span><span class="n">unsubscribe</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">Response</span><span class="p">()</span>
 
+    <span class="c1"># regular unsubscribe</span>
     <span class="n">callout</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
         <span class="n">subscribers</span><span class="o">.</span><span class="n">unsubscribe</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
@@ -108,6 +115,9 @@
             <span class="s2">&quot;Successfully unsubscribed from the email services. You will no &quot;</span>
             <span class="s2">&quot;longer receive an email when new results are published.&quot;</span>
         <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">email</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">form</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">email</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
