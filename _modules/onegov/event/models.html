@@ -186,6 +186,10 @@
     <span class="k">def</span> <span class="nf">es_public</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;published&#39;</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_skip</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;submitted&#39;</span>
+
     <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Automatically update the occurrences if shared attributes change.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -201,6 +205,7 @@
 <span class="sd">        one to occur or the last occurrence.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
         <span class="n">base</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Occurrence</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">event_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>

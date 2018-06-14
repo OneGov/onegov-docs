@@ -35,24 +35,29 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.abstract</span> <span class="k">import</span> <span class="n">Associable</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">JSON</span>
 <span class="kn">from</span> <span class="nn">onegov.file.attachments</span> <span class="k">import</span> <span class="n">ProcessedUploadedFile</span>
 <span class="kn">from</span> <span class="nn">onegov.file.filters</span> <span class="k">import</span> <span class="n">OnlyIfImage</span><span class="p">,</span> <span class="n">WithThumbnailFilter</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
 
 
 <div class="viewcode-block" id="UploadedFileField"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.UploadedFileField">[docs]</a><span class="k">class</span> <span class="nc">UploadedFileField</span><span class="p">(</span><span class="n">UploadedFileFieldBase</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; A customized version of Depot&#39;s uploaded file field. This version</span>
-<span class="sd">    stores its data in an unlimited text field, whereas the original uses</span>
-<span class="sd">    a limited varchar field.</span>
-
-<span class="sd">    We probably won&#39;t hit the 4000 character limit any time soon, but to</span>
-<span class="sd">    avoid any chance of this happening, we use Text instead.</span>
+<span class="sd">    stores its data in a JSONB field, instead of using text.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="UploadedFileField.load_dialect_impl"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.UploadedFileField.load_dialect_impl">[docs]</a>    <span class="k">def</span> <span class="nf">load_dialect_impl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dialect</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">dialect</span><span class="o">.</span><span class="n">type_descriptor</span><span class="p">(</span><span class="n">Text</span><span class="p">())</span></div></div>
+        <span class="k">return</span> <span class="n">dialect</span><span class="o">.</span><span class="n">type_descriptor</span><span class="p">(</span><span class="n">JSON</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="UploadedFileField.process_bind_param"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.UploadedFileField.process_bind_param">[docs]</a>    <span class="k">def</span> <span class="nf">process_bind_param</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">dialect</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="UploadedFileField.process_result_value"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.UploadedFileField.process_result_value">[docs]</a>    <span class="k">def</span> <span class="nf">process_result_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">dialect</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upload_type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="File"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.File">[docs]</a><span class="k">class</span> <span class="nc">File</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">Associable</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
@@ -110,6 +115,10 @@
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;polymorphic_on&#39;</span><span class="p">:</span> <span class="s1">&#39;type&#39;</span>
     <span class="p">}</span>
+
+    <span class="n">__table_args__</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">Index</span><span class="p">(</span><span class="s1">&#39;files_by_type_and_name&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">),</span>
+    <span class="p">)</span>
 
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;reference&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">reference_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reference</span><span class="p">):</span>

@@ -37,10 +37,7 @@
 <dt id="onegov.file.models.file.UploadedFileField">
 <em class="property">class </em><code class="descclassname">onegov.file.models.file.</code><code class="descname">UploadedFileField</code><span class="sig-paren">(</span><em>filters=()</em>, <em>upload_type=&lt;class 'depot.fields.upload.UploadedFile'&gt;</em>, <em>upload_storage=None</em>, <em>*args</em>, <em>**kw</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/models/file.html#UploadedFileField"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.models.file.UploadedFileField" title="Permalink to this definition">¶</a></dt>
 <dd><p>A customized version of Depot’s uploaded file field. This version
-stores its data in an unlimited text field, whereas the original uses
-a limited varchar field.</p>
-<p>We probably won’t hit the 4000 character limit any time soon, but to
-avoid any chance of this happening, we use Text instead.</p>
+stores its data in a JSONB field, instead of using text.</p>
 <dl class="method">
 <dt id="onegov.file.models.file.UploadedFileField.load_dialect_impl">
 <code class="descname">load_dialect_impl</code><span class="sig-paren">(</span><em>dialect</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/models/file.html#UploadedFileField.load_dialect_impl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.models.file.UploadedFileField.load_dialect_impl" title="Permalink to this definition">¶</a></dt>
@@ -51,6 +48,66 @@ by the <code class="xref py py-class docutils literal notranslate"><span class="
 to help determine what type should ultimately be returned
 for a given <code class="xref py py-class docutils literal notranslate"><span class="pre">TypeDecorator</span></code>.</p>
 <p>By default returns <code class="docutils literal notranslate"><span class="pre">self.impl</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.file.models.file.UploadedFileField.process_bind_param">
+<code class="descname">process_bind_param</code><span class="sig-paren">(</span><em>value</em>, <em>dialect</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/models/file.html#UploadedFileField.process_bind_param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.models.file.UploadedFileField.process_bind_param" title="Permalink to this definition">¶</a></dt>
+<dd><p>Receive a bound parameter value to be converted.</p>
+<p>Subclasses override this method to return the
+value that should be passed along to the underlying
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TypeEngine</span></code> object, and from there to the
+DBAPI <code class="docutils literal notranslate"><span class="pre">execute()</span></code> method.</p>
+<p>The operation could be anything desired to perform custom
+behavior, such as transforming or serializing data.
+This could also be used as a hook for validating logic.</p>
+<p>This operation should be designed with the reverse operation
+in mind, which would be the process_result_value method of
+this class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>value</strong> – Data to operate upon, of any type expected by
+this method in the subclass.  Can be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</li>
+<li><strong>dialect</strong> – the <code class="xref py py-class docutils literal notranslate"><span class="pre">Dialect</span></code> in use.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.file.models.file.UploadedFileField.process_result_value">
+<code class="descname">process_result_value</code><span class="sig-paren">(</span><em>value</em>, <em>dialect</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/models/file.html#UploadedFileField.process_result_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.models.file.UploadedFileField.process_result_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Receive a result-row column value to be converted.</p>
+<p>Subclasses should implement this method to operate on data
+fetched from the database.</p>
+<p>Subclasses override this method to return the
+value that should be passed back to the application,
+given a value that is already processed by
+the underlying <code class="xref py py-class docutils literal notranslate"><span class="pre">TypeEngine</span></code> object, originally
+from the DBAPI cursor method <code class="docutils literal notranslate"><span class="pre">fetchone()</span></code> or similar.</p>
+<p>The operation could be anything desired to perform custom
+behavior, such as transforming or serializing data.
+This could also be used as a hook for validating logic.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>value</strong> – Data to operate upon, of any type expected by
+this method in the subclass.  Can be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</li>
+<li><strong>dialect</strong> – the <code class="xref py py-class docutils literal notranslate"><span class="pre">Dialect</span></code> in use.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>This operation should be designed to be reversible by
+the “process_bind_param” method of this class.</p>
 </dd></dl>
 
 </dd></dl>
