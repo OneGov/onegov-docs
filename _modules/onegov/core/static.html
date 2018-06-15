@@ -76,12 +76,15 @@
 <div class="viewcode-block" id="StaticFile"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.static.StaticFile">[docs]</a><span class="k">class</span> <span class="nc">StaticFile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Defines a static file served by the application. &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">absorb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c1"># alias for morepath</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.path}</span><span class="s1">___</span><span class="si">{self.version}</span><span class="s1">&#39;</span>
+
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span>
 
 <div class="viewcode-block" id="StaticFile.from_application"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.static.StaticFile.from_application">[docs]</a>    <span class="nd">@classmethod</span>
@@ -97,13 +100,19 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">app</span><span class="o">.</span><span class="n">serve_static_files</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
 
-        <span class="n">absorb</span> <span class="o">=</span> <span class="n">unquote</span><span class="p">(</span><span class="n">absorb</span><span class="p">)</span>
+        <span class="n">identity</span> <span class="o">=</span> <span class="n">unquote</span><span class="p">(</span><span class="n">absorb</span><span class="p">)</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="k">if</span> <span class="n">has_insecure_path_element</span><span class="p">(</span><span class="n">absorb</span><span class="p">):</span>
+        <span class="n">position</span> <span class="o">=</span> <span class="n">absorb</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;___&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">position</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">identity</span><span class="p">,</span> <span class="n">version</span> <span class="o">=</span> <span class="n">identity</span><span class="p">[:</span><span class="n">position</span><span class="p">],</span> <span class="n">identity</span><span class="p">[</span><span class="n">position</span> <span class="o">+</span> <span class="mi">4</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="n">has_insecure_path_element</span><span class="p">(</span><span class="n">identity</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">None</span>
 
         <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">app</span><span class="o">.</span><span class="n">static_files</span><span class="p">:</span>
-            <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">absorb</span><span class="p">)</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">identity</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="ow">not</span> <span class="n">is_subpath</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
                 <span class="k">continue</span>
@@ -111,7 +120,7 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
                 <span class="k">continue</span>
 
-            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">directory</span><span class="p">))</span></div></div>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">directory</span><span class="p">),</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">)</span></div></div>
 
 
 <span class="nd">@Framework</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">StaticFile</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/static&#39;</span><span class="p">,</span> <span class="n">absorb</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -122,6 +131,12 @@
 <div class="viewcode-block" id="view_static_file"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.static.view_static_file">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">StaticFile</span><span class="p">,</span> <span class="n">render</span><span class="o">=</span><span class="n">render_file</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">view_static_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Renders the given static file in the browser. &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">:</span>
+
+        <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+        <span class="k">def</span> <span class="nf">cache_forever</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Cache-Control&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;max-age=31536000&#39;</span>
 
     <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">static_files</span><span class="p">:</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
