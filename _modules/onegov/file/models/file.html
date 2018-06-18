@@ -36,6 +36,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm.abstract</span> <span class="k">import</span> <span class="n">Associable</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">JSON</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">onegov.file.attachments</span> <span class="k">import</span> <span class="n">ProcessedUploadedFile</span>
 <span class="kn">from</span> <span class="nn">onegov.file.filters</span> <span class="k">import</span> <span class="n">OnlyIfImage</span><span class="p">,</span> <span class="n">WithThumbnailFilter</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Text</span>
@@ -80,6 +81,9 @@
     <span class="c1">#: a short note about the file (for captions, other information)</span>
     <span class="n">note</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="c1">#: the default order of files</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
     <span class="c1">#: the type of the file, this can be used to create custom polymorphic</span>
     <span class="c1">#: subclasses. See `&lt;http://docs.sqlalchemy.org/en/improve_toc/</span>
     <span class="c1">#: orm/extensions/declarative/inheritance.html&gt;`_.</span>
@@ -117,12 +121,16 @@
     <span class="p">}</span>
 
     <span class="n">__table_args__</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">Index</span><span class="p">(</span><span class="s1">&#39;files_by_type_and_name&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">),</span>
+        <span class="n">Index</span><span class="p">(</span><span class="s1">&#39;files_by_type_and_order&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;order&#39;</span><span class="p">),</span>
     <span class="p">)</span>
 
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;reference&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">reference_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reference</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">checksum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;checksum&#39;</span><span class="p">)</span>
+
+    <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">name_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="n">normalize_for_url</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">file_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
