@@ -582,6 +582,9 @@
                           <span class="n">search</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">search_query</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">directory</span> <span class="o">=</span> <span class="n">DirectoryCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">directory_name</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">search</span><span class="p">:</span>
+        <span class="n">search</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">default_directory_search_widget</span>
+
     <span class="k">if</span> <span class="n">search</span> <span class="ow">and</span> <span class="n">search</span> <span class="ow">in</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">directory_search_widget_registry</span><span class="p">:</span>
         <span class="bp">cls</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">directory_search_widget_registry</span><span class="p">[</span><span class="n">search</span><span class="p">]</span>
         <span class="n">searchwidget</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="n">search_query</span><span class="p">)</span>
