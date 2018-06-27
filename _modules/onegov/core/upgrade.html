@@ -277,7 +277,16 @@
 
     <span class="k">def</span> <span class="nf">sortkey</span><span class="p">(</span><span class="n">task_id</span><span class="p">):</span>
         <span class="n">module</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">task_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">sorted_modules</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)),</span> <span class="n">task_id</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="c1"># sort by the topological order</span>
+            <span class="n">sorted_modules</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)),</span>
+
+            <span class="c1"># then by module</span>
+            <span class="n">module</span><span class="p">,</span>
+
+            <span class="c1"># then by appearance of update function in the code</span>
+            <span class="n">tasks</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span><span class="o">.</span><span class="vm">__code__</span><span class="o">.</span><span class="n">co_firstlineno</span>
+        <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">sortkey</span></div>
 
