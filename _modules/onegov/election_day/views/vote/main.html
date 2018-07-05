@@ -32,7 +32,8 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.election_day.views.vote.main</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">morepath.request</span> <span class="k">import</span> <span class="n">Response</span>
+<span></span><span class="kn">from</span> <span class="nn">morepath</span> <span class="k">import</span> <span class="n">redirect</span>
+<span class="kn">from</span> <span class="nn">morepath.request</span> <span class="k">import</span> <span class="n">Response</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Vote</span>
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
@@ -43,60 +44,15 @@
 <span class="kn">from</span> <span class="nn">onegov.election_day.utils</span> <span class="k">import</span> <span class="n">get_vote_summary</span>
 
 
-<div class="viewcode-block" id="view_vote_proposal"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.vote.main.view_vote_proposal">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span>
+<div class="viewcode-block" id="view_vote"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.vote.main.view_vote">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span>
     <span class="n">model</span><span class="o">=</span><span class="n">Vote</span><span class="p">,</span>
-    <span class="n">template</span><span class="o">=</span><span class="s1">&#39;vote/ballot.pt&#39;</span><span class="p">,</span>
     <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">view_vote_proposal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">view_vote</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
 
-    <span class="sd">&quot;&quot;&quot;&quot; The main view (proposal). &quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;&quot; The main view. &quot;&quot;&quot;</span>
 
-    <span class="n">layout</span> <span class="o">=</span> <span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="s1">&#39;vote&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
-        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
-        <span class="s1">&#39;show_map&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">is_year_available</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
-    <span class="p">}</span></div>
-
-
-<div class="viewcode-block" id="view_vote_counter_proposal"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.vote.main.view_vote_counter_proposal">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span>
-    <span class="n">model</span><span class="o">=</span><span class="n">Vote</span><span class="p">,</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;counter-proposal&#39;</span><span class="p">,</span>
-    <span class="n">template</span><span class="o">=</span><span class="s1">&#39;vote/ballot.pt&#39;</span><span class="p">,</span>
-    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
-<span class="p">)</span>
-<span class="k">def</span> <span class="nf">view_vote_counter_proposal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
-
-    <span class="sd">&quot;&quot;&quot;&quot; The main view (counter-proposal). &quot;&quot;&quot;</span>
-
-    <span class="n">layout</span> <span class="o">=</span> <span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;counter-proposal&#39;</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="s1">&#39;vote&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
-        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
-        <span class="s1">&#39;show_map&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">is_year_available</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
-    <span class="p">}</span></div>
-
-
-<div class="viewcode-block" id="view_vote_tie_breaker"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.vote.main.view_vote_tie_breaker">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span>
-    <span class="n">model</span><span class="o">=</span><span class="n">Vote</span><span class="p">,</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tie-breaker&#39;</span><span class="p">,</span>
-    <span class="n">template</span><span class="o">=</span><span class="s1">&#39;vote/ballot.pt&#39;</span><span class="p">,</span>
-    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
-<span class="p">)</span>
-<span class="k">def</span> <span class="nf">view_vote_tie_breaker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
-
-    <span class="sd">&quot;&quot;&quot;&quot; The main view (tie-breaker). &quot;&quot;&quot;</span>
-
-    <span class="n">layout</span> <span class="o">=</span> <span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;tie-breaker&#39;</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="s1">&#39;vote&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
-        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
-        <span class="s1">&#39;show_map&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">is_year_available</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
-    <span class="p">}</span></div>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">main_view</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="view_vote_json"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.views.vote.main.view_vote_json">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span>
@@ -115,19 +71,23 @@
         <span class="n">add_cors_header</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
         <span class="n">add_last_modified_header</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">last_modified</span><span class="p">)</span>
 
-    <span class="n">show_map</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">is_year_available</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
+    <span class="n">embed</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">media</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">layout</span> <span class="o">=</span> <span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
     <span class="n">layout</span><span class="o">.</span><span class="n">last_modified</span> <span class="o">=</span> <span class="n">last_modified</span>
     <span class="k">if</span> <span class="n">layout</span><span class="o">.</span><span class="n">pdf_path</span><span class="p">:</span>
         <span class="n">media</span><span class="p">[</span><span class="s1">&#39;pdf&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;pdf&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">show_map</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">layout</span><span class="o">.</span><span class="n">show_map</span><span class="p">:</span>
         <span class="n">media</span><span class="p">[</span><span class="s1">&#39;maps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span><span class="p">:</span>
-            <span class="n">layout</span> <span class="o">=</span> <span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">tab</span><span class="o">=</span><span class="n">ballot</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
-            <span class="n">layout</span><span class="o">.</span><span class="n">last_modified</span> <span class="o">=</span> <span class="n">last_modified</span>
-            <span class="k">if</span> <span class="n">layout</span><span class="o">.</span><span class="n">svg_path</span><span class="p">:</span>
-                <span class="n">media</span><span class="p">[</span><span class="s1">&#39;maps&#39;</span><span class="p">][</span><span class="n">ballot</span><span class="o">.</span><span class="n">type</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">ballot</span><span class="p">,</span> <span class="s1">&#39;svg&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;proposal-&#39;</span><span class="p">,</span> <span class="s1">&#39;counter-proposal-&#39;</span><span class="p">,</span> <span class="s1">&#39;tie-breaker-&#39;</span><span class="p">):</span>
+            <span class="k">for</span> <span class="nb">map</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;entities&#39;</span><span class="p">,</span> <span class="s1">&#39;districts&#39;</span><span class="p">):</span>
+                <span class="n">tab</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{ballot}{map}</span><span class="s1">&#39;</span>
+                <span class="n">layout</span> <span class="o">=</span> <span class="n">VoteLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">tab</span><span class="p">)</span>
+                <span class="n">layout</span><span class="o">.</span><span class="n">last_modified</span> <span class="o">=</span> <span class="n">last_modified</span>
+                <span class="k">if</span> <span class="n">layout</span><span class="o">.</span><span class="n">visible</span><span class="p">:</span>
+                    <span class="n">embed</span><span class="p">[</span><span class="n">tab</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">ballot</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">f</span><span class="s1">&#39;</span><span class="si">{map}</span><span class="s1">-map&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">layout</span><span class="o">.</span><span class="n">svg_path</span><span class="p">:</span>
+                        <span class="n">media</span><span class="p">[</span><span class="s1">&#39;maps&#39;</span><span class="p">][</span><span class="n">tab</span><span class="p">]</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">svg_link</span>
 
     <span class="n">counted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">nays_percentage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nays_percentage</span> <span class="k">if</span> <span class="n">counted</span> <span class="k">else</span> <span class="kc">None</span>
@@ -197,11 +157,7 @@
             <span class="p">}</span> <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span>
         <span class="p">],</span>
         <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
-        <span class="s1">&#39;embed&#39;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="n">ballot</span><span class="o">.</span><span class="n">type</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">ballot</span><span class="p">,</span> <span class="s1">&#39;map&#39;</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">ballot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ballots</span> <span class="k">if</span> <span class="n">show_map</span>
-
-        <span class="p">},</span>
+        <span class="s1">&#39;embed&#39;</span><span class="p">:</span> <span class="n">embed</span><span class="p">,</span>
         <span class="s1">&#39;media&#39;</span><span class="p">:</span> <span class="n">media</span><span class="p">,</span>
         <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="p">{</span>
             <span class="s1">&#39;json&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;data-json&#39;</span><span class="p">),</span>

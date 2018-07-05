@@ -42,8 +42,11 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">HSTORE</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">case</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">cast</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Float</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">ForeignKey</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">func</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">select</span>
@@ -110,6 +113,35 @@
         <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">,</span>
         <span class="n">order_by</span><span class="o">=</span><span class="s1">&#39;BallotResult.district, BallotResult.name&#39;</span><span class="p">,</span>
     <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">results_by_district</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the results aggregated by the distict.  &quot;&quot;&quot;</span>
+
+        <span class="n">counted</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">bool_and</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">counted</span><span class="p">),</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">yeas</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">yeas</span><span class="p">)</span>
+        <span class="n">nays</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">nays</span><span class="p">)</span>
+        <span class="n">yeas_percentage</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">yeas</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="n">cast</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">nullif</span><span class="p">(</span><span class="n">yeas</span> <span class="o">+</span> <span class="n">nays</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="n">Float</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">nays_percentage</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">-</span> <span class="n">yeas_percentage</span>
+        <span class="n">accepted</span> <span class="o">=</span> <span class="n">case</span><span class="p">({</span><span class="kc">True</span><span class="p">:</span> <span class="n">yeas</span> <span class="o">&gt;</span> <span class="n">nays</span><span class="p">},</span> <span class="n">counted</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+            <span class="n">BallotResult</span><span class="o">.</span><span class="n">district</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">),</span>
+            <span class="n">counted</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;counted&#39;</span><span class="p">),</span>
+            <span class="n">accepted</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;accepted&#39;</span><span class="p">),</span>
+            <span class="n">yeas</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;yeas&#39;</span><span class="p">),</span>
+            <span class="n">nays</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;nays&#39;</span><span class="p">),</span>
+            <span class="n">yeas_percentage</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;yeas_percentage&#39;</span><span class="p">),</span>
+            <span class="n">nays_percentage</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;nays_percentage&#39;</span><span class="p">),</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">empty</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;empty&#39;</span><span class="p">),</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">invalid</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;invalid&#39;</span><span class="p">),</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">eligible_voters</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;eligible_voters&#39;</span><span class="p">),</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">array_agg</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">entity_id</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;entity_ids&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">district</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">district</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span>
 
     <span class="nd">@hybrid_property</span>
     <span class="k">def</span> <span class="nf">counted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -185,43 +217,6 @@
         <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">attribute</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">expr</span></div>
-
-<div class="viewcode-block" id="Ballot.percentage_by_entity"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Ballot.percentage_by_entity">[docs]</a>    <span class="k">def</span> <span class="nf">percentage_by_entity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns the yeas/nays percentage grouped and keyed by</span>
-<span class="sd">        entity_id.</span>
-
-<span class="sd">        Uncounted entities are not included.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="n">query</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">BallotResult</span><span class="p">)</span>
-
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
-            <span class="n">BallotResult</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span>
-            <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">yeas</span><span class="p">),</span>
-            <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">nays</span><span class="p">),</span>
-            <span class="n">BallotResult</span><span class="o">.</span><span class="n">counted</span>
-        <span class="p">)</span>
-
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span>
-            <span class="n">BallotResult</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span>
-            <span class="n">BallotResult</span><span class="o">.</span><span class="n">counted</span>
-        <span class="p">)</span>
-
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">BallotResult</span><span class="o">.</span><span class="n">ballot_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-
-        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
-
-        <span class="k">for</span> <span class="nb">id</span><span class="p">,</span> <span class="n">yeas</span><span class="p">,</span> <span class="n">nays</span><span class="p">,</span> <span class="n">counted</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-            <span class="n">r</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;counted&#39;</span><span class="p">:</span> <span class="n">counted</span><span class="p">}</span>
-
-            <span class="k">if</span> <span class="n">counted</span><span class="p">:</span>
-                <span class="n">r</span><span class="p">[</span><span class="s1">&#39;yeas_percentage&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">yeas</span> <span class="o">/</span> <span class="p">((</span><span class="n">yeas</span> <span class="o">+</span> <span class="n">nays</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
-                <span class="n">r</span><span class="p">[</span><span class="s1">&#39;nays_percentage&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">-</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;yeas_percentage&#39;</span><span class="p">]</span>
-
-            <span class="n">result</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span>
-
-        <span class="k">return</span> <span class="n">result</span></div>
 
 <div class="viewcode-block" id="Ballot.clear_results"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.vote.Ballot.clear_results">[docs]</a>    <span class="k">def</span> <span class="nf">clear_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Clear all the results. &quot;&quot;&quot;</span>

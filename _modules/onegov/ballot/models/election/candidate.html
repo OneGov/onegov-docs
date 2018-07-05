@@ -33,6 +33,7 @@
             
   <h1>Source code for onegov.ballot.models.election.candidate</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">onegov.ballot.models.election.candidate_result</span> <span class="k">import</span> <span class="n">CandidateResult</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot.models.election.election_result</span> <span class="k">import</span> <span class="n">ElectionResult</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot.models.mixins</span> <span class="k">import</span> <span class="n">summarized_property</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
@@ -104,7 +105,101 @@
         <span class="n">expr</span> <span class="o">=</span> <span class="n">select</span><span class="p">([</span><span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">CandidateResult</span><span class="p">,</span> <span class="n">attribute</span><span class="p">))])</span>
         <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">CandidateResult</span><span class="o">.</span><span class="n">candidate_id</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
         <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">attribute</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">expr</span></div></div>
+        <span class="k">return</span> <span class="n">expr</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">percentage_by_entity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the percentage of votes by the entity. Includes uncounted</span>
+<span class="sd">        entities and entities with no results available.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">election</span><span class="o">.</span><span class="n">results</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">candidate_results</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">CandidateResult</span><span class="o">.</span><span class="n">candidate_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">entity_id</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">),</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">counted</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;counted&#39;</span><span class="p">),</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">accounted_votes</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;total&#39;</span><span class="p">),</span>
+            <span class="n">CandidateResult</span><span class="o">.</span><span class="n">votes</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;votes&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="n">percentage</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;counted&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">counted</span><span class="p">,</span>
+                <span class="s1">&#39;percentage&#39;</span><span class="p">:</span> <span class="mi">100</span> <span class="o">*</span> <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">votes</span> <span class="o">/</span> <span class="n">r</span><span class="o">.</span><span class="n">total</span><span class="p">)</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">total</span> <span class="k">else</span> <span class="mf">0.0</span>
+            <span class="p">}</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span>
+        <span class="p">}</span>
+
+        <span class="n">empty</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">election</span><span class="o">.</span><span class="n">results</span>
+        <span class="n">empty</span> <span class="o">=</span> <span class="n">empty</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">entity_id</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">),</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">counted</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;counted&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">empty</span> <span class="o">=</span> <span class="n">empty</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">entity_id</span><span class="o">.</span><span class="n">notin_</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="n">percentage</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;counted&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">counted</span><span class="p">,</span> <span class="s1">&#39;percentage&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">}</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">empty</span><span class="p">}</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">percentage</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">percentage_by_district</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the percentage of votes aggregated by the distict. Includes</span>
+<span class="sd">        uncounted districts and districts with no results available.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">election</span><span class="o">.</span><span class="n">results</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">candidate_results</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">CandidateResult</span><span class="o">.</span><span class="n">candidate_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">district</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">),</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">array_agg</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">entity_id</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;entities&#39;</span><span class="p">),</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
+                <span class="n">func</span><span class="o">.</span><span class="n">bool_and</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">counted</span><span class="p">),</span> <span class="kc">False</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;counted&#39;</span><span class="p">),</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">accounted_votes</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;total&#39;</span><span class="p">),</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">CandidateResult</span><span class="o">.</span><span class="n">votes</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;votes&#39;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">district</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="n">percentage</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;counted&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">counted</span><span class="p">,</span>
+                <span class="s1">&#39;entities&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">entities</span><span class="p">,</span>
+                <span class="s1">&#39;percentage&#39;</span><span class="p">:</span> <span class="mi">100</span> <span class="o">*</span> <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">votes</span> <span class="o">/</span> <span class="n">r</span><span class="o">.</span><span class="n">total</span><span class="p">)</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">total</span> <span class="k">else</span> <span class="mf">0.0</span>
+            <span class="p">}</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span>
+        <span class="p">}</span>
+
+        <span class="n">empty</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">election</span><span class="o">.</span><span class="n">results</span>
+        <span class="n">empty</span> <span class="o">=</span> <span class="n">empty</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+            <span class="n">ElectionResult</span><span class="o">.</span><span class="n">district</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">),</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">array_agg</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">entity_id</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;entities&#39;</span><span class="p">),</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
+                <span class="n">func</span><span class="o">.</span><span class="n">bool_and</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">counted</span><span class="p">),</span> <span class="kc">False</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;counted&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">empty</span> <span class="o">=</span> <span class="n">empty</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">ElectionResult</span><span class="o">.</span><span class="n">district</span><span class="p">)</span>
+        <span class="n">empty</span> <span class="o">=</span> <span class="n">empty</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">empty</span><span class="p">:</span>
+            <span class="n">update</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">percentage</span> <span class="ow">or</span>
+                <span class="p">(</span>
+                    <span class="nb">set</span><span class="p">(</span><span class="n">percentage</span><span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;entities&#39;</span><span class="p">])</span> <span class="o">!=</span>
+                    <span class="nb">set</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">entities</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">update</span><span class="p">:</span>
+                <span class="n">percentage</span><span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;counted&#39;</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">counted</span><span class="p">,</span>
+                    <span class="s1">&#39;entities&#39;</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">entities</span><span class="p">,</span>
+                    <span class="s1">&#39;percentage&#39;</span><span class="p">:</span> <span class="mf">0.0</span>
+                <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">percentage</span></div>
 </pre></div>
 
           </div>

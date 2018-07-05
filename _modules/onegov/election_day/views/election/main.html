@@ -81,15 +81,23 @@
     <span class="k">if</span> <span class="n">layout</span><span class="o">.</span><span class="n">pdf_path</span><span class="p">:</span>
         <span class="n">media</span><span class="p">[</span><span class="s1">&#39;pdf&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;pdf&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">tab</span> <span class="ow">in</span> <span class="p">(</span>
-        <span class="s1">&#39;candidates&#39;</span><span class="p">,</span> <span class="s1">&#39;lists&#39;</span><span class="p">,</span> <span class="s1">&#39;connections&#39;</span><span class="p">,</span> <span class="s1">&#39;lists-panachage&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;party-strengths&#39;</span><span class="p">,</span> <span class="s1">&#39;parties-panachage&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;candidates&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;candidate-by-entity&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;candidate-by-district&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;lists&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;list-by-entity&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;list-by-district&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;connections&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;lists-panachage&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;party-strengths&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;parties-panachage&#39;</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">layout</span> <span class="o">=</span> <span class="n">ElectionLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">tab</span><span class="o">=</span><span class="n">tab</span><span class="p">)</span>
         <span class="n">layout</span><span class="o">.</span><span class="n">last_modified</span> <span class="o">=</span> <span class="n">last_modified</span>
         <span class="k">if</span> <span class="n">layout</span><span class="o">.</span><span class="n">visible</span><span class="p">:</span>
-            <span class="n">embed</span><span class="p">[</span><span class="n">tab</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-chart&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tab</span><span class="p">))</span>
+            <span class="n">embed</span><span class="p">[</span><span class="n">tab</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{tab}</span><span class="s1">-chart&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">layout</span><span class="o">.</span><span class="n">svg_path</span><span class="p">:</span>
-            <span class="n">media</span><span class="p">[</span><span class="s1">&#39;charts&#39;</span><span class="p">][</span><span class="n">tab</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-svg&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tab</span><span class="p">))</span>
+            <span class="n">media</span><span class="p">[</span><span class="s1">&#39;charts&#39;</span><span class="p">][</span><span class="n">tab</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{tab}</span><span class="s1">-svg&#39;</span><span class="p">)</span>
 
     <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;completed&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">completed</span><span class="p">,</span>
