@@ -35,12 +35,20 @@
 <span></span><span class="sd">&quot;&quot;&quot; The onegov org collection of files uploaded to the site. &quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">morepath</span>
+<span class="kn">import</span> <span class="nn">random</span>
 
+<span class="kn">from</span> <span class="nn">babel.core</span> <span class="k">import</span> <span class="n">Locale</span>
+<span class="kn">from</span> <span class="nn">babel.dates</span> <span class="k">import</span> <span class="n">parse_pattern</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
+<span class="kn">from</span> <span class="nn">mimetypes</span> <span class="k">import</span> <span class="n">guess_extension</span>
 <span class="kn">from</span> <span class="nn">onegov.core.filestorage</span> <span class="k">import</span> <span class="n">view_filestorage_file</span>
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Private</span><span class="p">,</span> <span class="n">Public</span>
+<span class="kn">from</span> <span class="nn">onegov.core.templates</span> <span class="k">import</span> <span class="n">render_macro</span>
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">FileCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span><span class="p">,</span> <span class="n">OrgApp</span>
-<span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">Img</span><span class="p">,</span> <span class="n">Link</span>
+<span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">Img</span>
+<span class="kn">from</span> <span class="nn">onegov.org.new_elements</span> <span class="k">import</span> <span class="n">Link</span>
 <span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">DefaultLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="p">(</span>
     <span class="n">GeneralFile</span><span class="p">,</span>
@@ -53,29 +61,71 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
 <span class="kn">from</span> <span class="nn">webob</span> <span class="k">import</span> <span class="n">exc</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
 
 
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">GeneralFileCollection</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;files.pt&#39;</span><span class="p">,</span>
              <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">view_get_file_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;common&#39;</span><span class="p">)</span>
     <span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;dropzone&#39;</span><span class="p">)</span>
-
-    <span class="n">files</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">Link</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
-        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">File</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="p">]</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;prompt&#39;</span><span class="p">)</span>
 
     <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
     <span class="n">layout</span><span class="o">.</span><span class="n">breadcrumbs</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span> <span class="n">layout</span><span class="o">.</span><span class="n">homepage_url</span><span class="p">),</span>
-        <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Files&quot;</span><span class="p">),</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Files&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">)</span>
     <span class="p">]</span>
+
+    <span class="n">files</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">)</span>
+
+    <span class="c1"># XXX build somewhat manually for more speed</span>
+    <span class="n">locale</span> <span class="o">=</span> <span class="n">Locale</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span><span class="p">)</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="n">parse_pattern</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">datetime_format</span><span class="p">)</span>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">//</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">format_date</span><span class="p">(</span><span class="n">date</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pattern</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">locale</span><span class="p">)</span>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">//</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">extension_for_content_type</span><span class="p">(</span><span class="n">content_type</span><span class="p">):</span>
+        <span class="n">extension</span> <span class="o">=</span> <span class="n">guess_extension</span><span class="p">(</span><span class="n">content_type</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="k">return</span> <span class="n">extension</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+    <span class="n">grouped</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">files</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+    <span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
         <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Files&#39;</span><span class="p">),</span>
-        <span class="s1">&#39;files&#39;</span><span class="p">:</span> <span class="n">files</span><span class="p">,</span>
+        <span class="s1">&#39;grouped&#39;</span><span class="p">:</span> <span class="n">grouped</span><span class="p">,</span>
+        <span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">),</span>
+        <span class="s1">&#39;format_date&#39;</span><span class="p">:</span> <span class="n">format_date</span><span class="p">,</span>
+        <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+        <span class="s1">&#39;extension&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">extension_for_content_type</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">content_type</span><span class="p">),</span>
+        <span class="s1">&#39;signed&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.9</span><span class="p">,</span>
+        <span class="s1">&#39;actions_url&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">file_id</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
+            <span class="n">GeneralFile</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;details&quot;</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">file_id</span><span class="p">}</span>
+        <span class="p">)</span>
     <span class="p">}</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">GeneralFile</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;details&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_file_details</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">render_macro</span><span class="p">(</span>
+        <span class="n">layout</span><span class="o">.</span><span class="n">macros</span><span class="p">[</span><span class="s1">&#39;file-details&#39;</span><span class="p">],</span>
+        <span class="n">request</span><span class="p">,</span>
+        <span class="p">{</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">,</span>
+            <span class="s1">&#39;file&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+            <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
 
 
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">ImageFileCollection</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;images.pt&#39;</span><span class="p">,</span>

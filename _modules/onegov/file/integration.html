@@ -34,6 +34,9 @@
   <h1>Source code for onegov.file.integration</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">morepath</span>
 <span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">shlex</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
 
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">depot.manager</span> <span class="k">import</span> <span class="n">DepotManager</span>
@@ -78,14 +81,47 @@
 <span class="sd">            file belongs to which application. Additionally it ensures that we</span>
 <span class="sd">            aren&#39;t accidentally opening another application&#39;s files.</span>
 
+<span class="sd">        :frontend_cache_buster: A script able to bust the frontend cache.</span>
+
+<span class="sd">            Our frontend (nginx) caches the files we store in the backend and</span>
+<span class="sd">            serves them mostly without bothering us. This can be problematic</span>
+<span class="sd">            when the file is deleted or if it is made private. The cache</span>
+<span class="sd">            needs to be busted in this case.</span>
+
+<span class="sd">            With this configuration a script/command can be specified that</span>
+<span class="sd">            receives the url that needs to be busted and in turn busts the</span>
+<span class="sd">            content of this url from the cache. This pretty much depends</span>
+<span class="sd">            on the platform this is run and on the frontend in use.</span>
+
+<span class="sd">            For example, let&#39;s say our script is called &#39;bust-cache&#39;, this</span>
+<span class="sd">            is the command that will be run when the cache is busted::</span>
+
+<span class="sd">                sleep 5</span>
+<span class="sd">                bust-cache https://example.org/storage/foo</span>
+
+<span class="sd">            As you can see, the command is invoked with a five second delay.</span>
+<span class="sd">            This avoids premature cache busting (before the end of the</span>
+<span class="sd">            transaction). The command is non-blocking, so those 5 seconds</span>
+<span class="sd">            are not counted towards the request-time.</span>
+
+<span class="sd">            The script is invoked with the permissions of the user running</span>
+<span class="sd">            the backend. If other permissions are required, use suid.</span>
+
+<span class="sd">            Note that this script is optional. If omitted, the cache busting</span>
+<span class="sd">            turns into a noop.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">depot_backend</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;depot_backend&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">depot_storage_path</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;depot_storage_path&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache_buster</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;frontend_cache_buster&#39;</span><span class="p">)</span>
 
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">depot_backend</span> <span class="ow">in</span> <span class="n">SUPPORTED_STORAGE_BACKENDS</span><span class="p">,</span> <span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">            A depot app *must* have a valid storage backend set up.</span>
 <span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s1">&#39;gs&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;onegov.file requires ghostscript&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">depot_backend</span> <span class="o">==</span> <span class="s1">&#39;depot.io.local.LocalFileStorage&#39;</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depot_storage_path</span><span class="p">),</span> <span class="s2">&quot;&quot;&quot;</span>
@@ -133,6 +169,16 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">create_depot</span><span class="p">()</span>
 
         <span class="n">DepotManager</span><span class="o">.</span><span class="n">set_default</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bound_depot_id</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">bust_frontend_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache_buster</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="nb">bin</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache_buster</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;sleep 5 &amp;&amp; </span><span class="si">{bin}</span><span class="s1"> </span><span class="si">{url}</span><span class="s1">&#39;</span>
+
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">close_fds</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">clear_depot_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">DepotManager</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
@@ -200,14 +246,20 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">file</span>
 
 
-<span class="nd">@DepotApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;thumbnail&#39;</span><span class="p">,</span> <span class="n">render</span><span class="o">=</span><span class="n">render_depot_file</span><span class="p">,</span>
-               <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
+<span class="nd">@DepotApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;thumbnail&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">,</span>
+               <span class="n">render</span><span class="o">=</span><span class="n">render_depot_file</span><span class="p">)</span>
+<span class="nd">@DepotApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">,</span>
+               <span class="n">render</span><span class="o">=</span><span class="n">render_depot_file</span><span class="p">)</span>
+<span class="nd">@DepotApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;medium&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">,</span>
+               <span class="n">render</span><span class="o">=</span><span class="n">render_depot_file</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">view_thumbnail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
-    <span class="n">respond_with_alt_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">view_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;small&#39;</span><span class="p">,</span> <span class="s1">&#39;medium&#39;</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">view_name</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="s1">&#39;small&#39;</span>
 
-    <span class="c1"># we currently only have one thumbnail, in the future we might make this</span>
-    <span class="c1"># a query parameter:</span>
-    <span class="n">thumbnail_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_thumbnail_id</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">)</span>
+    <span class="n">respond_with_alt_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="n">thumbnail_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_thumbnail_id</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">thumbnail_id</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
@@ -251,6 +303,20 @@
         <span class="n">flag_modified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;modified&#39;</span><span class="p">)</span>
 
 
+<span class="nd">@DepotApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;rename&#39;</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+               <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_rename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+
+    <span class="c1"># when updating the name we offer the option not to update the</span>
+    <span class="c1"># modified date, which is helpful if the files are in modified order</span>
+    <span class="c1"># and the order should remain when the note is changed</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;keep-timestamp&#39;</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;true&#39;</span><span class="p">,</span> <span class="s1">&#39;yes&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modified</span>
+        <span class="n">flag_modified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;modified&#39;</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="delete_file"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.integration.delete_file">[docs]</a><span class="nd">@DepotApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">delete_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Deletes the given file. By default the permission is</span>
@@ -268,6 +334,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bust_frontend_cache</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
     <span class="n">FileCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 </pre></div>
 

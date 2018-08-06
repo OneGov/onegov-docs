@@ -325,10 +325,36 @@ options are accepted:</p>
 </tr>
 <tr class="field-even field"><th class="field-name" colspan="2">Depot_storage_path:</th></tr>
 <tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">The storage path used by the local file storage.</p>
-<p class="last">Note that the actual files are stored under a subdirectory specific
+<p>Note that the actual files are stored under a subdirectory specific
 to each application id. This is mainly to keep a handle on which
 file belongs to which application. Additionally it ensures that we
 aren’t accidentally opening another application’s files.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Frontend_cache_buster:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">A script able to bust the frontend cache.</p>
+<p>Our frontend (nginx) caches the files we store in the backend and
+serves them mostly without bothering us. This can be problematic
+when the file is deleted or if it is made private. The cache
+needs to be busted in this case.</p>
+<p>With this configuration a script/command can be specified that
+receives the url that needs to be busted and in turn busts the
+content of this url from the cache. This pretty much depends
+on the platform this is run and on the frontend in use.</p>
+<p>For example, let’s say our script is called ‘bust-cache’, this
+is the command that will be run when the cache is busted:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sleep</span> <span class="mi">5</span>
+<span class="n">bust</span><span class="o">-</span><span class="n">cache</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">example</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">storage</span><span class="o">/</span><span class="n">foo</span>
+</pre></div>
+</div>
+<p>As you can see, the command is invoked with a five second delay.
+This avoids premature cache busting (before the end of the
+transaction). The command is non-blocking, so those 5 seconds
+are not counted towards the request-time.</p>
+<p>The script is invoked with the permissions of the user running
+the backend. If other permissions are required, use suid.</p>
+<p class="last">Note that this script is optional. If omitted, the cache busting
+turns into a noop.</p>
 </td>
 </tr>
 </tbody>
@@ -400,6 +426,13 @@ uploaded file is an image.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="onegov.file.filters.OnlyIfPDF">
+<em class="property">class </em><code class="descclassname">onegov.file.filters.</code><code class="descname">OnlyIfPDF</code><span class="sig-paren">(</span><em>filter</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/filters.html#OnlyIfPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.filters.OnlyIfPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>A conditional filter that runs the passed filter only if the
+uploaded file is a pdf.</p>
+</dd></dl>
+
+<dl class="class">
 <dt id="onegov.file.filters.WithThumbnailFilter">
 <em class="property">class </em><code class="descclassname">onegov.file.filters.</code><code class="descname">WithThumbnailFilter</code><span class="sig-paren">(</span><em>name</em>, <em>size</em>, <em>format</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/filters.html#WithThumbnailFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.filters.WithThumbnailFilter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Uploads a thumbnail together with the file.</p>
@@ -420,6 +453,17 @@ of thumbnails instead of recreation (if possible).</p>
 <dd><p>Filters are required to provide their own implementation</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.file.filters.WithPDFThumbnailFilter">
+<em class="property">class </em><code class="descclassname">onegov.file.filters.</code><code class="descname">WithPDFThumbnailFilter</code><span class="sig-paren">(</span><em>name</em>, <em>size</em>, <em>format</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/filters.html#WithPDFThumbnailFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.filters.WithPDFThumbnailFilter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uploads a preview thumbnail as PNG together with the file.</p>
+<p>This is basically the PDF implementation for <cite>WithThumbnailFilter</cite>.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Requires the presence of ghostscript (gs binary) on the PATH.</p>
+</div>
 </dd></dl>
 
 </div>

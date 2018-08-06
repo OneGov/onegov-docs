@@ -34,10 +34,14 @@
   <h1>Source code for onegov.org.models.file</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot; Contains the models describing files and images. &quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">sedate</span>
+
+<span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">dateutil.relativedelta</span> <span class="k">import</span> <span class="n">relativedelta</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">chain</span><span class="p">,</span> <span class="n">groupby</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">as_selectable</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span>
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">FileSet</span><span class="p">,</span> <span class="n">FileCollection</span><span class="p">,</span> <span class="n">FileSetCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">IMAGE_MIME_TYPES_AND_SVG</span>
@@ -45,7 +49,7 @@
 <span class="kn">from</span> <span class="nn">onegov.org.models.extensions</span> <span class="k">import</span> <span class="n">HiddenFromPublicExtension</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">standardize_date</span><span class="p">,</span> <span class="n">utcnow</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">desc</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">asc</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="n">select</span>
 
 
 <span class="n">DateInterval</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;DateInterval&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="s1">&#39;end&#39;</span><span class="p">))</span>
@@ -189,8 +193,75 @@
 
     <span class="n">supported_content_types</span> <span class="o">=</span> <span class="s1">&#39;all&#39;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;general&#39;</span><span class="p">,</span> <span class="n">allow_duplicates</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+    <span class="n">file_list</span> <span class="o">=</span> <span class="n">as_selectable</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT</span>
+<span class="s2">            row_number() OVER () as number, -- Integer</span>
+<span class="s2">            id,                             -- Text</span>
+<span class="s2">            name,                           -- Text</span>
+<span class="s2">            &quot;order&quot;,                        -- Text</span>
+<span class="s2">            created as upload_date,         -- UTCDateTime</span>
+<span class="s2">            reference-&gt;&gt;&#39;content_type&#39;</span>
+<span class="s2">                AS content_type             -- Text</span>
+<span class="s2">        FROM files</span>
+<span class="s2">        WHERE type = &#39;general&#39;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="s1">&#39;name&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;general&#39;</span><span class="p">,</span> <span class="n">allow_duplicates</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_by</span> <span class="o">=</span> <span class="n">order_by</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">direction</span> <span class="o">=</span> <span class="n">order_by</span> <span class="o">==</span> <span class="s1">&#39;name&#39;</span> <span class="ow">and</span> <span class="s1">&#39;ascending&#39;</span> <span class="ow">or</span> <span class="s1">&#39;descending&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_interval</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">for_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_date_intervals</span><span class="p">(</span><span class="n">today</span><span class="o">=</span><span class="n">sedate</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">statement</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">stmt</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_list</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_by</span> <span class="o">==</span> <span class="s1">&#39;name&#39;</span><span class="p">:</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_list</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">order</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_list</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">upload_date</span>
+
+        <span class="n">direction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">direction</span> <span class="o">==</span> <span class="s1">&#39;ascending&#39;</span> <span class="ow">and</span> <span class="n">asc</span> <span class="ow">or</span> <span class="n">desc</span>
+
+        <span class="k">return</span> <span class="n">stmt</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">direction</span><span class="p">(</span><span class="n">order</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">statement</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_by</span> <span class="o">==</span> <span class="s1">&#39;name&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">order</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+                <span class="k">return</span> <span class="s1">&#39;0-9&#39;</span>
+
+            <span class="k">return</span> <span class="n">record</span><span class="o">.</span><span class="n">order</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_interval</span><span class="p">:</span>
+                <span class="n">intervals</span> <span class="o">=</span> <span class="n">chain</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_last_interval</span><span class="p">,</span> <span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">intervals</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">intervals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">intervals</span>
+
+            <span class="k">for</span> <span class="n">interval</span> <span class="ow">in</span> <span class="n">intervals</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">interval</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;=</span> <span class="n">record</span><span class="o">.</span><span class="n">upload_date</span> <span class="o">&lt;=</span> <span class="n">interval</span><span class="o">.</span><span class="n">end</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Older&quot;</span><span class="p">)</span>
+
+            <span class="c1"># this method is usually called for each item in a sorted set,</span>
+            <span class="c1"># we optimise for that by caching the last matching interval</span>
+            <span class="c1"># and checking that one first the next time</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_last_interval</span> <span class="o">=</span> <span class="n">interval</span>
+
+            <span class="k">return</span> <span class="n">interval</span><span class="o">.</span><span class="n">name</span></div>
 
 
 <div class="viewcode-block" id="ImageFileCollection"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.file.ImageFileCollection">[docs]</a><span class="k">class</span> <span class="nc">ImageFileCollection</span><span class="p">(</span><span class="n">FileCollection</span><span class="p">,</span> <span class="n">GroupFilesByDateMixin</span><span class="p">):</span>
