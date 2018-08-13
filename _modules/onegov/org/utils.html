@@ -44,6 +44,7 @@
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
 <span class="kn">from</span> <span class="nn">libres.modules</span> <span class="k">import</span> <span class="n">errors</span> <span class="k">as</span> <span class="n">libres_errors</span>
 <span class="kn">from</span> <span class="nn">lxml.html</span> <span class="k">import</span> <span class="n">fragments_fromstring</span><span class="p">,</span> <span class="n">tostring</span>
+<span class="kn">from</span> <span class="nn">mimetypes</span> <span class="k">import</span> <span class="n">guess_extension</span>
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">FileCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">DeleteLink</span><span class="p">,</span> <span class="n">Link</span>
@@ -76,28 +77,43 @@
     <span class="k">return</span> <span class="nb">hash</span> <span class="o">%</span> <span class="n">size</span></div>
 
 
-<div class="viewcode-block" id="get_user_color"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.utils.get_user_color">[docs]</a><span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">get_user_color</span><span class="p">(</span><span class="n">username</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Gets a user color for each username which is used for the</span>
-<span class="sd">    user-initials-* elements. Each username is mapped to a color.</span>
+<div class="viewcode-block" id="get_random_color"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.utils.get_random_color">[docs]</a><span class="k">def</span> <span class="nf">get_random_color</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">lightness</span><span class="p">,</span> <span class="n">saturation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Gets a random color using the given seed (a text value).</span>
 
 <span class="sd">    Since the colorspace is very limited there are lots of collisions.</span>
 
-<span class="sd">    :returns: The user color in an css rgb string.</span>
-
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">h</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">/</span> <span class="n">djb2_hash</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="mi">360</span><span class="p">)</span>
-    <span class="n">l</span> <span class="o">=</span> <span class="mf">0.9</span>  <span class="c1"># noqa</span>
-    <span class="n">s</span> <span class="o">=</span> <span class="mf">0.5</span>
-
-    <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">colorsys</span><span class="o">.</span><span class="n">hls_to_rgb</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+    <span class="n">hue</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">/</span> <span class="n">djb2_hash</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="mi">360</span><span class="p">)</span>
+    <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">colorsys</span><span class="o">.</span><span class="n">hls_to_rgb</span><span class="p">(</span><span class="n">hue</span><span class="p">,</span> <span class="n">lightness</span><span class="p">,</span> <span class="n">saturation</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="s1">&#39;#</span><span class="si">{0:02x}{1:02x}{2:02x}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
         <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">r</span> <span class="o">*</span> <span class="mi">255</span><span class="p">)),</span>
         <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="mi">255</span><span class="p">)),</span>
         <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="mi">255</span><span class="p">))</span>
     <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_user_color"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.utils.get_user_color">[docs]</a><span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_user_color</span><span class="p">(</span><span class="n">username</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Gets a user color for each username which is used for the</span>
+<span class="sd">    user-initials-* elements. Each username is mapped to a color.</span>
+
+<span class="sd">    :returns: The user color in an css rgb string.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">get_random_color</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">lightness</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">saturation</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_extension_color"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.utils.get_extension_color">[docs]</a><span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_extension_color</span><span class="p">(</span><span class="n">extension</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Gets an extension color for each file extension. This is similar to</span>
+<span class="sd">    :func:`get_user_color`, but returns a darker color (text is white).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">get_random_color</span><span class="p">(</span><span class="n">extension</span><span class="p">,</span> <span class="n">lightness</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">saturation</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span></div>
 
 
 <span class="k">def</span> <span class="nf">format_time_range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
@@ -691,6 +707,21 @@
         <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;dtstart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sedate</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">rrule</span><span class="o">.</span><span class="n">rrulestr</span><span class="p">(</span><span class="n">recurrence</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="extension_for_content_type"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.utils.extension_for_content_type">[docs]</a><span class="k">def</span> <span class="nf">extension_for_content_type</span><span class="p">(</span><span class="n">content_type</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Gets the extension for the given content type. Note that this is</span>
+<span class="sd">    *meant for display only*. A file claiming to be a PDF might not be one,</span>
+<span class="sd">    but this function would not let you know that.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ext</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ext</span> <span class="o">=</span> <span class="p">(</span><span class="n">guess_extension</span><span class="p">(</span><span class="n">content_type</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ext</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;. &#39;</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

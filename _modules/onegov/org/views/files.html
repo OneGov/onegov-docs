@@ -41,7 +41,6 @@
 <span class="kn">from</span> <span class="nn">babel.dates</span> <span class="k">import</span> <span class="n">parse_pattern</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
-<span class="kn">from</span> <span class="nn">mimetypes</span> <span class="k">import</span> <span class="n">guess_extension</span>
 <span class="kn">from</span> <span class="nn">onegov.core.filestorage</span> <span class="k">import</span> <span class="n">view_filestorage_file</span>
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Private</span><span class="p">,</span> <span class="n">Public</span>
 <span class="kn">from</span> <span class="nn">onegov.core.templates</span> <span class="k">import</span> <span class="n">render_macro</span>
@@ -59,6 +58,7 @@
     <span class="n">LegacyFile</span><span class="p">,</span>
     <span class="n">LegacyImage</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">utils</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
 <span class="kn">from</span> <span class="nn">webob</span> <span class="k">import</span> <span class="n">exc</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
@@ -88,10 +88,8 @@
         <span class="k">return</span> <span class="n">pattern</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">locale</span><span class="p">)</span>
 
     <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">//</span> <span class="mi">4</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">extension_for_content_type</span><span class="p">(</span><span class="n">content_type</span><span class="p">):</span>
-        <span class="n">extension</span> <span class="o">=</span> <span class="n">guess_extension</span><span class="p">(</span><span class="n">content_type</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
-
-        <span class="k">return</span> <span class="n">extension</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">extension_for_content_type</span><span class="p">(</span><span class="n">content_type</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">extension_for_content_type</span><span class="p">(</span><span class="n">content_type</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
     <span class="n">grouped</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
         <span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">files</span><span class="p">))</span>
@@ -105,7 +103,10 @@
         <span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">),</span>
         <span class="s1">&#39;format_date&#39;</span><span class="p">:</span> <span class="n">format_date</span><span class="p">,</span>
         <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
-        <span class="s1">&#39;extension&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">extension_for_content_type</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">content_type</span><span class="p">),</span>
+        <span class="s1">&#39;extension&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">extension_for_content_type</span><span class="p">(</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">content_type</span><span class="p">,</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">name</span>
+        <span class="p">),</span>
         <span class="s1">&#39;signed&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.9</span><span class="p">,</span>
         <span class="s1">&#39;actions_url&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">file_id</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
             <span class="n">GeneralFile</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;details&quot;</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">file_id</span><span class="p">}</span>
@@ -116,6 +117,11 @@
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">GeneralFile</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;details&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">view_file_details</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="n">extension</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">extension_for_content_type</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">content_type</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">filename</span>
+    <span class="p">)</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_extension_color</span><span class="p">(</span><span class="n">extension</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">render_macro</span><span class="p">(</span>
         <span class="n">layout</span><span class="o">.</span><span class="n">macros</span><span class="p">[</span><span class="s1">&#39;file-details&#39;</span><span class="p">],</span>
@@ -124,6 +130,8 @@
             <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">,</span>
             <span class="s1">&#39;file&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
             <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+            <span class="s1">&#39;extension&#39;</span><span class="p">:</span> <span class="n">extension</span><span class="p">,</span>
+            <span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="n">color</span>
         <span class="p">}</span>
     <span class="p">)</span>
 
