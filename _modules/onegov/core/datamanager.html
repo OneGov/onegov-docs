@@ -61,9 +61,38 @@
     <span class="k">def</span> <span class="nf">sortKey</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s1">&#39;mails&#39;</span>
 
+    <span class="k">def</span> <span class="nf">bind_connection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transaction</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="s1">&#39;mail_connection&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">transaction</span><span class="o">.</span><span class="n">extension</span>
+
+        <span class="k">def</span> <span class="nf">after_commit_hook</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+            <span class="n">connection</span><span class="o">.</span><span class="n">quit</span><span class="p">()</span>
+
+        <span class="n">transaction</span><span class="o">.</span><span class="n">addAfterCommitHook</span><span class="p">(</span><span class="n">after_commit_hook</span><span class="p">)</span>
+        <span class="n">transaction</span><span class="o">.</span><span class="n">extension</span><span class="p">[</span><span class="s1">&#39;mail_connection&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">connection</span>
+
+    <span class="k">def</span> <span class="nf">open_connection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">connection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">postman</span><span class="o">.</span><span class="n">transport</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">postman</span><span class="o">.</span><span class="n">host</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">postman</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+            <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">postman</span><span class="o">.</span><span class="n">options</span>
+        <span class="p">)</span>
+
+        <span class="n">connection</span><span class="o">.</span><span class="n">ehlo</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">postman</span><span class="o">.</span><span class="n">middlewares</span><span class="p">:</span>
+            <span class="n">item</span><span class="p">(</span><span class="n">connection</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">connection</span>
+
     <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transaction</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;mail_connection&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">transaction</span><span class="o">.</span><span class="n">extension</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bind_connection</span><span class="p">(</span><span class="n">transaction</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_connection</span><span class="p">())</span>
+
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">postman</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">envelope</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">postman</span><span class="o">.</span><span class="n">deliver</span><span class="p">(</span>
+                <span class="n">transaction</span><span class="o">.</span><span class="n">extension</span><span class="p">[</span><span class="s1">&#39;mail_connection&#39;</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">envelope</span>
+            <span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Failed to send e-mail&quot;</span><span class="p">)</span>
 
