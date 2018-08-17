@@ -40,6 +40,7 @@
 
 <span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">utils</span>
 <span class="kn">from</span> <span class="nn">pytz</span> <span class="k">import</span> <span class="n">timezone</span>
 
@@ -165,6 +166,15 @@
         <span class="sd">&quot;&quot;&quot; Returns the given date in the ISO 8601 format. &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">date</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="Layout.number_symbols"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.layout.Layout.number_symbols">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">number_symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">locale</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the locale specific number symbols. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">babel</span><span class="o">.</span><span class="n">numbers</span><span class="o">.</span><span class="n">get_decimal_symbol</span><span class="p">(</span><span class="n">locale</span><span class="p">),</span>
+            <span class="n">babel</span><span class="o">.</span><span class="n">numbers</span><span class="o">.</span><span class="n">get_group_symbol</span><span class="p">(</span><span class="n">locale</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
 <div class="viewcode-block" id="Layout.format_number"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.layout.Layout.format_number">[docs]</a>    <span class="k">def</span> <span class="nf">format_number</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">number</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes the given numer and formats it according to locale.</span>
 
@@ -172,17 +182,16 @@
 <span class="sd">        otherwise 2.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">number</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+
         <span class="k">if</span> <span class="n">decimal_places</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">number</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">):</span>
                 <span class="n">decimal_places</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">decimal_places</span> <span class="o">=</span> <span class="mi">2</span>
 
-        <span class="n">locale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span>
-
-        <span class="n">decimal</span> <span class="o">=</span> <span class="n">babel</span><span class="o">.</span><span class="n">numbers</span><span class="o">.</span><span class="n">get_decimal_symbol</span><span class="p">(</span><span class="n">locale</span><span class="p">)</span>
-        <span class="n">group</span> <span class="o">=</span> <span class="n">babel</span><span class="o">.</span><span class="n">numbers</span><span class="o">.</span><span class="n">get_group_symbol</span><span class="p">(</span><span class="n">locale</span><span class="p">)</span>
-
+        <span class="n">decimal</span><span class="p">,</span> <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_symbols</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">locale</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="s1">&#39;{{:,.</span><span class="si">{}</span><span class="s1">f}}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">decimal_places</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">number</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">translate</span><span class="p">({</span><span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">):</span> <span class="n">group</span><span class="p">,</span> <span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span> <span class="n">decimal</span><span class="p">})</span></div>
 
