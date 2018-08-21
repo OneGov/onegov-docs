@@ -32,7 +32,8 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.form.widgets</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">humanize</span>
+<span></span><span class="kn">import</span> <span class="nn">chameleon</span>
+<span class="kn">import</span> <span class="nn">humanize</span>
 
 <span class="kn">from</span> <span class="nn">cgi</span> <span class="k">import</span> <span class="n">escape</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">_</span>
@@ -167,6 +168,53 @@
 <div class="viewcode-block" id="TagsWidget"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.widgets.TagsWidget">[docs]</a><span class="k">class</span> <span class="nc">TagsWidget</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
     <span class="c1"># for use with https://github.com/developit/tags-input</span>
     <span class="n">input_type</span> <span class="o">=</span> <span class="s1">&#39;tags&#39;</span></div>
+
+
+<div class="viewcode-block" id="IconWidget"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.widgets.IconWidget">[docs]</a><span class="k">class</span> <span class="nc">IconWidget</span><span class="p">(</span><span class="n">TextInput</span><span class="p">):</span>
+
+    <span class="n">iconfont</span> <span class="o">=</span> <span class="s1">&#39;FontAwesome&#39;</span>
+    <span class="n">icons</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s1">&#39;&amp;#xf111&#39;</span><span class="p">,</span>  <span class="c1"># fa-circle</span>
+        <span class="s1">&#39;&amp;#xf005&#39;</span><span class="p">,</span>  <span class="c1"># fa-star</span>
+        <span class="s1">&#39;&amp;#xf06a&#39;</span><span class="p">,</span>  <span class="c1"># fa-exclamation-circle</span>
+        <span class="s1">&#39;&amp;#xf059&#39;</span><span class="p">,</span>  <span class="c1"># fa-question-circle</span>
+        <span class="s1">&#39;&amp;#xf05e&#39;</span><span class="p">,</span>  <span class="c1"># fa-ban</span>
+        <span class="s1">&#39;&amp;#xf1b9&#39;</span><span class="p">,</span>  <span class="c1"># fa-car</span>
+        <span class="s1">&#39;&amp;#xf238&#39;</span><span class="p">,</span>  <span class="c1"># fa-train</span>
+        <span class="s1">&#39;&amp;#xf206&#39;</span><span class="p">,</span>  <span class="c1"># fa-bicycle</span>
+        <span class="s1">&#39;&amp;#xf291&#39;</span><span class="p">,</span>  <span class="c1"># fa-shopping-basket</span>
+        <span class="s1">&#39;&amp;#xf1b0&#39;</span><span class="p">,</span>  <span class="c1"># fa-paw</span>
+        <span class="s1">&#39;&amp;#xf1ae&#39;</span><span class="p">,</span>  <span class="c1"># fa-child</span>
+        <span class="s1">&#39;&amp;#xf06d&#39;</span><span class="p">,</span>  <span class="c1"># fa-fire</span>
+        <span class="s1">&#39;&amp;#xf1f8&#39;</span><span class="p">,</span>  <span class="c1"># fa-trash</span>
+        <span class="s1">&#39;&amp;#xf236&#39;</span><span class="p">,</span>  <span class="c1"># fa-hotel</span>
+        <span class="s1">&#39;&amp;#xf0f4&#39;</span><span class="p">,</span>  <span class="c1"># fa-coffee</span>
+        <span class="s1">&#39;&amp;#xf017&#39;</span><span class="p">,</span>  <span class="c1"># fa-click</span>
+    <span class="p">)</span>
+
+    <span class="n">template</span> <span class="o">=</span> <span class="n">chameleon</span><span class="o">.</span><span class="n">PageTemplate</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &lt;div class=&quot;icon-widget&quot;&gt;</span>
+<span class="s2">            &lt;ul style=&quot;font-family: $</span><span class="si">{iconfont}</span><span class="s2">&quot;&gt;</span>
+<span class="s2">                &lt;li</span>
+<span class="s2">                    tal:repeat=&quot;icon icons&quot;</span>
+<span class="s2">                    tal:content=&quot;structure icon&quot;</span>
+<span class="s2">                /&gt;</span>
+<span class="s2">            &lt;/ul&gt;</span>
+
+<span class="s2">            &lt;input type=&quot;hidden&quot; name=&quot;$</span><span class="si">{id}</span><span class="s2">&quot; value=&quot;${structure: value}&quot;&gt;</span>
+<span class="s2">        &lt;/div&gt;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">iconfont</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;iconfont&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">iconfont</span><span class="p">)</span>
+        <span class="n">icons</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;icons&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">icons</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">HTMLString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span>
+            <span class="n">iconfont</span><span class="o">=</span><span class="n">iconfont</span><span class="p">,</span>
+            <span class="n">icons</span><span class="o">=</span><span class="n">icons</span><span class="p">,</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">data</span> <span class="ow">or</span> <span class="n">icons</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">))</span></div>
 </pre></div>
 
           </div>
