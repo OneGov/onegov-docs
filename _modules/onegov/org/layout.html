@@ -107,6 +107,12 @@
     <span class="n">datetime_long_without_year_format</span> <span class="o">=</span> <span class="s1">&#39;E d. MMMM HH:mm&#39;</span>
     <span class="n">event_format</span> <span class="o">=</span> <span class="s1">&#39;EEEE, d. MMMM YYYY, HH:mm&#39;</span>
 
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># overrides body attributes set in the layout template</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">custom_body_attributes</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes the class name of the layout and generates a name which</span>
@@ -1853,7 +1859,25 @@
             <span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="DirectoryEntryCollectionLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.DirectoryEntryCollectionLayout">[docs]</a><span class="k">class</span> <span class="nc">DirectoryEntryCollectionLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
+<div class="viewcode-block" id="DirectoryEntryBaseLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.DirectoryEntryBaseLayout">[docs]</a><span class="k">class</span> <span class="nc">DirectoryEntryBaseLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">marker_color</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">custom_body_attributes</span><span class="p">[</span><span class="s1">&#39;data-default-marker-color&#39;</span><span class="p">]</span>\
+                <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">marker_color</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">marker_icon</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">custom_body_attributes</span><span class="p">[</span><span class="s1">&#39;data-default-marker-icon&#39;</span><span class="p">]</span>\
+                <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">marker_icon</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;unicode-escape&#39;</span><span class="p">)[</span><span class="mi">2</span><span class="p">:]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">directory</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">directory</span></div>
+
+
+<div class="viewcode-block" id="DirectoryEntryCollectionLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.DirectoryEntryCollectionLayout">[docs]</a><span class="k">class</span> <span class="nc">DirectoryEntryCollectionLayout</span><span class="p">(</span><span class="n">DirectoryEntryBaseLayout</span><span class="p">):</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">breadcrumbs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1947,7 +1971,7 @@
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">links</span><span class="p">())</span></div>
 
 
-<div class="viewcode-block" id="DirectoryEntryLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.DirectoryEntryLayout">[docs]</a><span class="k">class</span> <span class="nc">DirectoryEntryLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
+<div class="viewcode-block" id="DirectoryEntryLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.DirectoryEntryLayout">[docs]</a><span class="k">class</span> <span class="nc">DirectoryEntryLayout</span><span class="p">(</span><span class="n">DirectoryEntryBaseLayout</span><span class="p">):</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">breadcrumbs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
