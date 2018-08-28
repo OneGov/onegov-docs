@@ -38,6 +38,7 @@
 <span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
 
+<span class="kn">from</span> <span class="nn">blinker</span> <span class="k">import</span> <span class="n">ANY</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">depot.manager</span> <span class="k">import</span> <span class="n">DepotManager</span>
 <span class="kn">from</span> <span class="nn">depot.middleware</span> <span class="k">import</span> <span class="n">FileServeApp</span>
@@ -97,12 +98,17 @@
 <span class="sd">            is the command that will be run when the cache is busted::</span>
 
 <span class="sd">                sleep 5</span>
-<span class="sd">                bust-cache https://example.org/storage/foo</span>
+<span class="sd">                bust-cache id-of-the-file</span>
 
 <span class="sd">            As you can see, the command is invoked with a five second delay.</span>
 <span class="sd">            This avoids premature cache busting (before the end of the</span>
 <span class="sd">            transaction). The command is non-blocking, so those 5 seconds</span>
 <span class="sd">            are not counted towards the request-time.</span>
+
+<span class="sd">            Frontend caches might use the domain and the full path to cache</span>
+<span class="sd">            a file, but since we can technically have multiple domains/paths</span>
+<span class="sd">            point to the same file we simply pass the id and let the cache</span>
+<span class="sd">            figure out what urls need to be busted as a result.</span>
 
 <span class="sd">            The script is invoked with the permissions of the user running</span>
 <span class="sd">            the backend. If other permissions are required, use suid.</span>
@@ -114,7 +120,10 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">depot_backend</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;depot_backend&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">depot_storage_path</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;depot_storage_path&#39;</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache_buster</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;frontend_cache_buster&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache_bust_delay</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;frontend_cache_bust_delay&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
 
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">depot_backend</span> <span class="ow">in</span> <span class="n">SUPPORTED_STORAGE_BACKENDS</span><span class="p">,</span> <span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">            A depot app *must* have a valid storage backend set up.</span>
@@ -126,7 +135,14 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">depot_backend</span> <span class="o">==</span> <span class="s1">&#39;depot.io.local.LocalFileStorage&#39;</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depot_storage_path</span><span class="p">),</span> <span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">                The depot storage path must exist.</span>
-<span class="s2">            &quot;&quot;&quot;</span></div>
+<span class="s2">            &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache_buster</span><span class="p">:</span>
+
+            <span class="nd">@self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">on_update</span><span class="o">.</span><span class="n">connect_via</span><span class="p">(</span><span class="n">ANY</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="nd">@self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">on_delete</span><span class="o">.</span><span class="n">connect_via</span><span class="p">(</span><span class="n">ANY</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">def</span> <span class="nf">on_file_change</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">bust_frontend_cache</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">id</span><span class="p">)</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">bound_depot_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -170,13 +186,13 @@
 
         <span class="n">DepotManager</span><span class="o">.</span><span class="n">set_default</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bound_depot_id</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">bust_frontend_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">bust_frontend_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_id</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache_buster</span><span class="p">:</span>
             <span class="k">return</span>
 
         <span class="nb">bin</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache_buster</span><span class="p">)</span>
-        <span class="n">url</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-        <span class="n">cmd</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;sleep 5 &amp;&amp; </span><span class="si">{bin}</span><span class="s1"> </span><span class="si">{url}</span><span class="s1">&#39;</span>
+        <span class="n">fid</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">file_id</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;sleep </span><span class="si">{self.frontend_cache_bust_delay}</span><span class="s1"> &amp;&amp; </span><span class="si">{bin}</span><span class="s1"> </span><span class="si">{fid}</span><span class="s1">&#39;</span>
 
         <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">close_fds</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -334,7 +350,6 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
-    <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">bust_frontend_cache</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
     <span class="n">FileCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 </pre></div>
 
@@ -388,7 +403,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.8</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
     </div>

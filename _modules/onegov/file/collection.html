@@ -32,10 +32,13 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.file.collection</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">depot.io.utils</span> <span class="k">import</span> <span class="n">file_from_content</span>
+<span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">depot.io.utils</span> <span class="k">import</span> <span class="n">file_from_content</span>
 <span class="kn">from</span> <span class="nn">onegov.file.attachments</span> <span class="k">import</span> <span class="n">calculate_checksum</span>
 <span class="kn">from</span> <span class="nn">onegov.file.models</span> <span class="k">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">FileSet</span>
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">as_fileintent</span>
+<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">and_</span>
 
 
 <div class="viewcode-block" id="FileCollection"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.collection.FileCollection">[docs]</a><span class="k">class</span> <span class="nc">FileCollection</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -73,7 +76,8 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">File</span><span class="p">)</span>
 
-<div class="viewcode-block" id="FileCollection.add"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.collection.FileCollection.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">note</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FileCollection.add"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.collection.FileCollection.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">note</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">published</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">publish_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Adds a file with the given filename. The content maybe either</span>
 <span class="sd">        in bytes or a file object.</span>
 
@@ -88,6 +92,8 @@
         <span class="n">file</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">filename</span>
         <span class="n">file</span><span class="o">.</span><span class="n">note</span> <span class="o">=</span> <span class="n">note</span>
         <span class="n">file</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="nb">type</span>
+        <span class="n">file</span><span class="o">.</span><span class="n">published</span> <span class="o">=</span> <span class="n">published</span>
+        <span class="n">file</span><span class="o">.</span><span class="n">publish_date</span> <span class="o">=</span> <span class="n">publish_date</span>
         <span class="n">file</span><span class="o">.</span><span class="n">reference</span> <span class="o">=</span> <span class="n">as_fileintent</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
@@ -113,6 +119,29 @@
     <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+<div class="viewcode-block" id="FileCollection.publishable_files"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.collection.FileCollection.publishable_files">[docs]</a>    <span class="k">def</span> <span class="nf">publishable_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Yields files which may be published. &quot;&quot;&quot;</span>
+
+        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">and_</span><span class="p">(</span>
+            <span class="n">File</span><span class="o">.</span><span class="n">published</span> <span class="o">==</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">File</span><span class="o">.</span><span class="n">publish_date</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">File</span><span class="o">.</span><span class="n">publish_date</span> <span class="o">&lt;=</span> <span class="n">horizon</span>
+        <span class="p">))</span></div>
+
+<div class="viewcode-block" id="FileCollection.publish_files"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.collection.FileCollection.publish_files">[docs]</a>    <span class="k">def</span> <span class="nf">publish_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Publishes unpublished files with a publish date older than the</span>
+<span class="sd">        given horizon.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># default to a horizon slightly into the future as this method is</span>
+        <span class="c1"># usually called by cronjob which is not perfectly on time</span>
+        <span class="n">horizon</span> <span class="o">=</span> <span class="n">horizon</span> <span class="ow">or</span> <span class="p">(</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="mi">90</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">publishable_files</span><span class="p">(</span><span class="n">horizon</span><span class="p">):</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">published</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="FileCollection.by_id"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.collection.FileCollection.by_id">[docs]</a>    <span class="k">def</span> <span class="nf">by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns the file with the given id or None. &quot;&quot;&quot;</span>
@@ -233,7 +262,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.8</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
     </div>

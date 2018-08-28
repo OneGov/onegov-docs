@@ -37,12 +37,12 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.abstract</span> <span class="k">import</span> <span class="n">Associable</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
-<span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">JSON</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">UTCDateTime</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">onegov.file.attachments</span> <span class="k">import</span> <span class="n">ProcessedUploadedFile</span>
 <span class="kn">from</span> <span class="nn">onegov.file.filters</span> <span class="k">import</span> <span class="n">OnlyIfImage</span><span class="p">,</span> <span class="n">WithThumbnailFilter</span>
 <span class="kn">from</span> <span class="nn">onegov.file.filters</span> <span class="k">import</span> <span class="n">OnlyIfPDF</span><span class="p">,</span> <span class="n">WithPDFThumbnailFilter</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
 
 
@@ -86,6 +86,18 @@
 
     <span class="c1">#: the default order of files</span>
     <span class="n">order</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: true if published</span>
+    <span class="n">published</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: the date after which this file will be made public - this controls</span>
+    <span class="c1">#: the visibility of the object through the ``is_hidden_from_public``</span>
+    <span class="c1">#: property which in turn is enforced by :mod:`onegov.core.security.rules`.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: To get a file published, be sure to call</span>
+    <span class="c1">#: :meth:`onegov.file.collection.FileCollection.publish_files` once an</span>
+    <span class="c1">#: hour through a cronjob (see :mod:`onegov.core.cronjobs`)!</span>
+    <span class="n">publish_date</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UTCDateTime</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1">#: the type of the file, this can be used to create custom polymorphic</span>
     <span class="c1">#: subclasses. See `&lt;http://docs.sqlalchemy.org/en/improve_toc/</span>
@@ -139,6 +151,10 @@
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">name_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="n">normalize_for_url</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_hidden_from_public</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">published</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">file_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -213,7 +229,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.8</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
     </div>

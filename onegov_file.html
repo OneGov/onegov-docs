@@ -146,6 +146,23 @@ without actually storing it in the database.</p>
 </dd></dl>
 
 <dl class="attribute">
+<dt id="onegov.file.models.file.File.published">
+<code class="descname">published</code><a class="headerlink" href="#onegov.file.models.file.File.published" title="Permalink to this definition">¶</a></dt>
+<dd><p>true if published</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.file.models.file.File.publish_date">
+<code class="descname">publish_date</code><a class="headerlink" href="#onegov.file.models.file.File.publish_date" title="Permalink to this definition">¶</a></dt>
+<dd><p>the date after which this file will be made public - this controls
+the visibility of the object through the <code class="docutils literal notranslate"><span class="pre">is_hidden_from_public</span></code>
+property which in turn is enforced by <a class="reference internal" href="onegov_core.html#module-onegov.core.security.rules" title="onegov.core.security.rules"><code class="xref py py-mod docutils literal notranslate"><span class="pre">onegov.core.security.rules</span></code></a>.</p>
+<p>To get a file published, be sure to call
+<a class="reference internal" href="#onegov.file.collection.FileCollection.publish_files" title="onegov.file.collection.FileCollection.publish_files"><code class="xref py py-meth docutils literal notranslate"><span class="pre">onegov.file.collection.FileCollection.publish_files()</span></code></a> once an
+hour through a cronjob (see <a class="reference internal" href="onegov_core.html#module-onegov.core.cronjobs" title="onegov.core.cronjobs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">onegov.core.cronjobs</span></code></a>)!</p>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="onegov.file.models.file.File.type">
 <code class="descname">type</code><a class="headerlink" href="#onegov.file.models.file.File.type" title="Permalink to this definition">¶</a></dt>
 <dd><p>the type of the file, this can be used to create custom polymorphic
@@ -247,7 +264,7 @@ new duplicates from being added.</p>
 </table>
 <dl class="method">
 <dt id="onegov.file.collection.FileCollection.add">
-<code class="descname">add</code><span class="sig-paren">(</span><em>filename</em>, <em>content</em>, <em>note=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/collection.html#FileCollection.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.collection.FileCollection.add" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add</code><span class="sig-paren">(</span><em>filename</em>, <em>content</em>, <em>note=None</em>, <em>published=True</em>, <em>publish_date=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/collection.html#FileCollection.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.collection.FileCollection.add" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds a file with the given filename. The content maybe either
 in bytes or a file object.</p>
 </dd></dl>
@@ -256,6 +273,19 @@ in bytes or a file object.</p>
 <dt id="onegov.file.collection.FileCollection.replace">
 <code class="descname">replace</code><span class="sig-paren">(</span><em>file</em>, <em>content</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/collection.html#FileCollection.replace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.collection.FileCollection.replace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Replaces the content of the given file with the new content.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.file.collection.FileCollection.publishable_files">
+<code class="descname">publishable_files</code><span class="sig-paren">(</span><em>horizon=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/collection.html#FileCollection.publishable_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.collection.FileCollection.publishable_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yields files which may be published.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.file.collection.FileCollection.publish_files">
+<code class="descname">publish_files</code><span class="sig-paren">(</span><em>horizon=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/collection.html#FileCollection.publish_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.collection.FileCollection.publish_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Publishes unpublished files with a publish date older than the
+given horizon.</p>
 </dd></dl>
 
 <dl class="method">
@@ -344,13 +374,17 @@ on the platform this is run and on the frontend in use.</p>
 <p>For example, let’s say our script is called ‘bust-cache’, this
 is the command that will be run when the cache is busted:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sleep</span> <span class="mi">5</span>
-<span class="n">bust</span><span class="o">-</span><span class="n">cache</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">example</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">storage</span><span class="o">/</span><span class="n">foo</span>
+<span class="n">bust</span><span class="o">-</span><span class="n">cache</span> <span class="nb">id</span><span class="o">-</span><span class="n">of</span><span class="o">-</span><span class="n">the</span><span class="o">-</span><span class="n">file</span>
 </pre></div>
 </div>
 <p>As you can see, the command is invoked with a five second delay.
 This avoids premature cache busting (before the end of the
 transaction). The command is non-blocking, so those 5 seconds
 are not counted towards the request-time.</p>
+<p>Frontend caches might use the domain and the full path to cache
+a file, but since we can technically have multiple domains/paths
+point to the same file we simply pass the id and let the cache
+figure out what urls need to be busted as a result.</p>
 <p>The script is invoked with the permissions of the user running
 the backend. If other permissions are required, use suid.</p>
 <p class="last">Note that this script is optional. If omitted, the cache busting
@@ -520,7 +554,7 @@ of thumbnails instead of recreation (if possible).</p>
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.8</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
       |
