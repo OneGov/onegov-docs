@@ -227,33 +227,20 @@
     <span class="p">}</span></div>
 
 
-<div class="viewcode-block" id="add_fallback_to_tail"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.i18n.add_fallback_to_tail">[docs]</a><span class="k">def</span> <span class="nf">add_fallback_to_tail</span><span class="p">(</span><span class="n">translation</span><span class="p">,</span> <span class="n">fallback</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Adds the given fallback to the given translation, if it isn&#39;t already</span>
-<span class="sd">    found somewhere in the fallback chain.</span>
+<div class="viewcode-block" id="translation_chain"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.i18n.translation_chain">[docs]</a><span class="k">def</span> <span class="nf">translation_chain</span><span class="p">(</span><span class="n">translation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Yields the translation chain with a generator. &quot;&quot;&quot;</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stack</span> <span class="o">=</span> <span class="p">[</span><span class="n">translation</span><span class="p">]</span>
 
-    <span class="k">assert</span> <span class="n">translation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">fallback</span>
+    <span class="k">while</span> <span class="n">stack</span><span class="p">:</span>
+        <span class="n">translation</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
 
-    <span class="k">while</span> <span class="n">translation</span><span class="o">.</span><span class="n">_fallback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">translation</span> <span class="o">=</span> <span class="n">translation</span><span class="o">.</span><span class="n">_fallback</span>
+        <span class="k">yield</span> <span class="n">translation</span>
 
-        <span class="k">if</span> <span class="n">translation</span> <span class="ow">is</span> <span class="n">fallback</span><span class="p">:</span>
-            <span class="k">return</span>
-
-    <span class="c1"># Avoid creating recursive chains</span>
-    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="p">(</span><span class="n">translation</span><span class="p">,</span> <span class="n">fallback</span><span class="p">):</span>
-        <span class="k">while</span> <span class="n">item</span><span class="o">.</span><span class="n">_fallback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">item</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">_fallback</span>
-            <span class="k">if</span> <span class="n">item</span> <span class="ow">is</span> <span class="n">translation</span> <span class="ow">or</span> <span class="n">item</span> <span class="ow">is</span> <span class="n">fallback</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                    <span class="s2">&quot;Recursive translation fallback chain detected&quot;</span>
-                <span class="p">)</span>
-
-    <span class="n">translation</span><span class="o">.</span><span class="n">add_fallback</span><span class="p">(</span><span class="n">fallback</span><span class="p">)</span></div>
+        <span class="n">translation</span><span class="o">.</span><span class="n">_fallback</span> <span class="ow">and</span> <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">translation</span><span class="o">.</span><span class="n">_fallback</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="get_translation_bound_meta"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.i18n.get_translation_bound_meta">[docs]</a><span class="k">def</span> <span class="nf">get_translation_bound_meta</span><span class="p">(</span><span class="n">meta_class</span><span class="p">,</span> <span class="n">translate</span><span class="p">):</span>
+<div class="viewcode-block" id="get_translation_bound_meta"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.i18n.get_translation_bound_meta">[docs]</a><span class="k">def</span> <span class="nf">get_translation_bound_meta</span><span class="p">(</span><span class="n">meta_class</span><span class="p">,</span> <span class="n">translations</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Takes a wtforms Meta class and combines our translate class with</span>
 <span class="sd">    the one provided by WTForms itself.</span>
 
@@ -267,22 +254,41 @@
         <span class="n">cache_translations</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="k">def</span> <span class="nf">get_translations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
-            <span class="n">translations</span> <span class="o">=</span> <span class="n">translate</span>
+            <span class="k">nonlocal</span> <span class="n">translations</span>
+
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">default</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_translations</span><span class="p">(</span><span class="n">form</span><span class="p">)</span>
+
+                <span class="c1"># we create a new instance every time here because we had some</span>
+                <span class="c1"># issues before with using cached instances from wtforms -</span>
+                <span class="c1"># it might be worth revisiting in the future if we can</span>
+                <span class="c1"># enable caching here again, or introduce our own</span>
+                <span class="n">wtf</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_translations</span><span class="p">(</span><span class="n">form</span><span class="p">)</span>
+                <span class="n">wtf</span><span class="o">.</span><span class="n">is_wtforms</span> <span class="o">=</span> <span class="kc">True</span>
+
             <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
                 <span class="c1"># if there are no locales, the file not found error</span>
                 <span class="c1"># can safely be ignored as there are no translations if there</span>
                 <span class="c1"># are no locales (a wtforms bug)</span>
                 <span class="k">pass</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">translations</span><span class="p">:</span>
-                    <span class="n">add_fallback_to_tail</span><span class="p">(</span>
-                        <span class="n">translation</span><span class="o">=</span><span class="n">translations</span><span class="p">,</span>
-                        <span class="n">fallback</span><span class="o">=</span><span class="n">default</span>
-                    <span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">translations</span><span class="p">:</span>
+                    <span class="n">translations</span> <span class="o">=</span> <span class="n">wtf</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">translations</span> <span class="o">=</span> <span class="n">default</span>
+                    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">translation_chain</span><span class="p">(</span><span class="n">translations</span><span class="p">):</span>
+
+                        <span class="c1"># add wtforms translations as a fallback..</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">t</span><span class="o">.</span><span class="n">_fallback</span><span class="p">:</span>
+                            <span class="n">t</span><span class="o">.</span><span class="n">_fallback</span> <span class="o">=</span> <span class="n">wtf</span>
+                            <span class="k">break</span>
+
+                        <span class="c1"># ..replacing the existing wtforms fallback if needed</span>
+                        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">_fallback</span><span class="p">,</span> <span class="s1">&#39;is_wtforms&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                            <span class="p">(</span>
+                                <span class="n">t</span><span class="o">.</span><span class="n">_fallback</span><span class="p">,</span> <span class="n">wtf</span><span class="o">.</span><span class="n">_fallback</span>
+                            <span class="p">)</span> <span class="o">=</span> <span class="p">(</span>
+                                <span class="n">wtf</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">_fallback</span><span class="o">.</span><span class="n">_fallback</span>
+                            <span class="p">)</span>
+                            <span class="k">break</span>
 
             <span class="c1"># Cache for reuse in render_field.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_translations</span> <span class="o">=</span> <span class="n">translations</span>

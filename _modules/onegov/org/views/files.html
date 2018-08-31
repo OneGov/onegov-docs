@@ -35,7 +35,6 @@
 <span></span><span class="sd">&quot;&quot;&quot; The onegov org collection of files uploaded to the site. &quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">morepath</span>
-<span class="kn">import</span> <span class="nn">random</span>
 
 <span class="kn">from</span> <span class="nn">babel.core</span> <span class="k">import</span> <span class="n">Locale</span>
 <span class="kn">from</span> <span class="nn">babel.dates</span> <span class="k">import</span> <span class="n">parse_pattern</span>
@@ -46,7 +45,6 @@
 <span class="kn">from</span> <span class="nn">onegov.core.templates</span> <span class="k">import</span> <span class="n">render_macro</span>
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">FileCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span><span class="p">,</span> <span class="n">OrgApp</span>
-<span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">Img</span>
 <span class="kn">from</span> <span class="nn">onegov.org.new_elements</span> <span class="k">import</span> <span class="n">Link</span>
 <span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">DefaultLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="p">(</span>
@@ -59,16 +57,66 @@
     <span class="n">LegacyImage</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">utils</span>
-<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
+<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">to_timezone</span><span class="p">,</span> <span class="n">utcnow</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">time</span>
 <span class="kn">from</span> <span class="nn">webob</span> <span class="k">import</span> <span class="n">exc</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
+
+
+<span class="k">def</span> <span class="nf">get_thumbnail_size</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s1">&#39;thumbnail_small&#39;</span> <span class="ow">in</span> <span class="n">image</span><span class="o">.</span><span class="n">reference</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">image</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">thumbnail_small</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;256&#39;</span><span class="p">,</span> <span class="s1">&#39;256&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Img"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.files.Img">[docs]</a><span class="k">class</span> <span class="nc">Img</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Represents an img element. &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;src&#39;</span><span class="p">,</span> <span class="s1">&#39;alt&#39;</span><span class="p">,</span> <span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="s1">&#39;url&#39;</span><span class="p">,</span> <span class="s1">&#39;extra&#39;</span><span class="p">,</span> <span class="s1">&#39;width&#39;</span><span class="p">,</span> <span class="s1">&#39;height&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">alt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">width</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1">#: The src of the image</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">src</span>
+
+        <span class="c1">#: The text for people that can&#39;t or won&#39;t look at the picture</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alt</span> <span class="o">=</span> <span class="n">alt</span>
+
+        <span class="c1">#: The title of the image</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">title</span>
+
+        <span class="c1">#: The target of this image</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
+
+        <span class="c1">#: The width of the image in pixel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">width</span>
+
+        <span class="c1">#: The height of the image in pixel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">height</span>
+
+        <span class="c1">#: Extra parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extra</span> <span class="o">=</span> <span class="n">extra</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_image</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">layout</span><span class="p">,</span> <span class="n">image</span><span class="p">):</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">request</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">src</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">File</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">id</span><span class="p">},</span> <span class="s1">&#39;thumbnail&#39;</span><span class="p">),</span>
+            <span class="n">url</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">File</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">id</span><span class="p">}),</span>
+            <span class="n">alt</span><span class="o">=</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">note</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+            <span class="n">width</span><span class="o">=</span><span class="n">get_thumbnail_size</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">height</span><span class="o">=</span><span class="n">get_thumbnail_size</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">extra</span><span class="o">=</span><span class="n">layout</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="s1">&#39;note&#39;</span><span class="p">))</span>
+        <span class="p">)</span></div>
 
 
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">GeneralFileCollection</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;files.pt&#39;</span><span class="p">,</span>
              <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">view_get_file_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;common&#39;</span><span class="p">)</span>
-    <span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;dropzone&#39;</span><span class="p">)</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;upload&#39;</span><span class="p">)</span>
     <span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;prompt&#39;</span><span class="p">)</span>
 
     <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
@@ -85,6 +133,7 @@
 
     <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">//</span> <span class="mi">4</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">format_date</span><span class="p">(</span><span class="n">date</span><span class="p">):</span>
+        <span class="n">date</span> <span class="o">=</span> <span class="n">to_timezone</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">layout</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">pattern</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">locale</span><span class="p">)</span>
 
     <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">//</span> <span class="mi">4</span><span class="p">)</span>
@@ -107,9 +156,11 @@
             <span class="n">f</span><span class="o">.</span><span class="n">content_type</span><span class="p">,</span>
             <span class="n">f</span><span class="o">.</span><span class="n">name</span>
         <span class="p">),</span>
-        <span class="s1">&#39;signed&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.9</span><span class="p">,</span>
         <span class="s1">&#39;actions_url&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">file_id</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
             <span class="n">GeneralFile</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;details&quot;</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">file_id</span><span class="p">}</span>
+        <span class="p">),</span>
+        <span class="s1">&#39;upload_url&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;upload&#39;</span><span class="p">)</span>
         <span class="p">)</span>
     <span class="p">}</span>
 
@@ -136,31 +187,32 @@
     <span class="p">)</span>
 
 
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">GeneralFile</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;publish&#39;</span><span class="p">,</span>
+             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_publish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">published</span> <span class="o">=</span> <span class="kc">True</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">GeneralFile</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;unpublish&#39;</span><span class="p">,</span>
+             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_unpublish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">published</span> <span class="o">=</span> <span class="kc">False</span>
+
+
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">ImageFileCollection</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;images.pt&#39;</span><span class="p">,</span>
              <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">view_get_image_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;common&#39;</span><span class="p">)</span>
-    <span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;dropzone&#39;</span><span class="p">)</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;upload&#39;</span><span class="p">)</span>
     <span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;editalttext&#39;</span><span class="p">)</span>
 
     <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
-    <span class="n">default</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;256&#39;</span><span class="p">,</span> <span class="s1">&#39;256&#39;</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">get_thumbnail_size</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
-        <span class="k">if</span> <span class="s1">&#39;thumbnail_small&#39;</span> <span class="ow">in</span> <span class="n">image</span><span class="o">.</span><span class="n">reference</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">image</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">thumbnail_small</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">default</span>
-
     <span class="n">images</span> <span class="o">=</span> <span class="n">view_get_image_collection_json</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">produce_image</span><span class="o">=</span><span class="k">lambda</span> <span class="n">image</span><span class="p">:</span> <span class="n">Img</span><span class="p">(</span>
-            <span class="n">src</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">File</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">id</span><span class="p">},</span> <span class="s1">&#39;thumbnail&#39;</span><span class="p">),</span>
-            <span class="n">url</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">File</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">id</span><span class="p">}),</span>
-            <span class="n">alt</span><span class="o">=</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">note</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
-            <span class="n">width</span><span class="o">=</span><span class="n">get_thumbnail_size</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">height</span><span class="o">=</span><span class="n">get_thumbnail_size</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
-            <span class="n">extra</span><span class="o">=</span><span class="n">layout</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="s1">&#39;note&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">produce_image</span><span class="o">=</span><span class="k">lambda</span> <span class="n">image</span><span class="p">:</span> <span class="n">Img</span><span class="o">.</span><span class="n">from_image</span><span class="p">(</span>
+            <span class="n">layout</span><span class="p">,</span> <span class="n">image</span>
         <span class="p">)</span>
     <span class="p">)</span>
 
@@ -173,13 +225,17 @@
         <span class="n">Link</span><span class="p">(</span>
             <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Manage Photo Albums&quot;</span><span class="p">),</span>
             <span class="n">url</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">ImageSetCollection</span><span class="p">),</span>
-            <span class="n">classes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;new-photo-album&#39;</span><span class="p">,</span> <span class="p">))</span>
+            <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;new-photo-album&#39;</span><span class="p">}</span>
+        <span class="p">)</span>
     <span class="p">]</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
         <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Images&#39;</span><span class="p">),</span>
-        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">images</span>
+        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">images</span><span class="p">,</span>
+        <span class="s1">&#39;upload_url&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;upload&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
     <span class="p">}</span>
 
 
@@ -233,16 +289,51 @@
 
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">FileCollection</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;upload&#39;</span><span class="p">,</span>
              <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">view_upload_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">view_upload_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">return_file</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">handle_file_upload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+        <span class="n">uploaded_file</span> <span class="o">=</span> <span class="n">handle_file_upload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">FileExistsError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="c1"># mark existing files as modified to put them in front of the queue</span>
-        <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="n">utcnow</span><span class="p">()</span>
+        <span class="n">uploaded_file</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">return_file</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">uploaded_file</span>
 
     <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">GeneralFileCollection</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;upload&#39;</span><span class="p">,</span>
+             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_upload_general_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">uploaded_file</span> <span class="o">=</span> <span class="n">view_upload_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">return_file</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">render_macro</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">macros</span><span class="p">[</span><span class="s1">&#39;file-info&#39;</span><span class="p">],</span> <span class="n">request</span><span class="p">,</span> <span class="p">{</span>
+        <span class="s1">&#39;file&#39;</span><span class="p">:</span> <span class="n">uploaded_file</span><span class="p">,</span>
+        <span class="s1">&#39;format_date&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">dt</span><span class="p">:</span> <span class="n">layout</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="s1">&#39;datetime&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;actions_url&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">file_id</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span>
+            <span class="n">GeneralFile</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;details&quot;</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">file_id</span><span class="p">}</span>
+        <span class="p">),</span>
+        <span class="s1">&#39;extension&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">file</span><span class="p">:</span> <span class="n">utils</span><span class="o">.</span><span class="n">extension_for_content_type</span><span class="p">(</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">content_type</span><span class="p">,</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">name</span>
+        <span class="p">)</span>
+    <span class="p">})</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">ImageFileCollection</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;upload&#39;</span><span class="p">,</span>
+             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_upload_image_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">uploaded_file</span> <span class="o">=</span> <span class="n">view_upload_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">return_file</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">render_macro</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">macros</span><span class="p">[</span><span class="s1">&#39;uploaded_image&#39;</span><span class="p">],</span> <span class="n">request</span><span class="p">,</span> <span class="p">{</span>
+        <span class="s1">&#39;image&#39;</span><span class="p">:</span> <span class="n">Img</span><span class="o">.</span><span class="n">from_image</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">uploaded_file</span><span class="p">),</span>
+        <span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">),</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span>
+    <span class="p">})</span>
 
 
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">FileCollection</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;upload.json&#39;</span><span class="p">,</span>

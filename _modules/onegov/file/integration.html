@@ -251,6 +251,13 @@
         <span class="p">))</span>
 
 
+<span class="k">def</span> <span class="nf">respond_with_caching_header</span><span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">reference</span><span class="o">.</span><span class="n">published</span><span class="p">:</span>
+        <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+        <span class="k">def</span> <span class="nf">include_private_header</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;Cache-Control&#39;</span><span class="p">,</span> <span class="s1">&#39;private&#39;</span><span class="p">)</span>
+
+
 <span class="nd">@DepotApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/storage/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">get_file</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">FileCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
@@ -259,6 +266,7 @@
 <span class="nd">@DepotApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">render</span><span class="o">=</span><span class="n">render_depot_file</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">view_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="n">respond_with_alt_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="n">respond_with_caching_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">file</span>
 
 
@@ -275,6 +283,8 @@
         <span class="n">size</span> <span class="o">=</span> <span class="s1">&#39;small&#39;</span>
 
     <span class="n">respond_with_alt_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="n">respond_with_caching_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
     <span class="n">thumbnail_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_thumbnail_id</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">thumbnail_id</span><span class="p">:</span>
