@@ -34,10 +34,12 @@
   <h1>Source code for onegov.org.views.files</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot; The onegov org collection of files uploaded to the site. &quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">import</span> <span class="nn">morepath</span>
 
 <span class="kn">from</span> <span class="nn">babel.core</span> <span class="k">import</span> <span class="n">Locale</span>
 <span class="kn">from</span> <span class="nn">babel.dates</span> <span class="k">import</span> <span class="n">parse_pattern</span>
+<span class="kn">from</span> <span class="nn">dateutil.parser</span> <span class="k">import</span> <span class="n">parse</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
 <span class="kn">from</span> <span class="nn">onegov.core.filestorage</span> <span class="k">import</span> <span class="n">view_filestorage_file</span>
@@ -57,7 +59,7 @@
     <span class="n">LegacyImage</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">utils</span>
-<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">to_timezone</span><span class="p">,</span> <span class="n">utcnow</span>
+<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">to_timezone</span><span class="p">,</span> <span class="n">utcnow</span><span class="p">,</span> <span class="n">standardize_date</span>
 <span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">time</span>
 <span class="kn">from</span> <span class="nn">webob</span> <span class="k">import</span> <span class="n">exc</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
@@ -192,6 +194,7 @@
 <span class="k">def</span> <span class="nf">handle_publish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">published</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">publish_date</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">GeneralFile</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;unpublish&#39;</span><span class="p">,</span>
@@ -199,6 +202,34 @@
 <span class="k">def</span> <span class="nf">handle_unpublish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">published</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">GeneralFile</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;update-publish-date&#39;</span><span class="p">,</span>
+             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_update_publish_date</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;clear&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">publish_date</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">date</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">],</span> <span class="n">dayfirst</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
+        <span class="n">date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">publish_date</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">publish_date</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+        <span class="n">date</span> <span class="o">=</span> <span class="n">date</span> <span class="ow">or</span> <span class="n">layout</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">hour</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hour&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)))</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">hour</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">publish_date</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">publish_date</span><span class="o">.</span><span class="n">hour</span>
+        <span class="n">hour</span> <span class="o">=</span> <span class="n">hour</span> <span class="ow">or</span> <span class="mi">0</span>
+
+    <span class="n">publish_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="n">hour</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">publish_date</span> <span class="o">=</span> <span class="n">standardize_date</span><span class="p">(</span><span class="n">publish_date</span><span class="p">,</span> <span class="n">layout</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">publish_date</span> <span class="o">=</span> <span class="n">publish_date</span>
 
 
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">ImageFileCollection</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;images.pt&#39;</span><span class="p">,</span>

@@ -157,8 +157,18 @@
         <span class="s1">&#39;onegov.core.crypto.password.bcrypt_sha256.verify&#39;</span><span class="p">,</span> <span class="n">cached_verify</span><span class="p">)</span></div>
 
 
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">pg_default_preferred_versions</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;9.6&#39;</span><span class="p">]</span>
+
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">pg_preferred_versions</span><span class="p">(</span><span class="n">pg_default_preferred_versions</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;POSTGRES_VERSIONS&#39;</span><span class="p">,</span> <span class="n">pg_default_preferred_versions</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="postgres"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.postgres">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">postgres</span><span class="p">():</span>
+<span class="k">def</span> <span class="nf">postgres</span><span class="p">(</span><span class="n">pg_preferred_versions</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Starts a postgres server using `testing.postgresql \</span>
 <span class="sd">    &lt;https://pypi.python.org/pypi/testing.postgresql/&gt;`_ once per test session.</span>
 
@@ -174,7 +184,10 @@
         <span class="s2">&quot;-N 1024&quot;</span>
     <span class="p">))</span>
 
-    <span class="n">postgres</span> <span class="o">=</span> <span class="n">Postgresql</span><span class="p">(</span><span class="n">postgres_args</span><span class="o">=</span><span class="n">postgres_args</span><span class="p">)</span>
+    <span class="n">postgres</span> <span class="o">=</span> <span class="n">Postgresql</span><span class="p">(</span>
+        <span class="n">postgres_args</span><span class="o">=</span><span class="n">postgres_args</span><span class="p">,</span>
+        <span class="n">preferred_versions</span><span class="o">=</span><span class="n">pg_preferred_versions</span>
+    <span class="p">)</span>
     <span class="k">yield</span> <span class="n">postgres</span>
     <span class="n">postgres</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
 
