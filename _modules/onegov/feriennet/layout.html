@@ -269,7 +269,22 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_editable</span><span class="p">:</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;preview&#39;</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">period</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">has_occasion_in_period</span><span class="p">(</span><span class="n">period</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">period</span><span class="p">:</span>
+                    <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
+                        <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Request Publication&quot;</span><span class="p">),</span>
+                        <span class="n">url</span><span class="o">=</span><span class="s1">&#39;#&#39;</span><span class="p">,</span>
+                        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;request-publication&#39;</span><span class="p">},</span>
+                        <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
+                            <span class="n">Block</span><span class="p">(</span>
+                                <span class="n">_</span><span class="p">(</span>
+                                    <span class="s2">&quot;There is currently no active period. &quot;</span>
+                                    <span class="s2">&quot;Please retry once a period has been &quot;</span>
+                                    <span class="s2">&quot;activated.&quot;</span>
+                                <span class="p">)</span>
+                            <span class="p">),</span>
+                        <span class="p">)</span>
+                    <span class="p">))</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">has_occasion_in_period</span><span class="p">(</span><span class="n">period</span><span class="p">):</span>
                     <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
                         <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Request Publication&quot;</span><span class="p">),</span>
                         <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;propose&#39;</span><span class="p">),</span>
@@ -366,12 +381,13 @@
                     <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;show-attendees&#39;</span><span class="p">}</span>
                 <span class="p">))</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_admin</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="p">:</span>
-            <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
-                <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Show Ticket&quot;</span><span class="p">),</span>
-                <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="p">),</span>
-                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;show-ticket&#39;</span><span class="p">}</span>
-            <span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_admin</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state</span> <span class="o">!=</span> <span class="s1">&#39;preview&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="p">:</span>
+                <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Show Ticket&quot;</span><span class="p">),</span>
+                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="p">),</span>
+                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;show-ticket&#39;</span><span class="p">}</span>
+                <span class="p">))</span>
 
         <span class="k">return</span> <span class="n">links</span></div>
 

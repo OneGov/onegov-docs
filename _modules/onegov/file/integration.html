@@ -142,7 +142,8 @@
             <span class="nd">@self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">on_update</span><span class="o">.</span><span class="n">connect_via</span><span class="p">(</span><span class="n">ANY</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="nd">@self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">on_delete</span><span class="o">.</span><span class="n">connect_via</span><span class="p">(</span><span class="n">ANY</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="k">def</span> <span class="nf">on_file_change</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">bust_frontend_cache</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">id</span><span class="p">)</span></div>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">File</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">bust_frontend_cache</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">id</span><span class="p">)</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">bound_depot_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

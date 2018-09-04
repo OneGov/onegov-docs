@@ -176,6 +176,15 @@
     <span class="p">)</span>
     <span class="n">color</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_extension_color</span><span class="p">(</span><span class="n">extension</span><span class="p">)</span>
 
+    <span class="c1"># IE 11 caches all ajax requests otherwise</span>
+    <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+    <span class="k">def</span> <span class="nf">must_revalidate</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;cache-control&#39;</span><span class="p">,</span> <span class="s1">&#39;must-revalidate&#39;</span><span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;cache-control&#39;</span><span class="p">,</span> <span class="s1">&#39;no-cache&#39;</span><span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;cache-control&#39;</span><span class="p">,</span> <span class="s1">&#39;no-store&#39;</span><span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;pragma&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;no-cache&#39;</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;expires&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span>
+
     <span class="k">return</span> <span class="n">render_macro</span><span class="p">(</span>
         <span class="n">layout</span><span class="o">.</span><span class="n">macros</span><span class="p">[</span><span class="s1">&#39;file-details&#39;</span><span class="p">],</span>
         <span class="n">request</span><span class="p">,</span>
