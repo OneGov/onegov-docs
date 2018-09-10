@@ -32,17 +32,17 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.event.collections.events</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
+<span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">icalendar</span> <span class="k">import</span> <span class="n">Calendar</span> <span class="k">as</span> <span class="n">vCalendar</span>
-<span class="kn">from</span> <span class="nn">icalendar</span> <span class="k">import</span> <span class="n">Event</span> <span class="k">as</span> <span class="n">vEvent</span>
-<span class="kn">from</span> <span class="nn">icalendar</span> <span class="k">import</span> <span class="n">vRecur</span>
-<span class="kn">from</span> <span class="nn">icalendar</span> <span class="k">import</span> <span class="n">vText</span>
 <span class="kn">from</span> <span class="nn">onegov.core.collection</span> <span class="k">import</span> <span class="n">Pagination</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">increment_name</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">onegov.event.models</span> <span class="k">import</span> <span class="n">Event</span>
+<span class="kn">from</span> <span class="nn">onegov.gis</span> <span class="k">import</span> <span class="n">Coordinates</span>
 <span class="kn">from</span> <span class="nn">pytz</span> <span class="k">import</span> <span class="n">UTC</span>
+<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">as_datetime</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">replace_timezone</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">standardize_date</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">to_timezone</span>
@@ -107,11 +107,16 @@
 
 <span class="sd">        Returns the created event or None if already automatically deleted.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">start</span><span class="o">.</span><span class="n">tzinfo</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">timezone</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">end</span><span class="o">.</span><span class="n">tzinfo</span><span class="p">:</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">timezone</span><span class="p">)</span>
+
         <span class="n">event</span> <span class="o">=</span> <span class="n">Event</span><span class="p">(</span>
             <span class="n">state</span><span class="o">=</span><span class="s1">&#39;initiated&#39;</span><span class="p">,</span>
             <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
-            <span class="n">start</span><span class="o">=</span><span class="n">replace_timezone</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">timezone</span><span class="p">),</span>
-            <span class="n">end</span><span class="o">=</span><span class="n">replace_timezone</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">timezone</span><span class="p">),</span>
+            <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+            <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span>
             <span class="n">timezone</span><span class="o">=</span><span class="n">timezone</span><span class="p">,</span>
             <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name</span><span class="p">(</span><span class="n">title</span><span class="p">),</span>
             <span class="o">**</span><span class="n">optional</span>
@@ -165,31 +170,116 @@
         <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Event</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="nb">id</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">first</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="EventCollection.as_ical"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.collections.EventCollection.as_ical">[docs]</a>    <span class="k">def</span> <span class="nf">as_ical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns the events as iCalendar string. &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="EventCollection.from_import"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.collections.EventCollection.from_import">[docs]</a>    <span class="k">def</span> <span class="nf">from_import</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">events</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Add or updates the given events. &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">event</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">])</span>
 
-        <span class="n">cal</span> <span class="o">=</span> <span class="n">vCalendar</span><span class="p">()</span>
-        <span class="n">cal</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;prodid&#39;</span><span class="p">,</span> <span class="s1">&#39;-//OneGov//onegov.event//&#39;</span><span class="p">)</span>
-        <span class="n">cal</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;version&#39;</span><span class="p">,</span> <span class="s1">&#39;2.0&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
+            <span class="n">existing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Event</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">Event</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">event</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
 
-        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">():</span>
-            <span class="n">modified</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">modified</span> <span class="ow">or</span> <span class="n">event</span><span class="o">.</span><span class="n">created</span> <span class="ow">or</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">existing</span><span class="p">:</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">existing</span><span class="o">.</span><span class="n">state</span>  <span class="c1"># avoid updating occurrences</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;initialized&#39;</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">title</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">location</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">location</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">tags</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">tags</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">timezone</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">timezone</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">start</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">end</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">content</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">content</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">coordinates</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">coordinates</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">description</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">organizer</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">organizer</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">recurrence</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">recurrence</span>
+                <span class="n">existing</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">event</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+                <span class="n">event</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+                <span class="n">event</span><span class="o">.</span><span class="n">publish</span><span class="p">()</span>
 
-            <span class="n">vevent</span> <span class="o">=</span> <span class="n">vEvent</span><span class="p">()</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;summary&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;dtstart&#39;</span><span class="p">,</span> <span class="n">to_timezone</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">UTC</span><span class="p">))</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;dtend&#39;</span><span class="p">,</span> <span class="n">to_timezone</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="n">UTC</span><span class="p">))</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;last-modified&#39;</span><span class="p">,</span> <span class="n">modified</span><span class="p">)</span>
-            <span class="n">vevent</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vText</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">location</span><span class="p">)</span>
-            <span class="n">vevent</span><span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vText</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">recurrence</span><span class="p">:</span>
-                <span class="n">vevent</span><span class="p">[</span><span class="s1">&#39;rrule&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vRecur</span><span class="p">(</span>
-                    <span class="n">vRecur</span><span class="o">.</span><span class="n">from_ical</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">recurrence</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;RRULE:&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="EventCollection.from_ical"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.collections.EventCollection.from_ical">[docs]</a>    <span class="k">def</span> <span class="nf">from_ical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ical</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Imports the events from an iCalender string.</span>
+
+<span class="sd">        We assume the timezone to be Europe/Zurich!</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">cal</span> <span class="o">=</span> <span class="n">vCalendar</span><span class="o">.</span><span class="n">from_ical</span><span class="p">(</span><span class="n">ical</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">vevent</span> <span class="ow">in</span> <span class="n">cal</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="s1">&#39;vevent&#39;</span><span class="p">):</span>
+            <span class="n">timezone</span> <span class="o">=</span> <span class="s1">&#39;Europe/Zurich&#39;</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dtstart&#39;</span><span class="p">)</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">start</span><span class="o">.</span><span class="n">dt</span> <span class="k">if</span> <span class="n">start</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">start</span><span class="p">)</span> <span class="ow">is</span> <span class="n">date</span><span class="p">:</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">as_datetime</span><span class="p">(</span><span class="n">start</span><span class="p">),</span> <span class="n">UTC</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">start</span><span class="p">)</span> <span class="ow">is</span> <span class="n">datetime</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">start</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">start</span> <span class="o">=</span> <span class="n">standardize_date</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">timezone</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">start</span> <span class="o">=</span> <span class="n">to_timezone</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">UTC</span><span class="p">)</span>
+
+            <span class="n">end</span> <span class="o">=</span> <span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dtend&#39;</span><span class="p">)</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">end</span><span class="o">.</span><span class="n">dt</span> <span class="k">if</span> <span class="n">end</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">end</span><span class="p">)</span> <span class="ow">is</span> <span class="n">date</span><span class="p">:</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">as_datetime</span><span class="p">(</span><span class="n">end</span><span class="p">),</span> <span class="n">UTC</span><span class="p">)</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">end</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">microseconds</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">end</span><span class="p">)</span> <span class="ow">is</span> <span class="n">datetime</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">end</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">end</span> <span class="o">=</span> <span class="n">standardize_date</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">timezone</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">end</span> <span class="o">=</span> <span class="n">to_timezone</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">UTC</span><span class="p">)</span>
+
+            <span class="n">duration</span> <span class="o">=</span> <span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;duration&#39;</span><span class="p">)</span>
+            <span class="n">duration</span> <span class="o">=</span> <span class="n">duration</span><span class="o">.</span><span class="n">dt</span> <span class="k">if</span> <span class="n">duration</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">start</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">end</span> <span class="ow">and</span> <span class="n">duration</span><span class="p">:</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">duration</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">start</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">end</span><span class="p">:</span>
+                <span class="k">raise</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid date&quot;</span><span class="p">))</span>
+
+            <span class="n">recurrence</span> <span class="o">=</span> <span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rrule&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">recurrence</span><span class="p">:</span>
+                <span class="n">recurrence</span> <span class="o">=</span> <span class="s1">&#39;RRULE:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">recurrence</span><span class="o">.</span><span class="n">to_ical</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+
+            <span class="n">coordinates</span> <span class="o">=</span> <span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;geo&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">coordinates</span><span class="p">:</span>
+                <span class="n">coordinates</span> <span class="o">=</span> <span class="n">Coordinates</span><span class="p">(</span>
+                    <span class="n">coordinates</span><span class="o">.</span><span class="n">latitude</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">.</span><span class="n">longitude</span>
                 <span class="p">)</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;url&#39;</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">event</span><span class="p">))</span>
-            <span class="n">cal</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">vevent</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">cal</span><span class="o">.</span><span class="n">to_ical</span><span class="p">()</span></div></div>
+            <span class="n">tags</span> <span class="o">=</span> <span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;categories&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tags</span><span class="p">:</span>
+                <span class="n">tags</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span> <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">]</span>
+
+            <span class="n">uid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;uid&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;summary&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+            <span class="n">description</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+            <span class="n">organizer</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;organizer&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+            <span class="n">location</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;location&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+
+            <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Event</span><span class="p">(</span>
+                    <span class="n">state</span><span class="o">=</span><span class="s1">&#39;initiated&#39;</span><span class="p">,</span>
+                    <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+                    <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+                    <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span>
+                    <span class="n">timezone</span><span class="o">=</span><span class="n">timezone</span><span class="p">,</span>
+                    <span class="n">recurrence</span><span class="o">=</span><span class="n">recurrence</span><span class="p">,</span>
+                    <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
+                    <span class="n">organizer</span><span class="o">=</span><span class="n">organizer</span><span class="p">,</span>
+                    <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span>
+                    <span class="n">coordinates</span><span class="o">=</span><span class="n">coordinates</span><span class="p">,</span>
+                    <span class="n">tags</span><span class="o">=</span><span class="n">tags</span> <span class="ow">or</span> <span class="p">[],</span>
+                    <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;source&#39;</span><span class="p">:</span> <span class="n">f</span><span class="s1">&#39;ical-</span><span class="si">{uid}</span><span class="s1">&#39;</span><span class="p">},</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">from_import</span><span class="p">(</span><span class="n">events</span><span class="p">)</span></div></div>
 </pre></div>
 
           </div>
