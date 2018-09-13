@@ -13,6 +13,7 @@
     <script type="text/javascript" src="../../../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
    
@@ -117,14 +118,11 @@
         <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
 
 
-<div class="viewcode-block" id="rstrip"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.grammar.rstrip">[docs]</a><span class="k">def</span> <span class="nf">rstrip</span><span class="p">(</span><span class="n">tokens</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Strips whitetext on the right of the token. &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span></div>
-
-
 <div class="viewcode-block" id="unwrap"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.grammar.unwrap">[docs]</a><span class="k">def</span> <span class="nf">unwrap</span><span class="p">(</span><span class="n">tokens</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Unwraps grouped tokens. &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+    <span class="k">if</span> <span class="n">tokens</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="tag"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.grammar.tag">[docs]</a><span class="k">def</span> <span class="nf">tag</span><span class="p">(</span><span class="o">**</span><span class="n">tags</span><span class="p">):</span>
@@ -155,6 +153,15 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">left</span><span class="p">,</span> <span class="n">right</span> <span class="o">=</span> <span class="n">characters</span>
     <span class="k">return</span> <span class="n">enclosed_in</span><span class="p">(</span><span class="n">numeric</span><span class="p">,</span> <span class="n">characters</span><span class="p">)</span><span class="o">.</span><span class="n">setParseAction</span><span class="p">(</span><span class="n">as_int</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="choices_enclosed_in"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.grammar.choices_enclosed_in">[docs]</a><span class="k">def</span> <span class="nf">choices_enclosed_in</span><span class="p">(</span><span class="n">characters</span><span class="p">,</span> <span class="n">choices</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Wraps the given choices in the given characters, making sure only</span>
+<span class="sd">    valid choices are possible.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">choices</span> <span class="o">=</span> <span class="n">Regex</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;({&quot;|&quot;.join(choices)})&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">enclosed_in</span><span class="p">(</span><span class="n">choices</span><span class="p">,</span> <span class="n">characters</span><span class="p">)</span><span class="o">.</span><span class="n">setParseAction</span><span class="p">(</span><span class="n">unwrap</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="mark_enclosed_in"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.grammar.mark_enclosed_in">[docs]</a><span class="k">def</span> <span class="nf">mark_enclosed_in</span><span class="p">(</span><span class="n">characters</span><span class="p">):</span>
@@ -214,6 +221,23 @@
     <span class="n">textarea</span><span class="o">.</span><span class="n">setParseAction</span><span class="p">(</span><span class="n">tag</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;textarea&#39;</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="n">textarea</span></div>
+
+
+<div class="viewcode-block" id="code"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.grammar.code">[docs]</a><span class="k">def</span> <span class="nf">code</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Returns a code textfield with a specified syntax.</span>
+
+<span class="sd">    Currently only markdown is supported.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        &lt;markdown&gt;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">code</span> <span class="o">=</span> <span class="n">choices_enclosed_in</span><span class="p">(</span><span class="s1">&#39;&lt;&gt;&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;markdown&#39;</span><span class="p">,</span> <span class="p">))(</span><span class="s1">&#39;syntax&#39;</span><span class="p">)</span>
+    <span class="n">code</span><span class="o">.</span><span class="n">addParseAction</span><span class="p">(</span><span class="n">tag</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;code&#39;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">code</span></div>
 
 
 <div class="viewcode-block" id="password"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.grammar.password">[docs]</a><span class="k">def</span> <span class="nf">password</span><span class="p">():</span>
@@ -519,7 +543,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.9</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
     </div>

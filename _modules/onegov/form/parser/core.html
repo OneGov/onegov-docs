@@ -13,6 +13,7 @@
     <script type="text/javascript" src="../../../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
    
@@ -212,6 +213,15 @@
 <span class="sd">    I&#39;m a float field = 0.00..99.00</span>
 <span class="sd">    I&#39;m an float field of a different range = -100.00..100.00</span>
 
+<span class="sd">Code</span>
+<span class="sd">~~~~</span>
+
+<span class="sd">To write code in a certain syntax, use the following::</span>
+
+<span class="sd">    Description = &lt;markdown&gt;</span>
+
+<span class="sd">Currently, only markdown is supported.</span>
+
 <span class="sd">Files</span>
 <span class="sd">~~~~~</span>
 
@@ -347,6 +357,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">Bunch</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">errors</span>
 <span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">checkbox</span>
+<span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">code</span>
 <span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">date</span>
 <span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">onegov.form.parser.grammar</span> <span class="k">import</span> <span class="n">decimal_range_field</span>
@@ -372,6 +383,7 @@
     <span class="n">elements</span><span class="o">.</span><span class="n">fieldset_title</span> <span class="o">=</span> <span class="n">fieldset_title</span><span class="p">()</span>
     <span class="n">elements</span><span class="o">.</span><span class="n">textfield</span> <span class="o">=</span> <span class="n">textfield</span><span class="p">()</span>
     <span class="n">elements</span><span class="o">.</span><span class="n">textarea</span> <span class="o">=</span> <span class="n">textarea</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">code</span> <span class="o">=</span> <span class="n">code</span><span class="p">()</span>
     <span class="n">elements</span><span class="o">.</span><span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="p">()</span>
     <span class="n">elements</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="n">email</span><span class="p">()</span>
     <span class="n">elements</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="p">()</span>
@@ -388,6 +400,7 @@
     <span class="n">elements</span><span class="o">.</span><span class="n">single_line_fields</span> <span class="o">=</span> <span class="n">elements</span><span class="o">.</span><span class="n">identifier</span> <span class="o">+</span> <span class="n">pp</span><span class="o">.</span><span class="n">MatchFirst</span><span class="p">([</span>
         <span class="n">elements</span><span class="o">.</span><span class="n">textfield</span><span class="p">,</span>
         <span class="n">elements</span><span class="o">.</span><span class="n">textarea</span><span class="p">,</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">code</span><span class="p">,</span>
         <span class="n">elements</span><span class="o">.</span><span class="n">password</span><span class="p">,</span>
         <span class="n">elements</span><span class="o">.</span><span class="n">email</span><span class="p">,</span>
         <span class="n">elements</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
@@ -429,6 +442,11 @@
 <span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!textarea&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">construct_textarea</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">textarea</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!code&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">construct_syntax</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ELEMENTS</span><span class="o">.</span><span class="n">code</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
 
 
 <span class="nd">@constructor</span><span class="p">(</span><span class="s1">&#39;!email&#39;</span><span class="p">)</span>
@@ -666,6 +684,20 @@
             <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
             <span class="n">fieldset</span><span class="o">=</span><span class="n">fieldset</span><span class="p">,</span>
             <span class="n">rows</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">rows</span> <span class="ow">or</span> <span class="kc">None</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CodeField"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.parser.core.CodeField">[docs]</a><span class="k">class</span> <span class="nc">CodeField</span><span class="p">(</span><span class="n">Field</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;code&#39;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fieldset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="n">identifier</span><span class="o">.</span><span class="n">required</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
+            <span class="n">fieldset</span><span class="o">=</span><span class="n">fieldset</span><span class="p">,</span>
+            <span class="n">syntax</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">syntax</span>
         <span class="p">)</span></div>
 
 
@@ -1039,7 +1071,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.9</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
     </div>
