@@ -34,7 +34,7 @@
             
   <h1>Source code for onegov.event.models.event</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
-<span class="kn">from</span> <span class="nn">dateutil</span> <span class="k">import</span> <span class="n">rrule</span>
+<span class="kn">from</span> <span class="nn">dateutil.rrule</span> <span class="k">import</span> <span class="n">rrulestr</span>
 <span class="kn">from</span> <span class="nn">icalendar</span> <span class="k">import</span> <span class="n">Calendar</span> <span class="k">as</span> <span class="n">vCalendar</span>
 <span class="kn">from</span> <span class="nn">icalendar</span> <span class="k">import</span> <span class="n">Event</span> <span class="k">as</span> <span class="n">vEvent</span>
 <span class="kn">from</span> <span class="nn">icalendar</span> <span class="k">import</span> <span class="n">vRecur</span>
@@ -60,25 +60,6 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
-
-
-<span class="k">def</span> <span class="nf">recurrence_to_dates</span><span class="p">(</span><span class="n">recurrence</span><span class="p">,</span> <span class="n">dtstart</span><span class="p">,</span> <span class="n">timezone</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Returns the dates defined by an RRULE as list of timezone aware</span>
-<span class="sd">    datetimes.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
-            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">standardize_date</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">timezone</span><span class="p">),</span>
-            <span class="n">rrule</span><span class="o">.</span><span class="n">rrulestr</span><span class="p">(</span><span class="n">recurrence</span><span class="p">,</span> <span class="n">dtstart</span><span class="o">=</span><span class="n">dtstart</span><span class="p">)</span>
-        <span class="p">))</span>
-    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
-        <span class="n">dtstart</span> <span class="o">=</span> <span class="n">to_timezone</span><span class="p">(</span><span class="n">dtstart</span><span class="p">,</span> <span class="n">timezone</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
-            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">standardize_date</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">timezone</span><span class="p">),</span>
-            <span class="n">rrule</span><span class="o">.</span><span class="n">rrulestr</span><span class="p">(</span><span class="n">recurrence</span><span class="p">,</span> <span class="n">dtstart</span><span class="o">=</span><span class="n">dtstart</span><span class="p">)</span>
-        <span class="p">))</span>
 
 
 <div class="viewcode-block" id="Event"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.models.Event">[docs]</a><span class="k">class</span> <span class="nc">Event</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">OccurrenceMixin</span><span class="p">,</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span>
@@ -166,17 +147,17 @@
         <span class="n">base</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Occurrence</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">event_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
 
         <span class="n">current</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">and_</span><span class="p">(</span>
-            <span class="n">Occurrence</span><span class="o">.</span><span class="n">start</span> <span class="o">&gt;=</span> <span class="n">func</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
-            <span class="n">Occurrence</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;=</span> <span class="n">func</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+            <span class="n">Occurrence</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;=</span> <span class="n">func</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
+            <span class="n">Occurrence</span><span class="o">.</span><span class="n">end</span> <span class="o">&gt;=</span> <span class="n">func</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
         <span class="p">))</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Occurrence</span><span class="o">.</span><span class="n">start</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="n">future</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">and_</span><span class="p">(</span>
-            <span class="n">func</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="n">Occurrence</span><span class="o">.</span><span class="n">start</span>
-        <span class="p">))</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Occurrence</span><span class="o">.</span><span class="n">start</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">future</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">Occurrence</span><span class="o">.</span><span class="n">start</span> <span class="o">&gt;=</span> <span class="n">func</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Occurrence</span><span class="o">.</span><span class="n">start</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="n">past</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">and_</span><span class="p">(</span>
+        <span class="n">past</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
             <span class="n">Occurrence</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;=</span> <span class="n">func</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
-        <span class="p">))</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">desc</span><span class="p">(</span><span class="n">Occurrence</span><span class="o">.</span><span class="n">start</span><span class="p">))</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">desc</span><span class="p">(</span><span class="n">Occurrence</span><span class="o">.</span><span class="n">start</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">current</span><span class="o">.</span><span class="n">union_all</span><span class="p">(</span><span class="n">future</span><span class="p">,</span> <span class="n">past</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
 
@@ -187,21 +168,47 @@
 <span class="sd">        default to this and the next year.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">occurrences</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">]</span>
+        <span class="k">def</span> <span class="nf">to_local</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">timezone</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">dt</span><span class="o">.</span><span class="n">tzinfo</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">to_timezone</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">timezone</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">dt</span>
+
+        <span class="n">dates</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">recurrence</span><span class="p">:</span>
-            <span class="n">occurrences</span> <span class="o">=</span> <span class="n">recurrence_to_dates</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">recurrence</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">localize</span><span class="p">:</span>
-                <span class="n">occurrences</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
-                    <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">to_timezone</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">),</span> <span class="n">occurrences</span>
-                <span class="p">))</span>
-            <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
-                <span class="n">max_year</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">year</span> <span class="o">+</span> <span class="mi">1</span>
-                <span class="n">occurrences</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-                    <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">year</span> <span class="o">&lt;=</span> <span class="n">max_year</span><span class="p">,</span> <span class="n">occurrences</span><span class="p">)</span>
-                <span class="p">)</span>
-        <span class="k">return</span> <span class="n">occurrences</span></div>
+            <span class="c1"># Make sure the RRULE uses local dates (or else the DST is wrong)</span>
+            <span class="n">start_local</span> <span class="o">=</span> <span class="n">to_local</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">rrule</span> <span class="o">=</span> <span class="n">rrulestr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recurrence</span><span class="p">,</span> <span class="n">dtstart</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">rrule</span><span class="p">,</span> <span class="s1">&#39;_dtstart&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                    <span class="n">rrule</span><span class="o">.</span><span class="n">_dtstart</span> <span class="o">=</span> <span class="n">to_local</span><span class="p">(</span><span class="n">rrule</span><span class="o">.</span><span class="n">_dtstart</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">rrule</span><span class="p">,</span> <span class="s1">&#39;_until&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                    <span class="n">rrule</span><span class="o">.</span><span class="n">_until</span> <span class="o">=</span> <span class="n">to_local</span><span class="p">(</span><span class="n">rrule</span><span class="o">.</span><span class="n">_until</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
+                <span class="n">rrule</span> <span class="o">=</span> <span class="n">rrulestr</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">rrule</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="c1"># This might happen if only RDATEs and EXDATEs are present</span>
+                <span class="n">rrule</span> <span class="o">=</span> <span class="n">rrulestr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recurrence</span><span class="p">,</span> <span class="n">dtstart</span><span class="o">=</span><span class="n">start_local</span><span class="p">)</span>
+
+            <span class="c1"># Make sure, the RDATEs and EXDATEs contain the start times</span>
+            <span class="k">for</span> <span class="n">attribute</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;_exdate&#39;</span><span class="p">,</span> <span class="s1">&#39;_rdate&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rrule</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="n">rrule</span><span class="p">,</span> <span class="n">attribute</span><span class="p">,</span> <span class="p">[</span>
+                        <span class="n">to_local</span><span class="p">(</span><span class="n">date_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                            <span class="n">hour</span><span class="o">=</span><span class="n">start_local</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="o">=</span><span class="n">start_local</span><span class="o">.</span><span class="n">minute</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">date_</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">rrule</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span>
+                    <span class="p">])</span>
+
+            <span class="c1"># Generate the occurences and convert to UTC</span>
+            <span class="n">dates</span> <span class="o">=</span> <span class="p">[</span><span class="n">standardize_date</span><span class="p">(</span><span class="n">date_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span> <span class="k">for</span> <span class="n">date_</span> <span class="ow">in</span> <span class="n">rrule</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">localize</span><span class="p">:</span>
+            <span class="n">dates</span> <span class="o">=</span> <span class="p">[</span><span class="n">to_timezone</span><span class="p">(</span><span class="n">date_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span> <span class="k">for</span> <span class="n">date_</span> <span class="ow">in</span> <span class="n">dates</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">max_year</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">year</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">dates</span> <span class="o">=</span> <span class="p">[</span><span class="n">date_</span> <span class="k">for</span> <span class="n">date_</span> <span class="ow">in</span> <span class="n">dates</span> <span class="k">if</span> <span class="n">date_</span><span class="o">.</span><span class="n">year</span> <span class="o">&lt;=</span> <span class="n">max_year</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">dates</span></div>
 
     <span class="k">def</span> <span class="nf">_update_occurrences</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Updates the occurrences.</span>
