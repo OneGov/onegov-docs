@@ -35,67 +35,58 @@
   <h1>Source code for onegov.org.path</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot; Contains the paths to the different models served by onegov.org. &quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">morepath</span>
-
-<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
 <span class="kn">from</span> <span class="nn">onegov.chat</span> <span class="k">import</span> <span class="n">MessageCollection</span>
-<span class="kn">from</span> <span class="nn">onegov.core.converters</span> <span class="k">import</span> <span class="n">extended_date_converter</span><span class="p">,</span> <span class="n">json_converter</span>
+<span class="kn">from</span> <span class="nn">onegov.core.converters</span> <span class="k">import</span> <span class="n">extended_date_converter</span>
+<span class="kn">from</span> <span class="nn">onegov.core.converters</span> <span class="k">import</span> <span class="n">json_converter</span>
 <span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">Directory</span>
 <span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryCollection</span>
-<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryEntryCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryEntry</span>
-<span class="kn">from</span> <span class="nn">onegov.event</span> <span class="k">import</span> <span class="p">(</span>
-    <span class="n">Event</span><span class="p">,</span>
-    <span class="n">EventCollection</span><span class="p">,</span>
-    <span class="n">Occurrence</span><span class="p">,</span>
-    <span class="n">OccurrenceCollection</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryEntryCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.event</span> <span class="k">import</span> <span class="n">Event</span>
+<span class="kn">from</span> <span class="nn">onegov.event</span> <span class="k">import</span> <span class="n">EventCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.event</span> <span class="k">import</span> <span class="n">Occurrence</span>
+<span class="kn">from</span> <span class="nn">onegov.event</span> <span class="k">import</span> <span class="n">OccurrenceCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">File</span>
 <span class="kn">from</span> <span class="nn">onegov.file.integration</span> <span class="k">import</span> <span class="n">get_file</span>
-<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="p">(</span>
-    <span class="n">FormDefinition</span><span class="p">,</span>
-    <span class="n">FormCollection</span><span class="p">,</span>
-    <span class="n">FormRegistrationWindow</span><span class="p">,</span>
-    <span class="n">CompleteFormSubmission</span><span class="p">,</span>
-    <span class="n">PendingFormSubmission</span><span class="p">,</span>
-    <span class="n">FormFile</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">onegov.newsletter</span> <span class="k">import</span> <span class="p">(</span>
-    <span class="n">Newsletter</span><span class="p">,</span>
-    <span class="n">NewsletterCollection</span><span class="p">,</span>
-    <span class="n">Subscription</span><span class="p">,</span>
-    <span class="n">RecipientCollection</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">CompleteFormSubmission</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormDefinition</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormFile</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormRegistrationWindow</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">PendingFormSubmission</span>
+<span class="kn">from</span> <span class="nn">onegov.newsletter</span> <span class="k">import</span> <span class="n">Newsletter</span>
+<span class="kn">from</span> <span class="nn">onegov.newsletter</span> <span class="k">import</span> <span class="n">NewsletterCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.newsletter</span> <span class="k">import</span> <span class="n">RecipientCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.newsletter</span> <span class="k">import</span> <span class="n">Subscription</span>
 <span class="kn">from</span> <span class="nn">onegov.org.app</span> <span class="k">import</span> <span class="n">OrgApp</span>
-<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="p">(</span>
-    <span class="n">AtoZPages</span><span class="p">,</span>
-    <span class="n">Clipboard</span><span class="p">,</span>
-    <span class="n">DirectorySubmissionAction</span><span class="p">,</span>
-    <span class="n">Editor</span><span class="p">,</span>
-    <span class="n">Export</span><span class="p">,</span>
-    <span class="n">ExportCollection</span><span class="p">,</span>
-    <span class="n">FormPersonMove</span><span class="p">,</span>
-    <span class="n">GeneralFileCollection</span><span class="p">,</span>
-    <span class="n">ImageFileCollection</span><span class="p">,</span>
-    <span class="n">ImageSet</span><span class="p">,</span>
-    <span class="n">ImageSetCollection</span><span class="p">,</span>
-    <span class="n">LegacyFile</span><span class="p">,</span>
-    <span class="n">LegacyFileCollection</span><span class="p">,</span>
-    <span class="n">LegacyImage</span><span class="p">,</span>
-    <span class="n">LegacyImageCollection</span><span class="p">,</span>
-    <span class="n">News</span><span class="p">,</span>
-    <span class="n">Organisation</span><span class="p">,</span>
-    <span class="n">PageMove</span><span class="p">,</span>
-    <span class="n">PagePersonMove</span><span class="p">,</span>
-    <span class="n">ResourcePersonMove</span><span class="p">,</span>
-    <span class="n">ResourceRecipient</span><span class="p">,</span>
-    <span class="n">ResourceRecipientCollection</span><span class="p">,</span>
-    <span class="n">Search</span><span class="p">,</span>
-    <span class="n">SiteCollection</span><span class="p">,</span>
-    <span class="n">TicketNote</span><span class="p">,</span>
-    <span class="n">Topic</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">onegov.org.converters</span> <span class="k">import</span> <span class="n">keywords_converter</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">AtoZPages</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">Clipboard</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">DirectorySubmissionAction</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">Editor</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">Export</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">ExportCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">FormPersonMove</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">GeneralFileCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">ImageFileCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">ImageSet</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">ImageSetCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">LegacyFile</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">LegacyFileCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">LegacyImage</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">LegacyImageCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">News</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">Organisation</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">PageMove</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">PagePersonMove</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">ResourcePersonMove</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">ResourceRecipient</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">ResourceRecipientCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">Search</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">SiteCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">TicketNote</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">Topic</span>
 <span class="kn">from</span> <span class="nn">onegov.page</span> <span class="k">import</span> <span class="n">PageCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">PaymentProvider</span><span class="p">,</span> <span class="n">Payment</span><span class="p">,</span> <span class="n">PaymentCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">PaymentProviderCollection</span>
@@ -106,8 +97,8 @@
 <span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">ResourceCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">Ticket</span><span class="p">,</span> <span class="n">TicketCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.user</span> <span class="k">import</span> <span class="n">Auth</span><span class="p">,</span> <span class="n">User</span><span class="p">,</span> <span class="n">UserCollection</span>
-<span class="kn">from</span> <span class="nn">webob</span> <span class="k">import</span> <span class="n">exc</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">UUID</span>
+<span class="kn">from</span> <span class="nn">webob</span> <span class="k">import</span> <span class="n">exc</span>
 
 
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Organisation</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
@@ -536,33 +527,6 @@
     <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/directories&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">get_directories</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">DirectoryCollection</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;extended&#39;</span><span class="p">)</span>
-
-
-<div class="viewcode-block" id="keywords_decode"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.path.keywords_decode">[docs]</a><span class="k">def</span> <span class="nf">keywords_decode</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Deocdes the directory entry collection keywords. &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">s</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-
-    <span class="n">result</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">):</span>
-        <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">result</span></div>
-
-
-<div class="viewcode-block" id="keywords_encode"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.path.keywords_encode">[docs]</a><span class="k">def</span> <span class="nf">keywords_encode</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Encodes the directory entry collection keywords. &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">d</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s1">&#39;&#39;</span>
-
-    <span class="k">return</span> <span class="s1">&#39;+&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">d</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">])</span></div>
-
-
-<span class="n">keywords_converter</span> <span class="o">=</span> <span class="n">morepath</span><span class="o">.</span><span class="n">Converter</span><span class="p">(</span>
-    <span class="n">decode</span><span class="o">=</span><span class="n">keywords_decode</span><span class="p">,</span> <span class="n">encode</span><span class="o">=</span><span class="n">keywords_encode</span>
-<span class="p">)</span>
 
 
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
