@@ -37,9 +37,9 @@
 
 <span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">copy</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">IntEnum</span>
-<span class="kn">from</span> <span class="nn">onegov.activity.models</span> <span class="k">import</span> <span class="n">Activity</span><span class="p">,</span> <span class="n">Occasion</span>
-<span class="kn">from</span> <span class="nn">onegov.activity.utils</span> <span class="k">import</span> <span class="n">age_range_decode</span>
-<span class="kn">from</span> <span class="nn">onegov.activity.utils</span> <span class="k">import</span> <span class="n">age_range_encode</span>
+<span class="kn">from</span> <span class="nn">onegov.activity.models</span> <span class="k">import</span> <span class="n">Activity</span><span class="p">,</span> <span class="n">Occasion</span><span class="p">,</span> <span class="n">Period</span>
+<span class="kn">from</span> <span class="nn">onegov.activity.utils</span> <span class="k">import</span> <span class="n">num_range_decode</span>
+<span class="kn">from</span> <span class="nn">onegov.activity.utils</span> <span class="k">import</span> <span class="n">num_range_encode</span>
 <span class="kn">from</span> <span class="nn">onegov.activity.utils</span> <span class="k">import</span> <span class="n">date_range_decode</span>
 <span class="kn">from</span> <span class="nn">onegov.activity.utils</span> <span class="k">import</span> <span class="n">date_range_encode</span>
 <span class="kn">from</span> <span class="nn">onegov.activity.utils</span> <span class="k">import</span> <span class="n">merge_ranges</span>
@@ -49,12 +49,10 @@
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">is_uuid</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">toggle</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">bindparam</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">column</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">distinct</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">func</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Integer</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">or_</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">and_</span><span class="p">,</span> <span class="n">or_</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">select</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.dialects.postgresql</span> <span class="k">import</span> <span class="n">array</span>
@@ -70,16 +68,17 @@
     <span class="c1"># be turned into a singular with the removal of the last s</span>
     <span class="c1"># (i.e. slots =&gt; slot)</span>
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="s1">&#39;available&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;tags&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;states&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;durations&#39;</span><span class="p">,</span>
         <span class="s1">&#39;age_ranges&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;available&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;price_ranges&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;dateranges&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;durations&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;municipalities&#39;</span><span class="p">,</span>
         <span class="s1">&#39;owners&#39;</span><span class="p">,</span>
         <span class="s1">&#39;period_ids&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;dateranges&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;states&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;tags&#39;</span><span class="p">,</span>
         <span class="s1">&#39;weekdays&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;municipalities&#39;</span>
     <span class="p">)</span>
 
     <span class="n">singular</span> <span class="o">=</span> <span class="p">{</span>
@@ -134,9 +133,15 @@
     <span class="k">def</span> <span class="nf">adapt_available</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">values</span> <span class="o">&amp;</span> <span class="n">AVAILABILITY_VALUES</span>
 
-    <span class="k">def</span> <span class="nf">adapt_age_ranges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
-        <span class="n">decoded</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="n">age_range_decode</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">adapt_num_ranges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="n">decoded</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="n">num_range_decode</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">decoded</span> <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">merge_ranges</span><span class="p">(</span><span class="n">decoded</span><span class="p">))</span> <span class="ow">or</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">adapt_age_ranges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adapt_num_ranges</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">adapt_price_ranges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adapt_num_ranges</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">adapt_dateranges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="n">date_range_decode</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span><span class="p">)</span>
@@ -158,7 +163,10 @@
             <span class="k">return</span> <span class="p">[</span><span class="n">date_range_encode</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;age_ranges&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[</span><span class="n">age_range_encode</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">num_range_encode</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;price_ranges&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">num_range_encode</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">IntEnum</span><span class="p">):</span>
             <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
@@ -174,11 +182,17 @@
 
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">contains_age_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">age_range</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">age_ranges</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">overlaps</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">age_range</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">contains_num_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">ranges</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ranges</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">overlaps</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
                 <span class="k">return</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">contains_age_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">age_range</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">contains_num_range</span><span class="p">(</span><span class="n">age_range</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">age_ranges</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">contains_price_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">price_range</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">contains_num_range</span><span class="p">(</span><span class="n">price_range</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_ranges</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="ActivityCollection"><a class="viewcode-back" href="../../../../onegov_activity.html#onegov.activity.collections.activity.ActivityCollection">[docs]</a><span class="k">class</span> <span class="nc">ActivityCollection</span><span class="p">(</span><span class="n">Pagination</span><span class="p">):</span>
@@ -226,6 +240,7 @@
         <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_base</span><span class="p">()</span>
         <span class="n">model_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_class</span>
 
+        <span class="c1"># activity based filters</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
             <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">model_class</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
 
@@ -237,102 +252,79 @@
             <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
                 <span class="n">model_class</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">states</span><span class="p">))</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">durations</span><span class="p">:</span>
-            <span class="n">conditions</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
-                <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">model_class</span><span class="o">.</span><span class="n">durations</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">op</span><span class="p">(</span><span class="s1">&#39;&amp;&#39;</span><span class="p">)(</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span>
-                <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">durations</span>
-            <span class="p">)</span>
-            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span><span class="o">*</span><span class="n">conditions</span><span class="p">))</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">age_ranges</span><span class="p">:</span>
-            <span class="n">conditions</span> <span class="o">=</span> <span class="p">[]</span>
-
-            <span class="c1"># SQLAlchemy needs unique parameter names if multiple text</span>
-            <span class="c1"># queries with bind params are used</span>
-            <span class="n">enumerated</span> <span class="o">=</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">age_ranges</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">min_age</span><span class="p">,</span> <span class="n">max_age</span><span class="p">)</span> <span class="ow">in</span> <span class="n">enumerated</span><span class="p">:</span>
-                <span class="n">stmt</span> <span class="o">=</span> <span class="s2">&quot;&#39;[:min_</span><span class="si">{i}</span><span class="s2">,:max_</span><span class="si">{i}</span><span class="s2">]&#39;::int4range &amp;&amp; ANY(ages)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
-
-                <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">(</span><span class="n">stmt</span><span class="p">)</span><span class="o">.</span><span class="n">bindparams</span><span class="p">(</span>
-                    <span class="n">bindparam</span><span class="p">(</span><span class="s1">&#39;min_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">min_age</span><span class="p">,</span> <span class="n">type_</span><span class="o">=</span><span class="n">Integer</span><span class="p">),</span>
-                    <span class="n">bindparam</span><span class="p">(</span><span class="s1">&#39;max_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">max_age</span><span class="p">,</span> <span class="n">type_</span><span class="o">=</span><span class="n">Integer</span><span class="p">),</span>
-                <span class="p">))</span>
-
-            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span><span class="o">*</span><span class="n">conditions</span><span class="p">))</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">owners</span><span class="p">:</span>
-            <span class="n">conditions</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
-                <span class="n">model_class</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="n">username</span>
-                <span class="k">for</span> <span class="n">username</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">owners</span>
-            <span class="p">)</span>
-
-            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span><span class="o">*</span><span class="n">conditions</span><span class="p">))</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">period_ids</span><span class="p">:</span>
-            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-                <span class="n">model_class</span><span class="o">.</span><span class="n">period_ids</span><span class="o">.</span><span class="n">op</span><span class="p">(</span><span class="s1">&#39;&amp;&amp;&#39;</span><span class="p">)(</span><span class="n">array</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">period_ids</span>
-                <span class="p">)))</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">dateranges</span><span class="p">:</span>
-            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-                <span class="n">model_class</span><span class="o">.</span><span class="n">active_days</span><span class="o">.</span><span class="n">op</span><span class="p">(</span><span class="s1">&#39;&amp;&amp;&#39;</span><span class="p">)(</span><span class="n">array</span><span class="p">(</span>
-                    <span class="nb">tuple</span><span class="p">(</span>
-                        <span class="n">dt</span><span class="o">.</span><span class="n">toordinal</span><span class="p">()</span>
-                        <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">dateranges</span>
-                        <span class="k">for</span> <span class="n">dt</span> <span class="ow">in</span> <span class="n">sedate</span><span class="o">.</span><span class="n">dtrange</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
-                    <span class="p">)</span>
-                <span class="p">))</span>
-            <span class="p">)</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">weekdays</span><span class="p">:</span>
-            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-                <span class="n">model_class</span><span class="o">.</span><span class="n">weekdays</span><span class="o">.</span><span class="n">op</span><span class="p">(</span><span class="s1">&#39;&amp;&amp;&#39;</span><span class="p">)(</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">weekdays</span><span class="p">)))</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">model_class</span><span class="o">.</span><span class="n">username</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">owners</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">municipalities</span><span class="p">:</span>
             <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
                 <span class="n">model_class</span><span class="o">.</span><span class="n">municipality</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">municipalities</span><span class="p">))</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">available</span><span class="p">:</span>
-            <span class="n">queries</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># occasion based filters</span>
+        <span class="n">o</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Occasion</span><span class="p">)</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">activity_id</span><span class="p">)</span>
 
-            <span class="n">stub</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Occasion</span><span class="p">)</span>
-            <span class="n">stub</span> <span class="o">=</span> <span class="n">stub</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">activity_id</span><span class="p">)</span>
-            <span class="n">stub</span> <span class="o">=</span> <span class="n">stub</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">activity_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">period_ids</span><span class="p">:</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">period_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">period_ids</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">durations</span><span class="p">:</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">duration</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">durations</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">age_ranges</span><span class="p">:</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span>
+                <span class="o">*</span><span class="p">(</span>
+                    <span class="n">Occasion</span><span class="o">.</span><span class="n">age</span><span class="o">.</span><span class="n">overlaps</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">int4range</span><span class="p">(</span><span class="n">min_age</span><span class="p">,</span> <span class="n">max_age</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                    <span class="k">for</span> <span class="n">min_age</span><span class="p">,</span> <span class="n">max_age</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">age_ranges</span>
+                <span class="p">)</span>
+            <span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">price_ranges</span><span class="p">:</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Period</span><span class="p">)</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span>
+                <span class="o">*</span><span class="p">(</span>
+                    <span class="n">and_</span><span class="p">(</span>
+                        <span class="n">min_price</span> <span class="o">&lt;=</span> <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
+                            <span class="n">Occasion</span><span class="o">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">Period</span><span class="o">.</span><span class="n">occasion_extra_cost</span>
+                        <span class="p">),</span>
+                        <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
+                            <span class="n">Occasion</span><span class="o">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">Period</span><span class="o">.</span><span class="n">occasion_extra_cost</span>
+                        <span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_price</span>
+                    <span class="p">)</span> <span class="k">for</span> <span class="n">min_price</span><span class="p">,</span> <span class="n">max_price</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">price_ranges</span>
+                <span class="p">)</span>
+            <span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">dateranges</span><span class="p">:</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">active_days</span><span class="o">.</span><span class="n">op</span><span class="p">(</span><span class="s1">&#39;&amp;&amp;&#39;</span><span class="p">)(</span><span class="n">array</span><span class="p">(</span>
+                <span class="nb">tuple</span><span class="p">(</span>
+                    <span class="n">dt</span><span class="o">.</span><span class="n">toordinal</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">dateranges</span>
+                    <span class="k">for</span> <span class="n">dt</span> <span class="ow">in</span> <span class="n">sedate</span><span class="o">.</span><span class="n">dtrange</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+                <span class="p">)))</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">weekdays</span><span class="p">:</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">Occasion</span><span class="o">.</span><span class="n">weekdays</span><span class="o">.</span><span class="n">op</span><span class="p">(</span><span class="s1">&#39;&amp;&amp;&#39;</span><span class="p">)(</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">weekdays</span><span class="p">)))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">available</span><span class="p">:</span>
+            <span class="n">conditions</span> <span class="o">=</span> <span class="p">[]</span>
 
             <span class="k">for</span> <span class="n">amount</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">available</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">amount</span> <span class="o">==</span> <span class="s1">&#39;none&#39;</span><span class="p">:</span>
-                    <span class="n">queries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="n">model_class</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
-                            <span class="n">stub</span><span class="o">.</span><span class="n">having</span><span class="p">(</span>
-                                <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">available_spots</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
-                            <span class="p">)</span>
-                        <span class="p">)</span>
-                    <span class="p">)</span>
-                <span class="k">elif</span> <span class="n">amount</span> <span class="o">==</span> <span class="s1">&#39;few&#39;</span><span class="p">:</span>
-                    <span class="n">queries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="n">model_class</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
-                            <span class="n">stub</span><span class="o">.</span><span class="n">having</span><span class="p">(</span>
-                                <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">available_spots</span><span class="p">)</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
-                                    <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-                                <span class="p">)</span>
-                            <span class="p">)</span>
-                        <span class="p">)</span>
-                    <span class="p">)</span>
-                <span class="k">elif</span> <span class="n">amount</span> <span class="o">==</span> <span class="s1">&#39;many&#39;</span><span class="p">:</span>
-                    <span class="n">queries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="n">model_class</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
-                            <span class="n">stub</span><span class="o">.</span><span class="n">having</span><span class="p">(</span>
-                                <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">available_spots</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">4</span>
-                            <span class="p">)</span>
-                        <span class="p">)</span>
-                    <span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+                    <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">available_spots</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
 
-            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span><span class="o">*</span><span class="n">queries</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="n">amount</span> <span class="o">==</span> <span class="s1">&#39;few&#39;</span><span class="p">:</span>
+                    <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">available_spots</span><span class="o">.</span><span class="n">in_</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span>
+
+                <span class="k">elif</span> <span class="n">amount</span> <span class="o">==</span> <span class="s1">&#39;many&#39;</span><span class="p">:</span>
+                    <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">available_spots</span> <span class="o">&gt;=</span> <span class="mi">4</span><span class="p">)</span>
+
+            <span class="n">o</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span><span class="o">*</span><span class="n">conditions</span><span class="p">))</span>
+
+        <span class="c1"># if no filter was applied to the occasion subquery, we ignore it since</span>
+        <span class="c1"># we would otherwise get zero results</span>
+        <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">_criterion</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">model_class</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">subquery</span><span class="p">()))</span>
 
         <span class="k">return</span> <span class="n">query</span>
 
@@ -510,7 +502,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
     </div>

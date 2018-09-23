@@ -46,14 +46,13 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">onegov.user</span> <span class="k">import</span> <span class="n">User</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">,</span> <span class="n">Integer</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">ForeignKey</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">event</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">func</span><span class="p">,</span> <span class="n">distinct</span><span class="p">,</span> <span class="n">exists</span><span class="p">,</span> <span class="n">and_</span><span class="p">,</span> <span class="n">desc</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Index</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.dialects.postgresql</span> <span class="k">import</span> <span class="n">HSTORE</span><span class="p">,</span> <span class="n">ARRAY</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">exists</span><span class="p">,</span> <span class="n">and_</span><span class="p">,</span> <span class="n">desc</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.dialects.postgresql</span> <span class="k">import</span> <span class="n">HSTORE</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.ext.mutable</span> <span class="k">import</span> <span class="n">MutableDict</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span><span class="p">,</span> <span class="n">relationship</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">aggregated</span><span class="p">,</span> <span class="n">observes</span><span class="p">,</span> <span class="n">IntRangeType</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
 
 
@@ -112,26 +111,6 @@
     <span class="c1">#: Access the user linked to this activity</span>
     <span class="n">user</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s1">&#39;User&#39;</span><span class="p">)</span>
 
-    <span class="nd">@aggregated</span><span class="p">(</span><span class="s1">&#39;occasions&#39;</span><span class="p">,</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">durations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">func</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">distinct</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">duration</span><span class="p">))</span>
-
-    <span class="nd">@aggregated</span><span class="p">(</span><span class="s1">&#39;occasions&#39;</span><span class="p">,</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">IntRangeType</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="nb">list</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">ages</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">func</span><span class="o">.</span><span class="n">array_agg</span><span class="p">(</span><span class="n">distinct</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">age</span><span class="p">))</span>
-
-    <span class="nd">@aggregated</span><span class="p">(</span><span class="s1">&#39;occasions&#39;</span><span class="p">,</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">UUID</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="nb">list</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">period_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">func</span><span class="o">.</span><span class="n">array_agg</span><span class="p">(</span><span class="n">distinct</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">period_id</span><span class="p">))</span>
-
-    <span class="nd">@aggregated</span><span class="p">(</span><span class="s1">&#39;occasions&#39;</span><span class="p">,</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">Integer</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="nb">list</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">active_days</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">func</span><span class="o">.</span><span class="n">array_cat_agg</span><span class="p">(</span><span class="n">distinct</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">active_days</span><span class="p">))</span>
-
-    <span class="nd">@aggregated</span><span class="p">(</span><span class="s1">&#39;occasions&#39;</span><span class="p">,</span> <span class="n">Column</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span><span class="n">Integer</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="nb">list</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">weekdays</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">func</span><span class="o">.</span><span class="n">array_cat_agg</span><span class="p">(</span><span class="n">distinct</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">weekdays</span><span class="p">))</span>
-
     <span class="c1">#: The occasions linked to this activity</span>
     <span class="n">occasions</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
         <span class="s1">&#39;Occasion&#39;</span><span class="p">,</span>
@@ -156,11 +135,6 @@
         <span class="s1">&#39;polymorphic_on&#39;</span><span class="p">:</span> <span class="s1">&#39;type&#39;</span><span class="p">,</span>
         <span class="s1">&#39;order_by&#39;</span><span class="p">:</span> <span class="n">order</span><span class="p">,</span>
     <span class="p">}</span>
-
-    <span class="n">__table_args__</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">Index</span><span class="p">(</span><span class="s1">&#39;inverted_active_days&#39;</span><span class="p">,</span> <span class="s1">&#39;active_days&#39;</span><span class="p">,</span> <span class="n">postgresql_using</span><span class="o">=</span><span class="s1">&#39;gin&#39;</span><span class="p">),</span>
-        <span class="n">Index</span><span class="p">(</span><span class="s1">&#39;inverted_weekdays&#39;</span><span class="p">,</span> <span class="s1">&#39;weekdays&#39;</span><span class="p">,</span> <span class="n">postgresql_using</span><span class="o">=</span><span class="s1">&#39;gin&#39;</span><span class="p">),</span>
-    <span class="p">)</span>
 
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">title_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">):</span>
@@ -309,7 +283,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
     </div>
