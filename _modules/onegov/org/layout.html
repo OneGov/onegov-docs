@@ -1348,6 +1348,38 @@
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">editbar_links</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_manager</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">source</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[</span>
+                    <span class="n">Link</span><span class="p">(</span>
+                        <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit&quot;</span><span class="p">),</span>
+                        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;edit-link&#39;</span><span class="p">},</span>
+                        <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
+                            <span class="n">Block</span><span class="p">(</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This event can&#39;t be editet.&quot;</span><span class="p">),</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Imported events can not be editet.&quot;</span><span class="p">)</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">),</span>
+                    <span class="n">Link</span><span class="p">(</span>
+                        <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete&quot;</span><span class="p">),</span>
+                        <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">event</span><span class="p">,</span> <span class="s1">&#39;withdraw&#39;</span><span class="p">),</span>
+                        <span class="p">),</span>
+                        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;delete-link&#39;</span><span class="p">},</span>
+                        <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
+                            <span class="n">Confirm</span><span class="p">(</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to delete this event?&quot;</span><span class="p">),</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete event&quot;</span><span class="p">)</span>
+                            <span class="p">),</span>
+                            <span class="n">Intercooler</span><span class="p">(</span>
+                                <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+                                <span class="n">redirect_after</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">events_url</span>
+                            <span class="p">),</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">]</span>
+
             <span class="n">edit_link</span> <span class="o">=</span> <span class="n">Link</span><span class="p">(</span>
                 <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit&quot;</span><span class="p">),</span>
                 <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">return_to</span><span class="p">(</span>
@@ -1407,6 +1439,38 @@
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">editbar_links</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_manager</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">source</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[</span>
+                    <span class="n">Link</span><span class="p">(</span>
+                        <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit&quot;</span><span class="p">),</span>
+                        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;edit-link&#39;</span><span class="p">},</span>
+                        <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
+                            <span class="n">Block</span><span class="p">(</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This event can&#39;t be editet.&quot;</span><span class="p">),</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Imported events can not be editet.&quot;</span><span class="p">)</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">),</span>
+                    <span class="n">Link</span><span class="p">(</span>
+                        <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete&quot;</span><span class="p">),</span>
+                        <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;withdraw&#39;</span><span class="p">),</span>
+                        <span class="p">),</span>
+                        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;delete-link&#39;</span><span class="p">},</span>
+                        <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
+                            <span class="n">Confirm</span><span class="p">(</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to delete this event?&quot;</span><span class="p">),</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete event&quot;</span><span class="p">)</span>
+                            <span class="p">),</span>
+                            <span class="n">Intercooler</span><span class="p">(</span>
+                                <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+                                <span class="n">redirect_after</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">events_url</span>
+                            <span class="p">),</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">]</span>
+
             <span class="n">edit_link</span> <span class="o">=</span> <span class="n">Link</span><span class="p">(</span>
                 <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Edit&quot;</span><span class="p">),</span>
                 <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;edit&#39;</span><span class="p">),</span>

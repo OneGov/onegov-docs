@@ -33,7 +33,9 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.file.models.file</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">depot.fields.sqlalchemy</span> <span class="k">import</span> <span class="n">UploadedFileField</span> <span class="k">as</span> <span class="n">UploadedFileFieldBase</span>
+<span></span><span class="kn">import</span> <span class="nn">json</span>
+
+<span class="kn">from</span> <span class="nn">depot.fields.sqlalchemy</span> <span class="k">import</span> <span class="n">UploadedFileField</span> <span class="k">as</span> <span class="n">UploadedFileFieldBase</span>
 <span class="kn">from</span> <span class="nn">onegov.core.crypto</span> <span class="k">import</span> <span class="n">random_token</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.abstract</span> <span class="k">import</span> <span class="n">Associable</span>
@@ -43,7 +45,11 @@
 <span class="kn">from</span> <span class="nn">onegov.file.attachments</span> <span class="k">import</span> <span class="n">ProcessedUploadedFile</span>
 <span class="kn">from</span> <span class="nn">onegov.file.filters</span> <span class="k">import</span> <span class="n">OnlyIfImage</span><span class="p">,</span> <span class="n">WithThumbnailFilter</span>
 <span class="kn">from</span> <span class="nn">onegov.file.filters</span> <span class="k">import</span> <span class="n">OnlyIfPDF</span><span class="p">,</span> <span class="n">WithPDFThumbnailFilter</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">event</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span><span class="p">,</span> <span class="n">Session</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm.attributes</span> <span class="k">import</span> <span class="n">flag_modified</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
 
 
@@ -184,7 +190,54 @@
         <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">_update_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Updates the underlying metadata with the give values. This</span>
+<span class="sd">        operats on low-level interfaces of Depot and assumes local storage.</span>
+
+<span class="sd">        You should have a good reason for using this.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">issubset</span><span class="p">({</span><span class="s1">&#39;content_type&#39;</span><span class="p">,</span> <span class="s1">&#39;filename&#39;</span><span class="p">})</span>
+
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">_metadata_path</span><span class="p">)</span>
+
+        <span class="c1"># store the pending metadata on the session to commit them later</span>
+        <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;pending_metadata_changes&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">info</span><span class="p">:</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;pending_metadata_changes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># only support upating existing values - do not create new ones</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;pending_metadata_changes&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+
+        <span class="c1"># make sure we cause a commit here</span>
+        <span class="n">flag_modified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;reference&#39;</span><span class="p">)</span></div>
+
+
+<span class="nd">@event</span><span class="o">.</span><span class="n">listens_for</span><span class="p">(</span><span class="n">Session</span><span class="p">,</span> <span class="s1">&#39;after_commit&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">update_metadata_after_commit</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s1">&#39;pending_metadata_changes&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">info</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;pending_metadata_changes&#39;</span><span class="p">]:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+        <span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">metadata</span><span class="p">))</span>
+
+    <span class="k">del</span> <span class="n">session</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;pending_metadata_changes&#39;</span><span class="p">]</span>
+
+
+<span class="nd">@event</span><span class="o">.</span><span class="n">listens_for</span><span class="p">(</span><span class="n">Session</span><span class="p">,</span> <span class="s1">&#39;after_soft_rollback&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">discard_metadata_on_rollback</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s1">&#39;pending_metadata_changes&#39;</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">info</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">session</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;pending_metadata_changes&#39;</span><span class="p">]</span>
 </pre></div>
 
           </div>

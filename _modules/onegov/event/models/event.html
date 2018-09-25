@@ -41,6 +41,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">content_property</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">ContentMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
 <span class="kn">from</span> <span class="nn">onegov.event.models.mixins</span> <span class="k">import</span> <span class="n">OccurrenceMixin</span>
@@ -93,6 +94,9 @@
     <span class="c1">#: the event organizer</span>
     <span class="n">organizer</span> <span class="o">=</span> <span class="n">content_property</span><span class="p">()</span>
 
+    <span class="c1">#: the source of the event, if imported</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+
     <span class="c1">#: Recurrence of the event (RRULE, see RFC2445)</span>
     <span class="n">recurrence</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -124,7 +128,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">es_skip</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;submitted&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;submitted&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;withdrawn&#39;</span>
 
     <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Automatically update the occurrences if shared attributes change.</span>

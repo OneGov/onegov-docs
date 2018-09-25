@@ -79,7 +79,7 @@
 
 <span class="k">def</span> <span class="nf">create_app</span><span class="p">(</span><span class="n">app_class</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">use_elasticsearch</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                <span class="n">reuse_filestorage</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_smtp</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-               <span class="n">depot_backend</span><span class="o">=</span><span class="s1">&#39;depot.io.memory.MemoryFileStorage&#39;</span><span class="p">,</span>
+               <span class="n">depot_backend</span><span class="o">=</span><span class="s1">&#39;depot.io.local.LocalFileStorage&#39;</span><span class="p">,</span>
                <span class="n">depot_storage_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
     <span class="c1"># filestorage can be reused between tries as it is nowadays mainly (if not</span>
@@ -99,6 +99,10 @@
         <span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">elasticsearch_hosts</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">depot_backend</span> <span class="o">==</span> <span class="s1">&#39;depot.io.local.LocalFileStorage&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">depot_storage_path</span><span class="p">:</span>
+            <span class="n">depot_storage_path</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">getfixturevalue</span><span class="p">(</span><span class="s1">&#39;temporary_directory&#39;</span><span class="p">)</span>
 
     <span class="n">app</span> <span class="o">=</span> <span class="n">app_class</span><span class="p">()</span>
     <span class="n">app</span><span class="o">.</span><span class="n">namespace</span> <span class="o">=</span> <span class="n">random_namespace</span><span class="p">()</span>
