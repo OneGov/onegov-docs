@@ -34,6 +34,7 @@
             
   <h1>Source code for click.core</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">errno</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">contextmanager</span>
@@ -41,15 +42,16 @@
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">update_wrapper</span>
 
 <span class="kn">from</span> <span class="nn">.types</span> <span class="k">import</span> <span class="n">convert_type</span><span class="p">,</span> <span class="n">IntRange</span><span class="p">,</span> <span class="n">BOOL</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">make_str</span><span class="p">,</span> <span class="n">make_default_short_help</span><span class="p">,</span> <span class="n">echo</span><span class="p">,</span> <span class="n">get_os_args</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">PacifyFlushWrapper</span><span class="p">,</span> <span class="n">make_str</span><span class="p">,</span> <span class="n">make_default_short_help</span><span class="p">,</span> \
+     <span class="n">echo</span><span class="p">,</span> <span class="n">get_os_args</span>
 <span class="kn">from</span> <span class="nn">.exceptions</span> <span class="k">import</span> <span class="n">ClickException</span><span class="p">,</span> <span class="n">UsageError</span><span class="p">,</span> <span class="n">BadParameter</span><span class="p">,</span> <span class="n">Abort</span><span class="p">,</span> \
-     <span class="n">MissingParameter</span>
-<span class="kn">from</span> <span class="nn">.termui</span> <span class="k">import</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">confirm</span>
+     <span class="n">MissingParameter</span><span class="p">,</span> <span class="n">Exit</span>
+<span class="kn">from</span> <span class="nn">.termui</span> <span class="k">import</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">confirm</span><span class="p">,</span> <span class="n">style</span>
 <span class="kn">from</span> <span class="nn">.formatting</span> <span class="k">import</span> <span class="n">HelpFormatter</span><span class="p">,</span> <span class="n">join_options</span>
 <span class="kn">from</span> <span class="nn">.parser</span> <span class="k">import</span> <span class="n">OptionParser</span><span class="p">,</span> <span class="n">split_opt</span>
 <span class="kn">from</span> <span class="nn">.globals</span> <span class="k">import</span> <span class="n">push_context</span><span class="p">,</span> <span class="n">pop_context</span>
 
-<span class="kn">from</span> <span class="nn">._compat</span> <span class="k">import</span> <span class="n">PY2</span><span class="p">,</span> <span class="n">isidentifier</span><span class="p">,</span> <span class="n">iteritems</span>
+<span class="kn">from</span> <span class="nn">._compat</span> <span class="k">import</span> <span class="n">PY2</span><span class="p">,</span> <span class="n">isidentifier</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">,</span> <span class="n">string_types</span>
 <span class="kn">from</span> <span class="nn">._unicodefun</span> <span class="k">import</span> <span class="n">_check_for_unicode_literals</span><span class="p">,</span> <span class="n">_verify_python3_env</span>
 
 
@@ -58,6 +60,24 @@
 
 <span class="n">SUBCOMMAND_METAVAR</span> <span class="o">=</span> <span class="s1">&#39;COMMAND [ARGS]...&#39;</span>
 <span class="n">SUBCOMMANDS_METAVAR</span> <span class="o">=</span> <span class="s1">&#39;COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...&#39;</span>
+
+<span class="n">DEPRECATED_HELP_NOTICE</span> <span class="o">=</span> <span class="s1">&#39; (DEPRECATED)&#39;</span>
+<span class="n">DEPRECATED_INVOKE_NOTICE</span> <span class="o">=</span> <span class="s1">&#39;DeprecationWarning: &#39;</span> <span class="o">+</span> \
+                           <span class="s1">&#39;The command </span><span class="si">%(name)s</span><span class="s1"> is deprecated.&#39;</span>
+
+
+<span class="k">def</span> <span class="nf">_maybe_show_deprecated_notice</span><span class="p">(</span><span class="n">cmd</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">cmd</span><span class="o">.</span><span class="n">deprecated</span><span class="p">:</span>
+        <span class="n">echo</span><span class="p">(</span><span class="n">style</span><span class="p">(</span><span class="n">DEPRECATED_INVOKE_NOTICE</span> <span class="o">%</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">cmd</span><span class="o">.</span><span class="n">name</span><span class="p">},</span> <span class="n">fg</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">),</span> <span class="n">err</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">fast_exit</span><span class="p">(</span><span class="n">code</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exit without garbage collection, this speeds up exit by about 10ms for</span>
+<span class="sd">    things like bash completion.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_bashcomplete</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">prog_name</span><span class="p">,</span> <span class="n">complete_var</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -70,7 +90,7 @@
 
     <span class="kn">from</span> <span class="nn">._bashcomplete</span> <span class="k">import</span> <span class="n">bashcomplete</span>
     <span class="k">if</span> <span class="n">bashcomplete</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">prog_name</span><span class="p">,</span> <span class="n">complete_var</span><span class="p">,</span> <span class="n">complete_instr</span><span class="p">):</span>
-        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">fast_exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_check_multicommand</span><span class="p">(</span><span class="n">base_command</span><span class="p">,</span> <span class="n">cmd_name</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">register</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -85,9 +105,7 @@
     <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.  Command &quot;</span><span class="si">%s</span><span class="s1">&quot; is set to chain and &quot;</span><span class="si">%s</span><span class="s1">&quot; was &#39;</span>
                        <span class="s1">&#39;added as subcommand but it in itself is a &#39;</span>
                        <span class="s1">&#39;multi command.  (&quot;</span><span class="si">%s</span><span class="s1">&quot; is a </span><span class="si">%s</span><span class="s1"> within a chained &#39;</span>
-                       <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> named &quot;</span><span class="si">%s</span><span class="s1">&quot;).  This restriction was supposed to &#39;</span>
-                       <span class="s1">&#39;be lifted in 6.0 but the fix was flawed.  This &#39;</span>
-                       <span class="s1">&#39;will be fixed in Click 7.0&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                       <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> named &quot;</span><span class="si">%s</span><span class="s1">&quot;).&#39;</span> <span class="o">%</span> <span class="p">(</span>
                            <span class="n">hint</span><span class="p">,</span> <span class="n">base_command</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">cmd_name</span><span class="p">,</span>
                            <span class="n">cmd_name</span><span class="p">,</span> <span class="n">cmd</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
                            <span class="n">base_command</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
@@ -200,7 +218,8 @@
 <span class="sd">                              add some safety mapping on the right.</span>
 <span class="sd">    :param resilient_parsing: if this flag is enabled then Click will</span>
 <span class="sd">                              parse without any interactivity or callback</span>
-<span class="sd">                              invocation.  This is useful for implementing</span>
+<span class="sd">                              invocation.  Default values will also be</span>
+<span class="sd">                              ignored.  This is useful for implementing</span>
 <span class="sd">                              things such as completion support.</span>
 <span class="sd">    :param allow_extra_args: if this is set to `True` then extra arguments</span>
 <span class="sd">                             at the end will not raise an error and will be</span>
@@ -330,7 +349,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">token_normalize_func</span> <span class="o">=</span> <span class="n">token_normalize_func</span>
 
         <span class="c1">#: Indicates if resilient parsing is enabled.  In that case Click</span>
-        <span class="c1">#: will do its best to not cause any failures.</span>
+        <span class="c1">#: will do its best to not cause any failures and default values</span>
+        <span class="c1">#: will be ignored. Useful for completion.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">resilient_parsing</span> <span class="o">=</span> <span class="n">resilient_parsing</span>
 
         <span class="c1"># If there is no envvar prefix yet, but the parent has one and</span>
@@ -343,7 +363,7 @@
                 <span class="n">auto_envvar_prefix</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">auto_envvar_prefix</span><span class="p">,</span>
                                            <span class="bp">self</span><span class="o">.</span><span class="n">info_name</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">auto_envvar_prefix</span> <span class="o">=</span> <span class="n">auto_envvar_prefix</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="n">auto_envvar_prefix</span> <span class="o">=</span> <span class="n">auto_envvar_prefix</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">auto_envvar_prefix</span> <span class="o">=</span> <span class="n">auto_envvar_prefix</span>
 
         <span class="k">if</span> <span class="n">color</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -407,7 +427,7 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">meta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;This is a dictionary which is shared with all the contexts</span>
-<span class="sd">        that are nested.  It exists so that click utiltiies can store some</span>
+<span class="sd">        that are nested.  It exists so that click utilities can store some</span>
 <span class="sd">        state here if they need to.  It is however the responsibility of</span>
 <span class="sd">        that code to manage this dictionary well.</span>
 
@@ -516,7 +536,7 @@
 
     <span class="k">def</span> <span class="nf">exit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Exits the application with a given exit code.&quot;&quot;&quot;</span>
-        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">Exit</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get_usage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Helper method to get formatted usage string for the current</span>
@@ -690,7 +710,7 @@
 <span class="sd">                          name from ``sys.argv[0]``.</span>
 <span class="sd">        :param complete_var: the environment variable that controls the</span>
 <span class="sd">                             bash completion support.  The default is</span>
-<span class="sd">                             ``&quot;_&lt;prog_name&gt;_COMPLETE&quot;`` with prog name in</span>
+<span class="sd">                             ``&quot;_&lt;prog_name&gt;_COMPLETE&quot;`` with prog_name in</span>
 <span class="sd">                             uppercase.</span>
 <span class="sd">        :param standalone_mode: the default behavior is to invoke the script</span>
 <span class="sd">                                in standalone mode.  Click will then</span>
@@ -705,7 +725,7 @@
 <span class="sd">                      constructor.  See :class:`Context` for more information.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># If we are in Python 3, we will verify that the environment is</span>
-        <span class="c1"># sane at this point of reject further execution to avoid a</span>
+        <span class="c1"># sane at this point or reject further execution to avoid a</span>
         <span class="c1"># broken script.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">PY2</span><span class="p">:</span>
             <span class="n">_verify_python3_env</span><span class="p">()</span>
@@ -732,6 +752,13 @@
                     <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="n">standalone_mode</span><span class="p">:</span>
                         <span class="k">return</span> <span class="n">rv</span>
+                    <span class="c1"># it&#39;s not safe to `ctx.exit(rv)` here!</span>
+                    <span class="c1"># note that `rv` may actually contain data like &quot;1&quot; which</span>
+                    <span class="c1"># has obvious effects</span>
+                    <span class="c1"># more subtle case: `rv=[None, None]` can come out of</span>
+                    <span class="c1"># chained commands which all returned `None` -- so it&#39;s not</span>
+                    <span class="c1"># even always obvious that `rv` indicates success/failure</span>
+                    <span class="c1"># by its truthiness/falsiness</span>
                     <span class="n">ctx</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
             <span class="k">except</span> <span class="p">(</span><span class="ne">EOFError</span><span class="p">,</span> <span class="ne">KeyboardInterrupt</span><span class="p">):</span>
                 <span class="n">echo</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
@@ -743,9 +770,24 @@
                 <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">exit_code</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EPIPE</span><span class="p">:</span>
+                    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">PacifyFlushWrapper</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+                    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">PacifyFlushWrapper</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
                     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span>
+        <span class="k">except</span> <span class="n">Exit</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">standalone_mode</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">exit_code</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># in non-standalone mode, return the exit code</span>
+                <span class="c1"># note that this is only reached if `self.invoke` above raises</span>
+                <span class="c1"># an Exit explicitly -- thus bypassing the check there which</span>
+                <span class="c1"># would return its result</span>
+                <span class="c1"># the results of non-standalone execution may therefore be</span>
+                <span class="c1"># somewhat ambiguous: if there are codepaths which lead to</span>
+                <span class="c1"># `ctx.exit(1)` and to `return 1`, the caller won&#39;t be able to</span>
+                <span class="c1"># tell the difference between the two</span>
+                <span class="k">return</span> <span class="n">e</span><span class="o">.</span><span class="n">exit_code</span>
         <span class="k">except</span> <span class="n">Abort</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">standalone_mode</span><span class="p">:</span>
                 <span class="k">raise</span>
@@ -778,11 +820,16 @@
 <span class="sd">                       shown on the command listing of the parent command.</span>
 <span class="sd">    :param add_help_option: by default each command registers a ``--help``</span>
 <span class="sd">                            option.  This can be disabled by this parameter.</span>
+<span class="sd">    :param hidden: hide this command from help outputs.</span>
+
+<span class="sd">    :param deprecated: issues a message indicating that</span>
+<span class="sd">                             the command is deprecated.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">context_settings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epilog</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">short_help</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">options_metavar</span><span class="o">=</span><span class="s1">&#39;[OPTIONS]&#39;</span><span class="p">,</span> <span class="n">add_help_option</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                 <span class="n">options_metavar</span><span class="o">=</span><span class="s1">&#39;[OPTIONS]&#39;</span><span class="p">,</span> <span class="n">add_help_option</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">hidden</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">deprecated</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">BaseCommand</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">context_settings</span><span class="p">)</span>
         <span class="c1">#: the callback to execute when the command fires.  This might be</span>
         <span class="c1">#: `None` in which case nothing happens.</span>
@@ -791,13 +838,17 @@
         <span class="c1">#: should show up in the help page and execute.  Eager parameters</span>
         <span class="c1">#: will automatically be handled before non eager ones.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="c1"># if a form feed (page break) is found in the help text, truncate help</span>
+        <span class="c1"># text to the content preceding the first form feed</span>
+        <span class="k">if</span> <span class="n">help</span> <span class="ow">and</span> <span class="s1">&#39;</span><span class="se">\f</span><span class="s1">&#39;</span> <span class="ow">in</span> <span class="n">help</span><span class="p">:</span>
+            <span class="n">help</span> <span class="o">=</span> <span class="n">help</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="n">help</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">epilog</span> <span class="o">=</span> <span class="n">epilog</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">options_metavar</span> <span class="o">=</span> <span class="n">options_metavar</span>
-        <span class="k">if</span> <span class="n">short_help</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">help</span><span class="p">:</span>
-            <span class="n">short_help</span> <span class="o">=</span> <span class="n">make_default_short_help</span><span class="p">(</span><span class="n">help</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">short_help</span> <span class="o">=</span> <span class="n">short_help</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_help_option</span> <span class="o">=</span> <span class="n">add_help_option</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden</span> <span class="o">=</span> <span class="n">hidden</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deprecated</span> <span class="o">=</span> <span class="n">deprecated</span>
 
     <span class="k">def</span> <span class="nf">get_usage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">):</span>
         <span class="n">formatter</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">make_formatter</span><span class="p">()</span>
@@ -851,8 +902,6 @@
     <span class="k">def</span> <span class="nf">make_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Creates the underlying option parser for this command.&quot;&quot;&quot;</span>
         <span class="n">parser</span> <span class="o">=</span> <span class="n">OptionParser</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
-        <span class="n">parser</span><span class="o">.</span><span class="n">allow_interspersed_args</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">allow_interspersed_args</span>
-        <span class="n">parser</span><span class="o">.</span><span class="n">ignore_unknown_options</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">ignore_unknown_options</span>
         <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_params</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
             <span class="n">param</span><span class="o">.</span><span class="n">add_to_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">parser</span>
@@ -864,6 +913,10 @@
         <span class="n">formatter</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">make_formatter</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">format_help</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">formatter</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">formatter</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_short_help_str</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">45</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets short help for the command or makes it by shortening the long help string.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">short_help</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="ow">and</span> <span class="n">make_default_short_help</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">help</span><span class="p">,</span> <span class="n">limit</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
 
     <span class="k">def</span> <span class="nf">format_help</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">formatter</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Writes the help into the formatter if it exists.</span>
@@ -885,7 +938,14 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span><span class="p">:</span>
             <span class="n">formatter</span><span class="o">.</span><span class="n">write_paragraph</span><span class="p">()</span>
             <span class="k">with</span> <span class="n">formatter</span><span class="o">.</span><span class="n">indentation</span><span class="p">():</span>
-                <span class="n">formatter</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">help</span><span class="p">)</span>
+                <span class="n">help_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deprecated</span><span class="p">:</span>
+                    <span class="n">help_text</span> <span class="o">+=</span> <span class="n">DEPRECATED_HELP_NOTICE</span>
+                <span class="n">formatter</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">help_text</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">deprecated</span><span class="p">:</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">write_paragraph</span><span class="p">()</span>
+            <span class="k">with</span> <span class="n">formatter</span><span class="o">.</span><span class="n">indentation</span><span class="p">():</span>
+                <span class="n">formatter</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">DEPRECATED_HELP_NOTICE</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">format_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">formatter</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Writes all the options into the formatter if they exist.&quot;&quot;&quot;</span>
@@ -926,6 +986,7 @@
         <span class="sd">&quot;&quot;&quot;Given a context, this invokes the attached callback (if it exists)</span>
 <span class="sd">        in the right way.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_maybe_show_deprecated_notice</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">,</span> <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
 
@@ -1031,19 +1092,29 @@
         <span class="sd">&quot;&quot;&quot;Extra format methods for multi methods that adds all the commands</span>
 <span class="sd">        after the options.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">commands</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">subcommand</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_commands</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
             <span class="n">cmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_command</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">subcommand</span><span class="p">)</span>
             <span class="c1"># What is this, the tool lied about a command.  Ignore it</span>
             <span class="k">if</span> <span class="n">cmd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">cmd</span><span class="o">.</span><span class="n">hidden</span><span class="p">:</span>
+                <span class="k">continue</span>
 
-            <span class="n">help</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">short_help</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
-            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">subcommand</span><span class="p">,</span> <span class="n">help</span><span class="p">))</span>
+            <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">subcommand</span><span class="p">,</span> <span class="n">cmd</span><span class="p">))</span>
 
-        <span class="k">if</span> <span class="n">rows</span><span class="p">:</span>
-            <span class="k">with</span> <span class="n">formatter</span><span class="o">.</span><span class="n">section</span><span class="p">(</span><span class="s1">&#39;Commands&#39;</span><span class="p">):</span>
-                <span class="n">formatter</span><span class="o">.</span><span class="n">write_dl</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+        <span class="c1"># allow for 3 times the default spacing</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">commands</span><span class="p">):</span>
+            <span class="n">limit</span> <span class="o">=</span> <span class="n">formatter</span><span class="o">.</span><span class="n">width</span> <span class="o">-</span> <span class="mi">6</span> <span class="o">-</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cmd</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">)</span>
+
+            <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">subcommand</span><span class="p">,</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">:</span>
+                <span class="n">help</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">get_short_help_str</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span>
+                <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">subcommand</span><span class="p">,</span> <span class="n">help</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">rows</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">formatter</span><span class="o">.</span><span class="n">section</span><span class="p">(</span><span class="s1">&#39;Commands&#39;</span><span class="p">):</span>
+                    <span class="n">formatter</span><span class="o">.</span><span class="n">write_dl</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">parse_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_args_is_help</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ctx</span><span class="o">.</span><span class="n">resilient_parsing</span><span class="p">:</span>
@@ -1146,7 +1217,7 @@
         <span class="c1"># an option we want to kick off parsing again for arguments to</span>
         <span class="c1"># resolve things like --help which now should go to the main</span>
         <span class="c1"># place.</span>
-        <span class="k">if</span> <span class="n">cmd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">cmd</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ctx</span><span class="o">.</span><span class="n">resilient_parsing</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">split_opt</span><span class="p">(</span><span class="n">cmd_name</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
             <span class="n">ctx</span><span class="o">.</span><span class="n">fail</span><span class="p">(</span><span class="s1">&#39;No such command &quot;</span><span class="si">%s</span><span class="s1">&quot;.&#39;</span> <span class="o">%</span> <span class="n">original_cmd_name</span><span class="p">)</span>
@@ -1251,7 +1322,7 @@
 
 
 <span class="k">class</span> <span class="nc">Parameter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A parameter to a command comes in two versions: they are either</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A parameter to a command comes in two versions: they are either</span>
 <span class="sd">    :class:`Option`\s or :class:`Argument`\s.  Other subclasses are currently</span>
 <span class="sd">    not supported by design as some of the internals for parsing are</span>
 <span class="sd">    intentionally not finalized.</span>
@@ -1296,7 +1367,8 @@
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_decls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                  <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">expose_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">is_eager</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">envvar</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                 <span class="n">expose_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">is_eager</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">envvar</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">autocompletion</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">secondary_opts</span> <span class="o">=</span> \
             <span class="bp">self</span><span class="o">.</span><span class="n">_parse_decls</span><span class="p">(</span><span class="n">param_decls</span> <span class="ow">or</span> <span class="p">(),</span> <span class="n">expose_value</span><span class="p">)</span>
 
@@ -1319,6 +1391,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">is_eager</span> <span class="o">=</span> <span class="n">is_eager</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metavar</span> <span class="o">=</span> <span class="n">metavar</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">envvar</span> <span class="o">=</span> <span class="n">envvar</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">autocompletion</span> <span class="o">=</span> <span class="n">autocompletion</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">human_readable_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1352,9 +1425,9 @@
     <span class="k">def</span> <span class="nf">consume_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">opts</span><span class="p">):</span>
         <span class="n">value</span> <span class="o">=</span> <span class="n">opts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">lookup_default</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value_from_envvar</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">lookup_default</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">value</span>
 
     <span class="k">def</span> <span class="nf">type_cast_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
@@ -1399,7 +1472,7 @@
     <span class="k">def</span> <span class="nf">full_process_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_value</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ctx</span><span class="o">.</span><span class="n">resilient_parsing</span><span class="p">:</span>
             <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_default</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">required</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">value_is_missing</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
@@ -1451,6 +1524,13 @@
     <span class="k">def</span> <span class="nf">get_usage_pieces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[]</span>
 
+    <span class="k">def</span> <span class="nf">get_error_hint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get a stringified version of the param for use in error messages to</span>
+<span class="sd">        indicate which param caused the error.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hint_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opts</span> <span class="ow">or</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">human_readable_name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s1">&#39; / &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;&quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">hint_list</span><span class="p">)</span>
+
 
 <span class="k">class</span> <span class="nc">Option</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Options are usually optional values on the command line and</span>
@@ -1459,10 +1539,15 @@
 <span class="sd">    All other parameters are passed onwards to the parameter constructor.</span>
 
 <span class="sd">    :param show_default: controls if the default value should be shown on the</span>
-<span class="sd">                         help page.  Normally, defaults are not shown.</span>
-<span class="sd">    :param prompt: if set to `True` or a non empty string then the user will</span>
-<span class="sd">                   be prompted for input if not set.  If set to `True` the</span>
-<span class="sd">                   prompt will be the option name capitalized.</span>
+<span class="sd">                         help page. Normally, defaults are not shown. If this</span>
+<span class="sd">                         value is a string, it shows the string instead of the</span>
+<span class="sd">                         value. This is particularly useful for dynamic options.</span>
+<span class="sd">    :param show_envvar: controls if an environment variable should be shown on</span>
+<span class="sd">                        the help page.  Normally, environment variables</span>
+<span class="sd">                        are not shown.</span>
+<span class="sd">    :param prompt: if set to `True` or a non empty string then the user will be</span>
+<span class="sd">                   prompted for input.  If set to `True` the prompt will be the</span>
+<span class="sd">                   option name capitalized.</span>
 <span class="sd">    :param confirmation_prompt: if set then the value will need to be confirmed</span>
 <span class="sd">                                if it was prompted for.</span>
 <span class="sd">    :param hide_input: if this is `True` then the input on the prompt will be</span>
@@ -1483,6 +1568,7 @@
 <span class="sd">                               variable in case a prefix is defined on the</span>
 <span class="sd">                               context.</span>
 <span class="sd">    :param help: the help string.</span>
+<span class="sd">    :param hidden: hide this option from help outputs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">param_type_name</span> <span class="o">=</span> <span class="s1">&#39;option&#39;</span>
 
@@ -1490,7 +1576,8 @@
                  <span class="n">prompt</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">confirmation_prompt</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                  <span class="n">hide_input</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flag_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">multiple</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">allow_from_autoenv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                 <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
+                 <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">show_choices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">show_envvar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
         <span class="n">default_is_missing</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">_missing</span><span class="p">)</span> <span class="ow">is</span> <span class="n">_missing</span>
         <span class="n">Parameter</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_decls</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">)</span>
 
@@ -1503,6 +1590,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">prompt</span> <span class="o">=</span> <span class="n">prompt_text</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">confirmation_prompt</span> <span class="o">=</span> <span class="n">confirmation_prompt</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hide_input</span> <span class="o">=</span> <span class="n">hide_input</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden</span> <span class="o">=</span> <span class="n">hidden</span>
 
         <span class="c1"># Flags</span>
         <span class="k">if</span> <span class="n">is_flag</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1535,6 +1623,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">allow_from_autoenv</span> <span class="o">=</span> <span class="n">allow_from_autoenv</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="n">help</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">show_default</span> <span class="o">=</span> <span class="n">show_default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">show_choices</span> <span class="o">=</span> <span class="n">show_choices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">show_envvar</span> <span class="o">=</span> <span class="n">show_envvar</span>
 
         <span class="c1"># Sanity check for stuff we don&#39;t support</span>
         <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
@@ -1583,8 +1673,8 @@
                     <span class="n">opts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">possible_names</span><span class="p">:</span>
-            <span class="n">possible_names</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-            <span class="n">name</span> <span class="o">=</span> <span class="n">possible_names</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">possible_names</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>  <span class="c1"># group long options first</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">possible_names</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">isidentifier</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
                 <span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -1630,6 +1720,8 @@
             <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get_help_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden</span><span class="p">:</span>
+            <span class="k">return</span>
         <span class="n">any_prefix_is_slash</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">def</span> <span class="nf">_write_opts</span><span class="p">(</span><span class="n">opts</span><span class="p">):</span>
@@ -1646,11 +1738,28 @@
 
         <span class="n">help</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
         <span class="n">extra</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_envvar</span><span class="p">:</span>
+            <span class="n">envvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">envvar</span>
+            <span class="k">if</span> <span class="n">envvar</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_from_autoenv</span> <span class="ow">and</span> \
+                    <span class="n">ctx</span><span class="o">.</span><span class="n">auto_envvar_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">envvar</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">auto_envvar_prefix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">envvar</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+              <span class="n">extra</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;env var: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                           <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">envvar</span><span class="p">)</span>
+                           <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">envvar</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
+                           <span class="k">else</span> <span class="n">envvar</span><span class="p">,</span> <span class="p">))</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_default</span><span class="p">:</span>
-            <span class="n">extra</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;default: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
-                         <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span>
-                         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
-                         <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">,</span> <span class="p">))</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">show_default</span><span class="p">,</span> <span class="n">string_types</span><span class="p">):</span>
+                <span class="n">default_string</span> <span class="o">=</span> <span class="s1">&#39;(</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">show_default</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">default_string</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isfunction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">):</span>
+                <span class="n">default_string</span> <span class="o">=</span> <span class="s2">&quot;(dynamic)&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">default_string</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span>
+            <span class="n">extra</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;default: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">default_string</span><span class="p">))</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">required</span><span class="p">:</span>
             <span class="n">extra</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;required&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">extra</span><span class="p">:</span>
@@ -1684,8 +1793,8 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_bool_flag</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">confirm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prompt</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">prompt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prompt</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">,</span>
-                      <span class="n">hide_input</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hide_input</span><span class="p">,</span>
+        <span class="k">return</span> <span class="n">prompt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prompt</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                      <span class="n">hide_input</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hide_input</span><span class="p">,</span> <span class="n">show_choices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">show_choices</span><span class="p">,</span>
                       <span class="n">confirmation_prompt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">confirmation_prompt</span><span class="p">,</span>
                       <span class="n">value_proc</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_value</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
 
@@ -1745,7 +1854,9 @@
     <span class="k">def</span> <span class="nf">make_metavar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metavar</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metavar</span>
-        <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">get_metavar</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">var</span><span class="p">:</span>
+            <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">required</span><span class="p">:</span>
             <span class="n">var</span> <span class="o">=</span> <span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">]&#39;</span> <span class="o">%</span> <span class="n">var</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nargs</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
@@ -1760,15 +1871,16 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">decls</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">arg</span> <span class="o">=</span> <span class="n">decls</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">decls</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="n">name</span><span class="p">,</span> <span class="n">arg</span> <span class="o">=</span> <span class="n">decls</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Arguments take exactly one or two &#39;</span>
-                            <span class="s1">&#39;parameter declarations, got </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">decls</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Arguments take exactly one &#39;</span>
+                            <span class="s1">&#39;parameter declaration, got </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">decls</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="n">arg</span><span class="p">],</span> <span class="p">[]</span>
 
     <span class="k">def</span> <span class="nf">get_usage_pieces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">make_metavar</span><span class="p">()]</span>
+
+    <span class="k">def</span> <span class="nf">get_error_hint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_metavar</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">add_to_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">,</span> <span class="n">ctx</span><span class="p">):</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="n">dest</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nargs</span><span class="p">,</span>

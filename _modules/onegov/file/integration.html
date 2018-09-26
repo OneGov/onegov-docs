@@ -126,9 +126,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache_bust_delay</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
             <span class="s1">&#39;frontend_cache_bust_delay&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
 
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">depot_backend</span> <span class="ow">in</span> <span class="n">SUPPORTED_STORAGE_BACKENDS</span><span class="p">,</span> <span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">            A depot app *must* have a valid storage backend set up.</span>
-<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">depot_backend</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SUPPORTED_STORAGE_BACKENDS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Depot app without valid storage backend&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">depot_backend</span> <span class="o">==</span> <span class="s1">&#39;depot.io.local.LocalFileStorage&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depot_storage_path</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="s2">&quot;Depot storage path does not exist&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s1">&#39;gs&#39;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;onegov.file requires ghostscript&quot;</span><span class="p">)</span>

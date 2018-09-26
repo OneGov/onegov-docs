@@ -201,6 +201,12 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">issubset</span><span class="p">({</span><span class="s1">&#39;content_type&#39;</span><span class="p">,</span> <span class="s1">&#39;filename&#39;</span><span class="p">})</span>
 
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;_metadata_path&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;The current depot storage backend does not support &quot;</span>
+                <span class="s2">&quot;in-place metadata updates&quot;</span>
+            <span class="p">)</span>
+
         <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">_metadata_path</span><span class="p">)</span>
 
         <span class="c1"># store the pending metadata on the session to commit them later</span>
