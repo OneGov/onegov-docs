@@ -116,6 +116,37 @@ the “process_bind_param” method of this class.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="onegov.file.models.file.SearchableFile">
+<em class="property">class </em><code class="descclassname">onegov.file.models.file.</code><code class="descname">SearchableFile</code><a class="reference internal" href="_modules/onegov/file/models/file.html#SearchableFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.models.file.SearchableFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Files are not made available for elasticsearch by default. This is
+for security reasons - files are public by default but one has to know
+the url (a very long id).</p>
+<p>Search might lead to a disclosure of all files, which is why files
+can only be searched if they are of a different polymorphic subclass
+and use this mixin.</p>
+<dl class="attribute">
+<dt id="onegov.file.models.file.SearchableFile.es_suggestion">
+<code class="descname">es_suggestion</code><a class="headerlink" href="#onegov.file.models.file.SearchableFile.es_suggestion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns suggest-as-you-type value of the document.
+The field used for this property should also be indexed, or the
+suggestion will lead to nowhere.</p>
+<p>If a single string is returned, the completion input equals the
+completion output. (My Title -&gt; My Title)</p>
+<p>If an array of strings is returned, all values are possible inputs and
+the first value is the output. (My Title/Title My -&gt; My Title)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.file.models.file.SearchableFile.es_public">
+<code class="descname">es_public</code><a class="headerlink" href="#onegov.file.models.file.SearchableFile.es_public" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the model is available to be found by the public.
+If false, only editors/admins will see this object in the search
+results.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="onegov.file.models.file.File">
 <em class="property">class </em><code class="descclassname">onegov.file.models.file.</code><code class="descname">File</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/models/file.html#File"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.models.file.File" title="Permalink to this definition">¶</a></dt>
 <dd><p>A general file (image, document, pdf, etc), referenced in the database.</p>
@@ -200,10 +231,35 @@ strictly a check of file duplicates, not protection against tampering</p>
 </dd></dl>
 
 <dl class="attribute">
+<dt id="onegov.file.models.file.File.extract">
+<code class="descname">extract</code><a class="headerlink" href="#onegov.file.models.file.File.extract" title="Permalink to this definition">¶</a></dt>
+<dd><p>the content of the given file as text, if it can be extracted
+(it is important that this column be loaded deferred by default, lest
+we load massive amounts of text on simple queries)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.file.models.file.File.pages">
+<code class="descname">pages</code><a class="headerlink" href="#onegov.file.models.file.File.pages" title="Permalink to this definition">¶</a></dt>
+<dd><p>the number of pages in the given file if known</p>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="onegov.file.models.file.File.file_id">
 <code class="descname">file_id</code><a class="headerlink" href="#onegov.file.models.file.File.file_id" title="Permalink to this definition">¶</a></dt>
 <dd><p>The file_id of the contained reference.</p>
 <p>If <code class="xref py py-attr docutils literal notranslate"><span class="pre">virtual_file_id</span></code> is not None, it is returned instead.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.file.models.file.File.claimed_extension">
+<code class="descname">claimed_extension</code><a class="headerlink" href="#onegov.file.models.file.File.claimed_extension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the extension as defined by the file name or by the
+content type (whatever is found first in this order).</p>
+<p>Note that this extension could therefore not be correct. It is mainly
+meant for display purposes.</p>
+<p>If you need to know the type of a file you should use the
+content type stored on the reference.</p>
 </dd></dl>
 
 <dl class="method">
@@ -323,6 +379,13 @@ one record).</p>
 <code class="descname">by_content</code><span class="sig-paren">(</span><em>content</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/collection.html#FileCollection.by_content"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.collection.FileCollection.by_content" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a query that matches the given content (may be more than
 one record).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.file.collection.FileCollection.by_content_type">
+<code class="descname">by_content_type</code><span class="sig-paren">(</span><em>content_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/collection.html#FileCollection.by_content_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.collection.FileCollection.by_content_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a query that matches the given MIME content type (may be
+more than one record).</p>
 </dd></dl>
 
 </dd></dl>

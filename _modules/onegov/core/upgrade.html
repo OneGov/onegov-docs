@@ -40,6 +40,7 @@
 
 <span class="kn">from</span> <span class="nn">alembic.migration</span> <span class="k">import</span> <span class="n">MigrationContext</span>
 <span class="kn">from</span> <span class="nn">alembic.operations</span> <span class="k">import</span> <span class="n">Operations</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">inspect</span> <span class="k">import</span> <span class="n">getmembers</span><span class="p">,</span> <span class="n">isfunction</span><span class="p">,</span> <span class="n">ismethod</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">find_models</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
@@ -455,30 +456,45 @@
                 <span class="n">load_only</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">))</span>
             <span class="p">)</span>
 
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span> <span class="nf">stop_search_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># XXX this would be better handled with a more general approach</span>
+        <span class="c1"># that doesn&#39;t require knowledge of onegov.search</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">,</span> <span class="s1">&#39;es_orm_events&#39;</span><span class="p">,</span> <span class="nb">object</span><span class="p">())</span><span class="o">.</span><span class="n">stopped</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">yield</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">,</span> <span class="s1">&#39;es_orm_events&#39;</span><span class="p">,</span> <span class="nb">object</span><span class="p">())</span><span class="o">.</span><span class="n">stopped</span> <span class="o">=</span> <span class="kc">False</span>
+
     <span class="k">def</span> <span class="nf">add_column_with_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">default</span><span class="p">):</span>
-        <span class="c1"># add a nullable column</span>
-        <span class="n">nullable_column</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">nullable_column</span><span class="o">.</span><span class="n">nullable</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># XXX while adding default values we shouldn&#39;t reindex the data</span>
+        <span class="c1"># since this is what the default add_column code does and will be</span>
+        <span class="c1"># doing in the future when Postgres 11 supports defaults for</span>
+        <span class="c1"># new columns - the way this is implemented now is with tight coupling</span>
+        <span class="c1"># that we shouldn&#39;t do, but we want to replace this when Postgres 11</span>
+        <span class="c1"># comes around</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop_search_updates</span><span class="p">():</span>
+            <span class="n">nullable_column</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">nullable_column</span><span class="o">.</span><span class="n">nullable</span> <span class="o">=</span> <span class="kc">True</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">operations</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">nullable_column</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">operations</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">nullable_column</span><span class="p">)</span>
 
-        <span class="c1"># fill it with defaults</span>
-        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records_per_table</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="p">)):</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="n">default</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">default</span><span class="p">)</span> <span class="k">else</span> <span class="n">default</span>
-            <span class="nb">setattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="c1"># fill it with defaults</span>
+            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records_per_table</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="p">)):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">default</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">default</span><span class="p">)</span> <span class="k">else</span> <span class="n">default</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="s1">&#39;changed&#39;</span><span class="p">):</span>
-                <span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">changed</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="s1">&#39;changed&#39;</span><span class="p">):</span>
+                    <span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">changed</span><span class="p">()</span>
 
-        <span class="c1"># make sure all generated values are flushed</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="c1"># make sure all generated values are flushed</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 
-        <span class="c1"># activate non-null constraint</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">column</span><span class="o">.</span><span class="n">nullable</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">operations</span><span class="o">.</span><span class="n">alter_column</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="c1"># activate non-null constraint</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">column</span><span class="o">.</span><span class="n">nullable</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">operations</span><span class="o">.</span><span class="n">alter_column</span><span class="p">(</span>
+                    <span class="n">table</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-        <span class="c1"># propagate to db</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+            <span class="c1"># propagate to db</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="RawUpgradeRunner"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.RawUpgradeRunner">[docs]</a><span class="k">class</span> <span class="nc">RawUpgradeRunner</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>

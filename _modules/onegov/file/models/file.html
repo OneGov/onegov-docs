@@ -45,12 +45,15 @@
 <span class="kn">from</span> <span class="nn">onegov.file.attachments</span> <span class="k">import</span> <span class="n">ProcessedUploadedFile</span>
 <span class="kn">from</span> <span class="nn">onegov.file.filters</span> <span class="k">import</span> <span class="n">OnlyIfImage</span><span class="p">,</span> <span class="n">WithThumbnailFilter</span>
 <span class="kn">from</span> <span class="nn">onegov.file.filters</span> <span class="k">import</span> <span class="n">OnlyIfPDF</span><span class="p">,</span> <span class="n">WithPDFThumbnailFilter</span>
+<span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">extension_for_content_type</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">event</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span><span class="p">,</span> <span class="n">Session</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm.attributes</span> <span class="k">import</span> <span class="n">flag_modified</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">deferred</span>
+<span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
 
 
 <div class="viewcode-block" id="UploadedFileField"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.UploadedFileField">[docs]</a><span class="k">class</span> <span class="nc">UploadedFileField</span><span class="p">(</span><span class="n">UploadedFileFieldBase</span><span class="p">):</span>
@@ -69,6 +72,32 @@
 <div class="viewcode-block" id="UploadedFileField.process_result_value"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.UploadedFileField.process_result_value">[docs]</a>    <span class="k">def</span> <span class="nf">process_result_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">dialect</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upload_type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SearchableFile"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.SearchableFile">[docs]</a><span class="k">class</span> <span class="nc">SearchableFile</span><span class="p">(</span><span class="n">ORMSearchable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Files are not made available for elasticsearch by default. This is</span>
+<span class="sd">    for security reasons - files are public by default but one has to know</span>
+<span class="sd">    the url (a very long id).</span>
+
+<span class="sd">    Search might lead to a disclosure of all files, which is why files</span>
+<span class="sd">    can only be searched if they are of a different polymorphic subclass</span>
+<span class="sd">    and use this mixin.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">es_properties</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;text&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;note&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;localized&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;extract&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;localized&#39;</span><span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_suggestion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_public</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">published</span></div>
 
 
 <div class="viewcode-block" id="File"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.File">[docs]</a><span class="k">class</span> <span class="nc">File</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">Associable</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">):</span>
@@ -150,6 +179,14 @@
     <span class="c1">#: strictly a check of file duplicates, not protection against tampering</span>
     <span class="n">checksum</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="c1">#: the content of the given file as text, if it can be extracted</span>
+    <span class="c1">#: (it is important that this column be loaded deferred by default, lest</span>
+    <span class="c1">#: we load massive amounts of text on simple queries)</span>
+    <span class="n">extract</span> <span class="o">=</span> <span class="n">deferred</span><span class="p">(</span><span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+    <span class="c1">#: the number of pages in the given file if known</span>
+    <span class="n">pages</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;polymorphic_on&#39;</span><span class="p">:</span> <span class="s1">&#39;type&#39;</span>
     <span class="p">}</span>
@@ -160,7 +197,14 @@
 
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;reference&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">reference_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reference</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">checksum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;checksum&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;checksum&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">checksum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;checksum&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;extract&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extract</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;extract&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;pages&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;pages&#39;</span><span class="p">)</span>
 
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">name_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -178,6 +222,28 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">virtual_file_id</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">file_id</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">claimed_extension</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the extension as defined by the file name or by the</span>
+<span class="sd">        content type (whatever is found first in this order).</span>
+
+<span class="sd">        Note that this extension could therefore not be correct. It is mainly</span>
+<span class="sd">        meant for display purposes.</span>
+
+<span class="sd">        If you need to know the type of a file you should use the</span>
+<span class="sd">        content type stored on the reference.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">extension_for_content_type</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">[</span><span class="s1">&#39;content_type&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name_without_extension</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
 
 <div class="viewcode-block" id="File.get_thumbnail_id"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.File.get_thumbnail_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_thumbnail_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns the thumbnail id with the given size (e.g. &#39;small&#39;).</span>
@@ -241,7 +307,7 @@
 
 
 <span class="nd">@event</span><span class="o">.</span><span class="n">listens_for</span><span class="p">(</span><span class="n">Session</span><span class="p">,</span> <span class="s1">&#39;after_soft_rollback&#39;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">discard_metadata_on_rollback</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">discard_metadata_on_rollback</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">previous_transaction</span><span class="p">):</span>
     <span class="k">if</span> <span class="s1">&#39;pending_metadata_changes&#39;</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">info</span><span class="p">:</span>
         <span class="k">del</span> <span class="n">session</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;pending_metadata_changes&#39;</span><span class="p">]</span>
 </pre></div>

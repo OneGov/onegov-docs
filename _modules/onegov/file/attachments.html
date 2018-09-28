@@ -34,6 +34,7 @@
             
   <h1>Source code for onegov.file.attachments</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">pdftotext</span>
 
 <span class="kn">from</span> <span class="nn">depot.fields.upload</span> <span class="k">import</span> <span class="n">UploadedFile</span>
 <span class="kn">from</span> <span class="nn">depot.io</span> <span class="k">import</span> <span class="n">utils</span>
@@ -102,12 +103,23 @@
     <span class="k">return</span> <span class="n">content</span>
 
 
+<span class="k">def</span> <span class="nf">extract_pdf_info</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>
+    <span class="n">pages</span> <span class="o">=</span> <span class="n">pdftotext</span><span class="o">.</span><span class="n">PDF</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">pages</span><span class="p">),</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pages</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39; </span><span class="se">\t\r\n\0</span><span class="s1">&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">store_extract_and_pages</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">content_type</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s1">&#39;application/pdf&#39;</span><span class="p">:</span>
+        <span class="n">file</span><span class="o">.</span><span class="n">pages</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">extract</span> <span class="o">=</span> <span class="n">extract_pdf_info</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="ProcessedUploadedFile"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.attachments.ProcessedUploadedFile">[docs]</a><span class="k">class</span> <span class="nc">ProcessedUploadedFile</span><span class="p">(</span><span class="n">UploadedFile</span><span class="p">):</span>
 
     <span class="n">processors</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">store_checksum</span><span class="p">,</span>
         <span class="n">limit_and_store_image_size</span><span class="p">,</span>
-        <span class="n">sanitize_svg_images</span>
+        <span class="n">sanitize_svg_images</span><span class="p">,</span>
+        <span class="n">store_extract_and_pages</span><span class="p">,</span>
     <span class="p">)</span>
 
 <div class="viewcode-block" id="ProcessedUploadedFile.process_content"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.attachments.ProcessedUploadedFile.process_content">[docs]</a>    <span class="k">def</span> <span class="nf">process_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">content_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>

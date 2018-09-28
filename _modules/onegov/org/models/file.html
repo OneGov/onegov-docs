@@ -45,6 +45,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">as_selectable</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span>
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">FileSet</span><span class="p">,</span> <span class="n">FileCollection</span><span class="p">,</span> <span class="n">FileSetCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">SearchableFile</span>
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">IMAGE_MIME_TYPES_AND_SVG</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models.extensions</span> <span class="k">import</span> <span class="n">HiddenFromPublicExtension</span>
@@ -152,8 +153,12 @@
         <span class="p">)</span>
 
 
-<div class="viewcode-block" id="GeneralFile"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.file.GeneralFile">[docs]</a><span class="k">class</span> <span class="nc">GeneralFile</span><span class="p">(</span><span class="n">File</span><span class="p">):</span>
-    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;general&#39;</span><span class="p">}</span></div>
+<div class="viewcode-block" id="GeneralFile"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.file.GeneralFile">[docs]</a><span class="k">class</span> <span class="nc">GeneralFile</span><span class="p">(</span><span class="n">File</span><span class="p">,</span> <span class="n">SearchableFile</span><span class="p">):</span>
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;general&#39;</span><span class="p">}</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_public</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">published</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">signed</span></div>
 
 
 <div class="viewcode-block" id="ImageFile"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.file.ImageFile">[docs]</a><span class="k">class</span> <span class="nc">ImageFile</span><span class="p">(</span><span class="n">File</span><span class="p">):</span>

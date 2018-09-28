@@ -39,7 +39,7 @@
 <span class="kn">from</span> <span class="nn">onegov.file.models</span> <span class="k">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">FileSet</span>
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">as_fileintent</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">and_</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">and_</span><span class="p">,</span> <span class="n">text</span>
 
 
 <div class="viewcode-block" id="FileCollection"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.collection.FileCollection">[docs]</a><span class="k">class</span> <span class="nc">FileCollection</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -168,9 +168,22 @@
 <div class="viewcode-block" id="FileCollection.by_content"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.collection.FileCollection.by_content">[docs]</a>    <span class="k">def</span> <span class="nf">by_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns a query that matches the given content (may be more than</span>
 <span class="sd">        one record).</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">by_checksum</span><span class="p">(</span><span class="n">calculate_checksum</span><span class="p">(</span><span class="n">file_from_content</span><span class="p">(</span><span class="n">content</span><span class="p">)))</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">by_checksum</span><span class="p">(</span><span class="n">calculate_checksum</span><span class="p">(</span><span class="n">file_from_content</span><span class="p">(</span><span class="n">content</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="FileCollection.by_content_type"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.collection.FileCollection.by_content_type">[docs]</a>    <span class="k">def</span> <span class="nf">by_content_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a query that matches the given MIME content type (may be</span>
+<span class="sd">        more than one record).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">text</span><span class="p">(</span><span class="s2">&quot;reference-&gt;&gt;&#39;content_type&#39; = :content_type&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">bindparams</span><span class="p">(</span>
+                <span class="n">content_type</span><span class="o">=</span><span class="n">content_type</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="FileSetCollection"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.collection.FileSetCollection">[docs]</a><span class="k">class</span> <span class="nc">FileSetCollection</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
