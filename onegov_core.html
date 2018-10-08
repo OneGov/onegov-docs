@@ -4087,6 +4087,64 @@ secure!</p>
 <dd><p>Takes a <a class="reference internal" href="#onegov.core.utils.safe_format" title="onegov.core.utils.safe_format"><code class="xref py py-func docutils literal notranslate"><span class="pre">safe_format()</span></code></a> string and returns the found keys.</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="onegov.core.utils.is_valid_yubikey">
+<code class="descclassname">onegov.core.utils.</code><code class="descname">is_valid_yubikey</code><span class="sig-paren">(</span><em>client_id</em>, <em>secret_key</em>, <em>expected_yubikey_id</em>, <em>yubikey</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/utils.html#is_valid_yubikey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.utils.is_valid_yubikey" title="Permalink to this definition">¶</a></dt>
+<dd><p>Asks the yubico validation servers if the given yubikey OTP is valid.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Client_id:</th><td class="field-body">The yubico API client id.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Secret_key:</th><td class="field-body">The yubico API secret key.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Expected_yubikey_id:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">The expected yubikey id. The yubikey id is defined as the first twelve
+characters of any yubikey value. Each user should have a yubikey
+associated with it’s account. If the yubikey value comes from a
+different key, the key is invalid.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Yubikey:</th><td class="field-body">The actual yubikey value that should be verified.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if yubico confirmed the validity of the key.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.core.utils.is_valid_yubikey_format">
+<code class="descclassname">onegov.core.utils.</code><code class="descname">is_valid_yubikey_format</code><span class="sig-paren">(</span><em>otp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/utils.html#is_valid_yubikey_format"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.utils.is_valid_yubikey_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the given OTP has the correct format. Does not actually
+contact Yubico, so this function may return true, for some invalid keys.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.core.utils.yubikey_otp_to_serial">
+<code class="descclassname">onegov.core.utils.</code><code class="descname">yubikey_otp_to_serial</code><span class="sig-paren">(</span><em>otp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/utils.html#yubikey_otp_to_serial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.utils.yubikey_otp_to_serial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a Yubikey OTP and calculates the serial number of the key.</p>
+<p>The serial key is printed on the yubikey, in decimal and as a QR code.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">yubikey_otp_to_serial</span><span class="p">(</span>
+<span class="go">    &#39;ccccccdefghdefghdefghdefghdefghdefghdefghklv&#39;)</span>
+<span class="go">2311522</span>
+</pre></div>
+</div>
+<p>Adapted from Java:</p>
+<blockquote>
+<div><a class="reference external" href="https://github.com/Yubico/yubikey-salesforce-client/blob/">https://github.com/Yubico/yubikey-salesforce-client/blob/</a>
+e38e46ee90296a852374a8b744555e99d16b6ca7/src/classes/Modhex.cls</div></blockquote>
+<p>If the key cannot be calculated, None is returned. This can happen if
+they key is malformed.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="onegov.core.utils.yubikey_public_id">
+<code class="descclassname">onegov.core.utils.</code><code class="descname">yubikey_public_id</code><span class="sig-paren">(</span><em>otp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/utils.html#yubikey_public_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.utils.yubikey_public_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the yubikey identity given a token.</p>
+</dd></dl>
+
 </div>
 <div class="section" id="custom-json">
 <h2>Custom JSON<a class="headerlink" href="#custom-json" title="Permalink to this headline">¶</a></h2>
