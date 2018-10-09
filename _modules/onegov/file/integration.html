@@ -38,19 +38,30 @@
 <span class="kn">import</span> <span class="nn">shlex</span>
 <span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
 
 <span class="kn">from</span> <span class="nn">blinker</span> <span class="k">import</span> <span class="n">ANY</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span> <span class="nn">depot.io.utils</span> <span class="k">import</span> <span class="n">FileIntent</span>
 <span class="kn">from</span> <span class="nn">depot.manager</span> <span class="k">import</span> <span class="n">DepotManager</span>
 <span class="kn">from</span> <span class="nn">depot.middleware</span> <span class="k">import</span> <span class="n">FileServeApp</span>
 <span class="kn">from</span> <span class="nn">more.transaction.main</span> <span class="k">import</span> <span class="n">transaction_tween_factory</span>
 <span class="kn">from</span> <span class="nn">morepath</span> <span class="k">import</span> <span class="n">App</span>
 <span class="kn">from</span> <span class="nn">onegov.core.custom</span> <span class="k">import</span> <span class="n">json</span>
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Private</span><span class="p">,</span> <span class="n">Public</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">is_valid_yubikey</span><span class="p">,</span> <span class="n">yubikey_public_id</span>
 <span class="kn">from</span> <span class="nn">onegov.file.collection</span> <span class="k">import</span> <span class="n">FileCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.file.errors</span> <span class="k">import</span> <span class="n">AlreadySignedError</span>
+<span class="kn">from</span> <span class="nn">onegov.file.errors</span> <span class="k">import</span> <span class="n">InvalidTokenError</span>
+<span class="kn">from</span> <span class="nn">onegov.file.errors</span> <span class="k">import</span> <span class="n">TokenConfigurationError</span>
 <span class="kn">from</span> <span class="nn">onegov.file.models</span> <span class="k">import</span> <span class="n">File</span>
+<span class="kn">from</span> <span class="nn">onegov.file.sign</span> <span class="k">import</span> <span class="n">SigningService</span>
+<span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">digest</span><span class="p">,</span> <span class="n">current_dir</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm.attributes</span> <span class="k">import</span> <span class="n">flag_modified</span>
+<span class="kn">from</span> <span class="nn">tempfile</span> <span class="k">import</span> <span class="n">SpooledTemporaryFile</span>
 
 
 <span class="n">SUPPORTED_STORAGE_BACKENDS</span> <span class="o">=</span> <span class="p">(</span>
@@ -117,6 +128,28 @@
 <span class="sd">            Note that this script is optional. If omitted, the cache busting</span>
 <span class="sd">            turns into a noop.</span>
 
+<span class="sd">        :signing_services: Contains signing service configs.</span>
+
+<span class="sd">            Each application gets exactly one signing service.</span>
+
+<span class="sd">            This integration class will take care of instantiating the</span>
+<span class="sd">            signing service and offer it through `self.signing_service`.</span>
+
+<span class="sd">            The signing service can be used with any file, though there is</span>
+<span class="sd">            first-class support for signing onegov.file models.</span>
+
+<span class="sd">            Signing services are implemented using sublcasses of the</span>
+<span class="sd">            :class:`onegov.file.sign.SigningService`. Each signature</span>
+<span class="sd">            service class is configured using a single yaml file which is</span>
+<span class="sd">            stored in the signature config path.</span>
+
+<span class="sd">            By default we use the &#39;__default__.yaml&#39; config. Alternatively</span>
+<span class="sd">            we can create separate configs for various application ids.</span>
+
+<span class="sd">            For example, we might create a `onegov_town-govikon.yaml`, which</span>
+<span class="sd">            would take precedence over the default config, if the application</span>
+<span class="sd">            with the id `onegov_town-govikon` would use the signing service.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">depot_backend</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;depot_backend&#39;</span><span class="p">)</span>
@@ -124,7 +157,12 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache_buster</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;frontend_cache_buster&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache_bust_delay</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-            <span class="s1">&#39;frontend_cache_bust_delay&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+            <span class="s1">&#39;frontend_cache_bust_delay&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">spawned_signing_services</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="s1">&#39;signing_services&#39;</span> <span class="ow">in</span> <span class="n">cfg</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">signing_services</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;signing_services&#39;</span><span class="p">])</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">depot_backend</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SUPPORTED_STORAGE_BACKENDS</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Depot app without valid storage backend&quot;</span><span class="p">)</span>
@@ -135,6 +173,9 @@
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s1">&#39;gs&#39;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;onegov.file requires ghostscript&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s1">&#39;java&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;onegov.file requires java&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache_buster</span><span class="p">:</span>
 
@@ -195,6 +236,117 @@
         <span class="n">cmd</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;sleep </span><span class="si">{self.frontend_cache_bust_delay}</span><span class="s1"> &amp;&amp; </span><span class="si">{bin}</span><span class="s1"> </span><span class="si">{fid}</span><span class="s1">&#39;</span>
 
         <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">close_fds</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DepotApp.sign_file"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.integration.DepotApp.sign_file">[docs]</a>    <span class="k">def</span> <span class="nf">sign_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">signee</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">token_type</span><span class="o">=</span><span class="s1">&#39;yubikey&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Signs the given file and stores metadata about that process.</span>
+
+<span class="sd">        During signing the stored file is replaced with the signed version.</span>
+
+<span class="sd">        For example::</span>
+
+<span class="sd">            pdf = app.sign_file(pdf, &#39;info@example.org&#39;, &#39;foo&#39;)</span>
+
+<span class="sd">        :param file:</span>
+
+<span class="sd">            The :class:`onegov.file..File` instance to sign.</span>
+
+<span class="sd">        :param signee:</span>
+
+<span class="sd">            The name of the signee (should be a username).</span>
+
+<span class="sd">        :param token:</span>
+
+<span class="sd">            The (yubikey) token used to sign the file.</span>
+
+<span class="sd">            WARNING: It is the job of the caller to ensure that the yubikey has</span>
+<span class="sd">            the right to sign the document (i.e. that it is the right yubikey).</span>
+
+<span class="sd">        :param token_type:</span>
+
+<span class="sd">            They type of the passed token. Currently only &#39;yubikey&#39;.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">signed</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AlreadySignedError</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s1">&#39;yubikey&#39;</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">is_valid_token</span><span class="p">(</span><span class="n">token</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;yubikey_client_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">TokenConfigurationError</span><span class="p">(</span><span class="n">token_type</span><span class="p">)</span>
+
+                <span class="k">return</span> <span class="n">is_valid_yubikey</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">yubikey_client_id</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">yubikey_secret_key</span><span class="p">,</span>
+                    <span class="n">expected_yubikey_id</span><span class="o">=</span><span class="n">yubikey_public_id</span><span class="p">(</span><span class="n">token</span><span class="p">),</span>
+                    <span class="n">yubikey</span><span class="o">=</span><span class="n">token</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Unknown token type: </span><span class="si">{token_type}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_valid_token</span><span class="p">(</span><span class="n">token</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">InvalidTokenError</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+
+        <span class="n">mb</span> <span class="o">=</span> <span class="mi">1024</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">SpooledTemporaryFile</span><span class="p">(</span><span class="n">max_size</span><span class="o">=</span><span class="mi">16</span> <span class="o">*</span> <span class="n">mb</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">signed</span><span class="p">:</span>
+            <span class="n">old_digest</span> <span class="o">=</span> <span class="n">digest</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">file</span><span class="p">)</span>
+            <span class="n">request_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">signing_service</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">file</span><span class="p">,</span> <span class="n">signed</span><span class="p">)</span>
+            <span class="n">new_digest</span> <span class="o">=</span> <span class="n">digest</span><span class="p">(</span><span class="n">signed</span><span class="p">)</span>
+
+            <span class="n">signed</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">file</span><span class="o">.</span><span class="n">reference</span> <span class="o">=</span> <span class="n">FileIntent</span><span class="p">(</span>
+                <span class="n">fileobj</span><span class="o">=</span><span class="n">signed</span><span class="p">,</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">content_type</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">reference</span><span class="p">[</span><span class="s1">&#39;content_type&#39;</span><span class="p">])</span>
+
+        <span class="n">file</span><span class="o">.</span><span class="n">signature_metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;old_digest&#39;</span><span class="p">:</span> <span class="n">old_digest</span><span class="p">,</span>
+            <span class="s1">&#39;new_digest&#39;</span><span class="p">:</span> <span class="n">new_digest</span><span class="p">,</span>
+            <span class="s1">&#39;signee&#39;</span><span class="p">:</span> <span class="n">signee</span><span class="p">,</span>
+            <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s1">&#39;request_id&#39;</span><span class="p">:</span> <span class="n">request_id</span><span class="p">,</span>
+            <span class="s1">&#39;token&#39;</span><span class="p">:</span> <span class="n">token</span><span class="p">,</span>
+            <span class="s1">&#39;token_type&#39;</span><span class="p">:</span> <span class="n">token_type</span>
+        <span class="p">}</span>
+
+        <span class="n">file</span><span class="o">.</span><span class="n">signed</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">signing_service_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">signing_services</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No signing service config path set&quot;</span><span class="p">)</span>
+
+        <span class="n">paths</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">signing_services</span> <span class="o">/</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.application_id}</span><span class="s1">.yml&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">signing_services</span> <span class="o">/</span> <span class="n">f</span><span class="s1">&#39;__default__.yml&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="n">f</span><span class="s2">&quot;No service config found at </span><span class="si">{self.signing_services}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">signing_service</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c1"># it is somewhat inefficient to keep multiple instances of the same</span>
+        <span class="c1"># service around as many services can have the same config - however</span>
+        <span class="c1"># it prevents accidental leaks of state between applications</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spawned_signing_services</span><span class="p">:</span>
+            <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">signing_service_config</span>
+
+            <span class="k">with</span> <span class="n">current_dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signing_services</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">spawned_signing_services</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="p">]</span> \
+                    <span class="o">=</span> <span class="n">SigningService</span><span class="o">.</span><span class="n">for_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spawned_signing_services</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">clear_depot_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">DepotManager</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>

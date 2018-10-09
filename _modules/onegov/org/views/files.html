@@ -48,6 +48,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.templates</span> <span class="k">import</span> <span class="n">render_macro</span>
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">FileCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">extension_for_content_type</span>
+<span class="kn">from</span> <span class="nn">onegov.file.errors</span> <span class="k">import</span> <span class="n">AlreadySignedError</span><span class="p">,</span> <span class="n">InvalidTokenError</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span><span class="p">,</span> <span class="n">OrgApp</span>
 <span class="kn">from</span> <span class="nn">onegov.org.new_elements</span> <span class="k">import</span> <span class="n">Link</span>
 <span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">DefaultLayout</span>
@@ -59,8 +60,10 @@
     <span class="n">ImageSetCollection</span><span class="p">,</span>
     <span class="n">LegacyFile</span><span class="p">,</span>
     <span class="n">LegacyImage</span><span class="p">,</span>
+    <span class="n">FileSignatureMessage</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">onegov.user</span> <span class="k">import</span> <span class="n">UserCollection</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">to_timezone</span><span class="p">,</span> <span class="n">utcnow</span><span class="p">,</span> <span class="n">standardize_date</span>
 <span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">time</span>
 <span class="kn">from</span> <span class="nn">webob</span> <span class="k">import</span> <span class="n">exc</span>
@@ -404,6 +407,52 @@
         <span class="s1">&#39;filelink&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">f</span><span class="p">),</span>
         <span class="s1">&#39;filename&#39;</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
     <span class="p">}</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;sign&#39;</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+             <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_sign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
+    <span class="n">token</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;token&#39;</span><span class="p">)</span>
+
+    <span class="n">user</span> <span class="o">=</span> <span class="n">UserCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">by_username</span><span class="p">(</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">may_sign</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">token</span><span class="p">:</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Please submit your yubikey&quot;</span><span class="p">))</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="o">.</span><span class="n">second_factor</span><span class="p">:</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your account is not linked to a Yubikey&quot;</span><span class="p">))</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">token</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">second_factor</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]):</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The used Yubikey is not linked to your account&quot;</span><span class="p">))</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">may_sign</span><span class="p">():</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">sign_file</span><span class="p">(</span>
+                <span class="n">file</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">signee</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">,</span>
+                <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">)</span>
+
+            <span class="n">FileSignatureMessage</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="n">AlreadySignedError</span><span class="p">:</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;This file already has a digital signature&quot;</span><span class="p">))</span>
+    <span class="k">except</span> <span class="n">InvalidTokenError</span><span class="p">:</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your Yubikey could not be validated&quot;</span><span class="p">))</span>
+
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">render_macro</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">macros</span><span class="p">[</span><span class="s1">&#39;sign_result&#39;</span><span class="p">],</span> <span class="n">request</span><span class="p">,</span> <span class="p">{</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="s1">&#39;file&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+    <span class="p">})</span>
 
 
 <div class="viewcode-block" id="view_old_files_redirect"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.files.view_old_files_redirect">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">LegacyFile</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>

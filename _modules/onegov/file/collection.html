@@ -35,11 +35,10 @@
   <h1>Source code for onegov.file.collection</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">depot.io.utils</span> <span class="k">import</span> <span class="n">file_from_content</span>
-<span class="kn">from</span> <span class="nn">onegov.file.attachments</span> <span class="k">import</span> <span class="n">calculate_checksum</span>
 <span class="kn">from</span> <span class="nn">onegov.file.models</span> <span class="k">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">FileSet</span>
-<span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">as_fileintent</span>
+<span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">as_fileintent</span><span class="p">,</span> <span class="n">digest</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">and_</span><span class="p">,</span> <span class="n">text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">and_</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">or_</span>
 
 
 <div class="viewcode-block" id="FileCollection"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.collection.FileCollection">[docs]</a><span class="k">class</span> <span class="nc">FileCollection</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -170,8 +169,24 @@
 <span class="sd">        one record).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">file</span> <span class="o">=</span> <span class="n">file_from_content</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">by_checksum</span><span class="p">(</span><span class="n">calculate_checksum</span><span class="p">(</span><span class="n">file_from_content</span><span class="p">(</span><span class="n">content</span><span class="p">)))</span></div>
+        <span class="c1"># we need to look up two checksums, the one of the file stored and</span>
+        <span class="c1"># possibly the one it had before signing</span>
+        <span class="c1">#</span>
+        <span class="c1"># XXX maybe it makes sense to combine those into a data structure</span>
+        <span class="c1"># that holds all kinds of digests a file is known under</span>
+
+        <span class="c1"># checksum</span>
+        <span class="n">md5</span> <span class="o">=</span> <span class="n">digest</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;md5&#39;</span><span class="p">)</span>
+
+        <span class="c1"># old_digest of signature_metadata</span>
+        <span class="n">sha</span> <span class="o">=</span> <span class="n">digest</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;sha256&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span>
+            <span class="n">File</span><span class="o">.</span><span class="n">checksum</span> <span class="o">==</span> <span class="n">md5</span><span class="p">,</span>
+            <span class="n">File</span><span class="o">.</span><span class="n">signature_metadata</span><span class="p">[</span><span class="s1">&#39;old_digest&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astext</span> <span class="o">==</span> <span class="n">sha</span>
+        <span class="p">))</span></div>
 
 <div class="viewcode-block" id="FileCollection.by_content_type"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.collection.FileCollection.by_content_type">[docs]</a>    <span class="k">def</span> <span class="nf">by_content_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content_type</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns a query that matches the given MIME content type (may be</span>

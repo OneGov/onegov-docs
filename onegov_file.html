@@ -204,6 +204,20 @@ something we ignore)</p>
 </dd></dl>
 
 <dl class="attribute">
+<dt id="onegov.file.models.file.File.signature_metadata">
+<code class="descname">signature_metadata</code><a class="headerlink" href="#onegov.file.models.file.File.signature_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>the metadata of the signature - this should include the following
+data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">old_digest</span><span class="p">:</span> <span class="n">The</span> <span class="n">sha</span><span class="o">-</span><span class="mi">256</span> <span class="nb">hash</span> <span class="n">before</span> <span class="n">the</span> <span class="n">file</span> <span class="n">was</span> <span class="n">signed</span>
+<span class="o">-</span> <span class="n">new_digest</span><span class="p">:</span> <span class="n">The</span> <span class="n">sha</span><span class="o">-</span><span class="mi">256</span> <span class="nb">hash</span> <span class="n">after</span> <span class="n">the</span> <span class="n">file</span> <span class="n">was</span> <span class="n">signed</span>
+<span class="o">-</span> <span class="n">signee</span><span class="p">:</span> <span class="n">The</span> <span class="n">username</span> <span class="n">of</span> <span class="n">the</span> <span class="n">user</span> <span class="n">that</span> <span class="n">signed</span> <span class="n">the</span> <span class="n">document</span>
+<span class="o">-</span> <span class="n">timestamp</span><span class="p">:</span> <span class="n">The</span> <span class="n">time</span> <span class="n">the</span> <span class="n">document</span> <span class="n">was</span> <span class="n">signed</span> <span class="ow">in</span> <span class="n">UTC</span>
+<span class="o">-</span> <span class="n">request_id</span><span class="p">:</span> <span class="n">A</span> <span class="n">unique</span> <span class="n">identifier</span> <span class="n">by</span> <span class="n">the</span> <span class="n">signing</span> <span class="n">service</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="onegov.file.models.file.File.type">
 <code class="descname">type</code><a class="headerlink" href="#onegov.file.models.file.File.type" title="Permalink to this definition">¶</a></dt>
 <dd><p>the type of the file, this can be used to create custom polymorphic
@@ -260,6 +274,14 @@ content type (whatever is found first in this order).</p>
 meant for display purposes.</p>
 <p>If you need to know the type of a file you should use the
 content type stored on the reference.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.file.models.file.File.word_count">
+<code class="descname">word_count</code><a class="headerlink" href="#onegov.file.models.file.File.word_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>The word-count of this file, if it has an extract. Currently
+not necessarily super efficient (though unlike many other approaches
+on stackoverflow this one does not consume much memory).</p>
 </dd></dl>
 
 <dl class="method">
@@ -460,8 +482,54 @@ point to the same file we simply pass the id and let the cache
 figure out what urls need to be busted as a result.</p>
 <p>The script is invoked with the permissions of the user running
 the backend. If other permissions are required, use suid.</p>
-<p class="last">Note that this script is optional. If omitted, the cache busting
+<p>Note that this script is optional. If omitted, the cache busting
 turns into a noop.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Signing_services:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">Contains signing service configs.</p>
+<p>Each application gets exactly one signing service.</p>
+<p>This integration class will take care of instantiating the
+signing service and offer it through <cite>self.signing_service</cite>.</p>
+<p>The signing service can be used with any file, though there is
+first-class support for signing onegov.file models.</p>
+<p>Signing services are implemented using sublcasses of the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">onegov.file.sign.SigningService</span></code>. Each signature
+service class is configured using a single yaml file which is
+stored in the signature config path.</p>
+<p>By default we use the ‘__default__.yaml’ config. Alternatively
+we can create separate configs for various application ids.</p>
+<p class="last">For example, we might create a <cite>onegov_town-govikon.yaml</cite>, which
+would take precedence over the default config, if the application
+with the id <cite>onegov_town-govikon</cite> would use the signing service.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.file.integration.DepotApp.sign_file">
+<code class="descname">sign_file</code><span class="sig-paren">(</span><em>file</em>, <em>signee</em>, <em>token</em>, <em>token_type='yubikey'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/integration.html#DepotApp.sign_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.integration.DepotApp.sign_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Signs the given file and stores metadata about that process.</p>
+<p>During signing the stored file is replaced with the signed version.</p>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pdf</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">sign_file</span><span class="p">(</span><span class="n">pdf</span><span class="p">,</span> <span class="s1">&#39;info@example.org&#39;</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>file</strong> – The <code class="xref py py-class docutils literal notranslate"><span class="pre">onegov.file..File</span></code> instance to sign.</li>
+<li><strong>signee</strong> – The name of the signee (should be a username).</li>
+<li><strong>token</strong> – <p>The (yubikey) token used to sign the file.</p>
+<p>WARNING: It is the job of the caller to ensure that the yubikey has
+the right to sign the document (i.e. that it is the right yubikey).</p>
+</li>
+<li><strong>token_type</strong> – They type of the passed token. Currently only ‘yubikey’.</li>
+</ul>
 </td>
 </tr>
 </tbody>
