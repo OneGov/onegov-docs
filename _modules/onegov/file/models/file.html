@@ -34,6 +34,8 @@
             
   <h1>Source code for onegov.file.models.file</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">sedate</span>
+<span class="kn">import</span> <span class="nn">isodate</span>
 
 <span class="kn">from</span> <span class="nn">depot.fields.sqlalchemy</span> <span class="k">import</span> <span class="n">UploadedFileField</span> <span class="k">as</span> <span class="n">UploadedFileFieldBase</span>
 <span class="kn">from</span> <span class="nn">onegov.core.crypto</span> <span class="k">import</span> <span class="n">random_token</span>
@@ -46,14 +48,18 @@
 <span class="kn">from</span> <span class="nn">onegov.file.filters</span> <span class="k">import</span> <span class="n">OnlyIfImage</span><span class="p">,</span> <span class="n">WithThumbnailFilter</span>
 <span class="kn">from</span> <span class="nn">onegov.file.filters</span> <span class="k">import</span> <span class="n">OnlyIfPDF</span><span class="p">,</span> <span class="n">WithPDFThumbnailFilter</span>
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">extension_for_content_type</span>
+<span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">case</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">event</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">type_coerce</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.ext.hybrid</span> <span class="k">import</span> <span class="n">hybrid_property</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">deferred</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span><span class="p">,</span> <span class="n">Session</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm.attributes</span> <span class="k">import</span> <span class="n">flag_modified</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">deferred</span>
-<span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
 
 
 <div class="viewcode-block" id="UploadedFileField"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.UploadedFileField">[docs]</a><span class="k">class</span> <span class="nc">UploadedFileField</span><span class="p">(</span><span class="n">UploadedFileFieldBase</span><span class="p">):</span>
@@ -195,8 +201,10 @@
     <span class="c1">#: we load massive amounts of text on simple queries)</span>
     <span class="n">extract</span> <span class="o">=</span> <span class="n">deferred</span><span class="p">(</span><span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
 
-    <span class="c1">#: the number of pages in the given file if known</span>
-    <span class="n">pages</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1">#: statistics around the extract (number of pages, words, etc.)</span>
+    <span class="c1">#: those are usually set during file upload (as some information is</span>
+    <span class="c1">#: lost afterwards)</span>
+    <span class="n">stats</span> <span class="o">=</span> <span class="n">deferred</span><span class="p">(</span><span class="n">Column</span><span class="p">(</span><span class="n">JSON</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
 
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;polymorphic_on&#39;</span><span class="p">:</span> <span class="s1">&#39;type&#39;</span>
@@ -206,6 +214,31 @@
         <span class="n">Index</span><span class="p">(</span><span class="s1">&#39;files_by_type_and_order&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;order&#39;</span><span class="p">),</span>
     <span class="p">)</span>
 
+    <span class="nd">@hybrid_property</span>
+    <span class="k">def</span> <span class="nf">signature_timestamp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">signed</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">sedate</span><span class="o">.</span><span class="n">replace_timezone</span><span class="p">(</span>
+                <span class="n">isodate</span><span class="o">.</span><span class="n">parse_datetime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signature_metadata</span><span class="p">[</span><span class="s1">&#39;timestamp&#39;</span><span class="p">]),</span>
+                <span class="s1">&#39;UTC&#39;</span>
+            <span class="p">)</span>
+
+    <span class="nd">@signature_timestamp</span><span class="o">.</span><span class="n">expression</span>
+    <span class="k">def</span> <span class="nf">signature_timestamp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">type_coerce</span><span class="p">(</span><span class="n">case</span><span class="p">(</span>
+            <span class="p">[(</span>
+                <span class="n">File</span><span class="o">.</span><span class="n">signed</span> <span class="o">==</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="n">text</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                    (</span>
+<span class="s2">                        to_timestamp(</span>
+<span class="s2">                            signature_metadata-&gt;&gt;&#39;timestamp&#39;,</span>
+<span class="s2">                            &#39;YYYY-MM-DD&quot;T&quot;HH24:MI:SS.US&#39;</span>
+<span class="s2">                        )::timestamp without time zone</span>
+<span class="s2">                    )</span>
+<span class="s2">                &quot;&quot;&quot;</span><span class="p">)</span>
+            <span class="p">)],</span>
+            <span class="n">else_</span><span class="o">=</span><span class="n">text</span><span class="p">(</span><span class="s1">&#39;NULL&#39;</span><span class="p">)</span>
+        <span class="p">),</span> <span class="n">UTCDateTime</span><span class="p">)</span>
+
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;reference&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">reference_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reference</span><span class="p">):</span>
         <span class="k">if</span> <span class="s1">&#39;checksum&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">:</span>
@@ -214,8 +247,8 @@
         <span class="k">if</span> <span class="s1">&#39;extract&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">extract</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;extract&#39;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="s1">&#39;pages&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">pages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;pages&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;stats&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;stats&#39;</span><span class="p">)</span>
 
     <span class="nd">@observes</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">name_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -248,35 +281,6 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">extension_for_content_type</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">[</span><span class="s1">&#39;content_type&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">name_without_extension</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">word_count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; The word-count of this file, if it has an extract. Currently</span>
-<span class="sd">        not necessarily super efficient (though unlike many other approaches</span>
-<span class="sd">        on stackoverflow this one does not consume much memory).</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract</span><span class="p">:</span>
-            <span class="k">return</span> <span class="mi">0</span>
-
-        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">inside_word</span> <span class="o">=</span> <span class="kc">False</span>
-
-        <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">char</span><span class="o">.</span><span class="n">isspace</span><span class="p">():</span>
-                <span class="n">inside_word</span> <span class="o">=</span> <span class="kc">False</span>
-            <span class="k">elif</span> <span class="ow">not</span> <span class="n">inside_word</span><span class="p">:</span>
-                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-                <span class="n">inside_word</span> <span class="o">=</span> <span class="kc">True</span>
-
-        <span class="k">return</span> <span class="n">count</span>
 
 <div class="viewcode-block" id="File.get_thumbnail_id"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.File.get_thumbnail_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_thumbnail_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns the thumbnail id with the given size (e.g. &#39;small&#39;).</span>

@@ -253,9 +253,11 @@ we load massive amounts of text on simple queries)</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="onegov.file.models.file.File.pages">
-<code class="descname">pages</code><a class="headerlink" href="#onegov.file.models.file.File.pages" title="Permalink to this definition">¶</a></dt>
-<dd><p>the number of pages in the given file if known</p>
+<dt id="onegov.file.models.file.File.stats">
+<code class="descname">stats</code><a class="headerlink" href="#onegov.file.models.file.File.stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>statistics around the extract (number of pages, words, etc.)
+those are usually set during file upload (as some information is
+lost afterwards)</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -274,14 +276,6 @@ content type (whatever is found first in this order).</p>
 meant for display purposes.</p>
 <p>If you need to know the type of a file you should use the
 content type stored on the reference.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="onegov.file.models.file.File.word_count">
-<code class="descname">word_count</code><a class="headerlink" href="#onegov.file.models.file.File.word_count" title="Permalink to this definition">¶</a></dt>
-<dd><p>The word-count of this file, if it has an extract. Currently
-not necessarily super efficient (though unlike many other approaches
-on stackoverflow this one does not consume much memory).</p>
 </dd></dl>
 
 <dl class="method">
@@ -408,6 +402,28 @@ one record).</p>
 <code class="descname">by_content_type</code><span class="sig-paren">(</span><em>content_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/collection.html#FileCollection.by_content_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.collection.FileCollection.by_content_type" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a query that matches the given MIME content type (may be
 more than one record).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.file.collection.FileCollection.by_signature_digest">
+<code class="descname">by_signature_digest</code><span class="sig-paren">(</span><em>digest</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/collection.html#FileCollection.by_signature_digest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.collection.FileCollection.by_signature_digest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a query that matches the given digest in the signature
+metadata. In other words, given a digest this function will find
+signed files that match the digest - either before or after signing.</p>
+<p>Unsigned files are ignored.</p>
+<p>The digest is expected to be a SHA256 hex.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.file.collection.FileCollection.locate_signature_metadata">
+<code class="descname">locate_signature_metadata</code><span class="sig-paren">(</span><em>digest</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/file/collection.html#FileCollection.locate_signature_metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.file.collection.FileCollection.locate_signature_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks for the given digest in the files table - if that doesn’t
+work it will go through the audit trail (i.e. the chat messages) and
+see if the digest can be found there.</p>
+<p>If this database was ever used to sign a file with the given digest,
+or if a file that was signed had the given digest, this function
+will find it - barring manual database manipulation in the messages
+log.</p>
 </dd></dl>
 
 </dd></dl>

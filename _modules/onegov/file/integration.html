@@ -54,7 +54,7 @@
 <span class="kn">from</span> <span class="nn">onegov.file.errors</span> <span class="k">import</span> <span class="n">AlreadySignedError</span>
 <span class="kn">from</span> <span class="nn">onegov.file.errors</span> <span class="k">import</span> <span class="n">InvalidTokenError</span>
 <span class="kn">from</span> <span class="nn">onegov.file.errors</span> <span class="k">import</span> <span class="n">TokenConfigurationError</span>
-<span class="kn">from</span> <span class="nn">onegov.file.models</span> <span class="k">import</span> <span class="n">File</span>
+<span class="kn">from</span> <span class="nn">onegov.file.models</span> <span class="k">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">FileMessage</span>
 <span class="kn">from</span> <span class="nn">onegov.file.sign</span> <span class="k">import</span> <span class="n">SigningService</span>
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">digest</span><span class="p">,</span> <span class="n">current_dir</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
@@ -313,6 +313,9 @@
         <span class="p">}</span>
 
         <span class="n">file</span><span class="o">.</span><span class="n">signed</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">FileMessage</span><span class="o">.</span><span class="n">log_signature</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">signee</span><span class="p">)</span>
+
         <span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
     <span class="nd">@property</span>
@@ -513,6 +516,10 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">signed</span><span class="p">:</span>
+        <span class="n">FileMessage</span><span class="o">.</span><span class="n">log_signed_file_removal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">)</span>
+
     <span class="n">FileCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 </pre></div>
 

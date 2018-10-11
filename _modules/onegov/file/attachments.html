@@ -45,6 +45,7 @@
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">get_image_size</span>
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">get_svg_size</span>
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">IMAGE_MIME_TYPES</span>
+<span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">word_count</span>
 <span class="kn">from</span> <span class="nn">PIL</span> <span class="k">import</span> <span class="n">Image</span>
 <span class="kn">from</span> <span class="nn">tempfile</span> <span class="k">import</span> <span class="n">SpooledTemporaryFile</span>
 
@@ -107,7 +108,12 @@
 
 <span class="k">def</span> <span class="nf">store_extract_and_pages</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">content_type</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s1">&#39;application/pdf&#39;</span><span class="p">:</span>
-        <span class="n">file</span><span class="o">.</span><span class="n">pages</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">extract</span> <span class="o">=</span> <span class="n">extract_pdf_info</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="n">pages</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">extract</span> <span class="o">=</span> <span class="n">extract_pdf_info</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+
+        <span class="n">file</span><span class="o">.</span><span class="n">stats</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;pages&#39;</span><span class="p">:</span> <span class="n">pages</span><span class="p">,</span>
+            <span class="s1">&#39;words&#39;</span><span class="p">:</span> <span class="n">word_count</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">extract</span><span class="p">)</span>
+        <span class="p">}</span>
 
 
 <div class="viewcode-block" id="ProcessedUploadedFile"><a class="viewcode-back" href="../../../onegov_file.html#onegov.file.attachments.ProcessedUploadedFile">[docs]</a><span class="k">class</span> <span class="nc">ProcessedUploadedFile</span><span class="p">(</span><span class="n">UploadedFile</span><span class="p">):</span>

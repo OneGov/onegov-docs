@@ -460,9 +460,12 @@
     <span class="k">def</span> <span class="nf">stop_search_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># XXX this would be better handled with a more general approach</span>
         <span class="c1"># that doesn&#39;t require knowledge of onegov.search</span>
-        <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">,</span> <span class="s1">&#39;es_orm_events&#39;</span><span class="p">,</span> <span class="nb">object</span><span class="p">())</span><span class="o">.</span><span class="n">stopped</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">yield</span>
-        <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">,</span> <span class="s1">&#39;es_orm_events&#39;</span><span class="p">,</span> <span class="nb">object</span><span class="p">())</span><span class="o">.</span><span class="n">stopped</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">,</span> <span class="s1">&#39;es_orm_events&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">es_orm_events</span><span class="o">.</span><span class="n">stopped</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">yield</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">es_orm_events</span><span class="o">.</span><span class="n">stopped</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">yield</span>
 
     <span class="k">def</span> <span class="nf">add_column_with_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">default</span><span class="p">):</span>
         <span class="c1"># XXX while adding default values we shouldn&#39;t reindex the data</span>

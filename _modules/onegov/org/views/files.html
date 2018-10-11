@@ -36,7 +36,9 @@
 <span></span><span class="sd">&quot;&quot;&quot; The onegov org collection of files uploaded to the site. &quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">isodate</span>
 <span class="kn">import</span> <span class="nn">morepath</span>
+<span class="kn">import</span> <span class="nn">sedate</span>
 
 <span class="kn">from</span> <span class="nn">babel.core</span> <span class="k">import</span> <span class="n">Locale</span>
 <span class="kn">from</span> <span class="nn">babel.dates</span> <span class="k">import</span> <span class="n">parse_pattern</span>
@@ -60,7 +62,6 @@
     <span class="n">ImageSetCollection</span><span class="p">,</span>
     <span class="n">LegacyFile</span><span class="p">,</span>
     <span class="n">LegacyImage</span><span class="p">,</span>
-    <span class="n">FileSignatureMessage</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">utils</span>
 <span class="kn">from</span> <span class="nn">onegov.user</span> <span class="k">import</span> <span class="n">UserCollection</span>
@@ -409,6 +410,32 @@
     <span class="p">}</span>
 
 
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">GeneralFileCollection</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;digest&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_file_digest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+    <span class="n">digest</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;digest&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">HTTPBadRequest</span><span class="p">(</span><span class="s2">&quot;missing filename&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">digest</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">HTTPBadRequest</span><span class="p">(</span><span class="s2">&quot;missing digest&quot;</span><span class="p">)</span>
+
+    <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">locate_signature_metadata</span><span class="p">(</span><span class="n">digest</span><span class="p">)</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">render_macro</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">macros</span><span class="p">[</span><span class="s1">&#39;digest_result&#39;</span><span class="p">],</span> <span class="n">request</span><span class="p">,</span> <span class="p">{</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+        <span class="s1">&#39;is_known&#39;</span><span class="p">:</span> <span class="n">metadata</span> <span class="ow">and</span> <span class="kc">True</span> <span class="ow">or</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="n">metadata</span> <span class="ow">and</span> <span class="n">sedate</span><span class="o">.</span><span class="n">replace_timezone</span><span class="p">(</span>
+            <span class="n">isodate</span><span class="o">.</span><span class="n">parse_datetime</span><span class="p">(</span>
+                <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;timestamp&#39;</span><span class="p">]</span>
+            <span class="p">),</span> <span class="s1">&#39;UTC&#39;</span>
+        <span class="p">),</span>
+    <span class="p">})</span>
+
+
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;sign&#39;</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
              <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">handle_sign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
@@ -439,8 +466,6 @@
                 <span class="n">file</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
                 <span class="n">signee</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">,</span>
                 <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">)</span>
-
-            <span class="n">FileSignatureMessage</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 
     <span class="k">except</span> <span class="n">AlreadySignedError</span><span class="p">:</span>
         <span class="n">request</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;This file already has a digital signature&quot;</span><span class="p">))</span>
