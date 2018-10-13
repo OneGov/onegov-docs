@@ -272,11 +272,19 @@
         <span class="c1"># if we are looking at activities without occasions, we do not have</span>
         <span class="c1"># to apply all the filters below which are occasion-based</span>
         <span class="k">if</span> <span class="s1">&#39;undated&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">timelines</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">not_</span><span class="p">(</span><span class="n">model_class</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-                    <span class="n">distinct</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">activity_id</span><span class="p">)</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">subquery</span><span class="p">()</span>
-            <span class="p">)))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">period_ids</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                    <span class="n">not_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">activity_id</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">and_</span><span class="p">(</span>
+                        <span class="n">Occasion</span><span class="o">.</span><span class="n">activity_id</span> <span class="o">==</span> <span class="n">Activity</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                        <span class="n">Occasion</span><span class="o">.</span><span class="n">period_id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">period_ids</span><span class="p">)</span>
+                    <span class="p">))</span><span class="o">.</span><span class="n">exists</span><span class="p">())</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                    <span class="n">not_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">activity_id</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                        <span class="n">Occasion</span><span class="o">.</span><span class="n">activity_id</span> <span class="o">==</span> <span class="n">Activity</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">())</span>
+                <span class="p">)</span>
 
         <span class="n">now</span> <span class="o">=</span> <span class="n">utcnow</span><span class="p">()</span>
 
