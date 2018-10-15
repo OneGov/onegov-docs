@@ -35,16 +35,47 @@
   <h1>Source code for onegov.org.views.homepage</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot; The onegov organisation homepage. &quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">morepath</span> <span class="k">import</span> <span class="n">redirect</span>
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
+<span class="kn">from</span> <span class="nn">onegov.directory</span> <span class="k">import</span> <span class="n">DirectoryCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.event</span> <span class="k">import</span> <span class="n">OccurrenceCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">OrgApp</span>
+<span class="kn">from</span> <span class="nn">onegov.org.homepage_widgets</span> <span class="k">import</span> <span class="n">inject_widget_variables</span>
 <span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">DefaultLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">Organisation</span>
-<span class="kn">from</span> <span class="nn">onegov.org.homepage_widgets</span> <span class="k">import</span> <span class="n">inject_widget_variables</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">PublicationCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">ResourceCollection</span>
+
+
+<span class="k">def</span> <span class="nf">redirect_to</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;directories&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">DirectoryCollection</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;events&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">OccurrenceCollection</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;forms&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">FormCollection</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;publications&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">PublicationCollection</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;reservations&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">ResourceCollection</span><span class="p">))</span>
 
 
 <div class="viewcode-block" id="view_org"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.homepage.view_org">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Organisation</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;homepage.pt&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">view_org</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Renders the org&#39;s homepage. &quot;&quot;&quot;</span>
+
+    <span class="c1"># the homepage can optionally be used as a jump-pad to redirect to</span>
+    <span class="c1"># sub-part of the organisation -&gt; this is useful if only one specific</span>
+    <span class="c1"># module is used (e.g. only reservations)</span>
+    <span class="n">redirect</span> <span class="o">=</span> <span class="n">redirect_to</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">redirect_homepage_to</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">redirect</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">redirect</span>
 
     <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
 

@@ -165,7 +165,11 @@
         <span class="n">uselist</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">cardinality</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;to-one&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">descriptor</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;_for_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">associated_cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">))</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_for_</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">associated_cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">,</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">,</span>
+            <span class="n">attribute_name</span>
+        <span class="p">)</span>
         <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_id&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">)</span>
         <span class="n">target</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.id&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">)</span>
         <span class="n">backref</span> <span class="o">=</span> <span class="s1">&#39;linked_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">)</span>
