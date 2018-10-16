@@ -33,15 +33,18 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.org.forms.event</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span></span><span class="kn">import</span> <span class="nn">json</span>
+
+<span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">dateutil</span> <span class="k">import</span> <span class="n">rrule</span>
+<span class="kn">from</span> <span class="nn">dateutil.rrule</span> <span class="k">import</span> <span class="n">rrulestr</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">Form</span>
 <span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">MultiCheckboxField</span>
 <span class="kn">from</span> <span class="nn">onegov.gis</span> <span class="k">import</span> <span class="n">CoordinatesField</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
-<span class="kn">from</span> <span class="nn">onegov.org.utils</span> <span class="k">import</span> <span class="n">rrulestr</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">replace_timezone</span><span class="p">,</span> <span class="n">to_timezone</span>
-<span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">TextAreaField</span><span class="p">,</span> <span class="n">validators</span>
+<span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">RadioField</span><span class="p">,</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">TextAreaField</span><span class="p">,</span> <span class="n">validators</span>
 <span class="kn">from</span> <span class="nn">wtforms.fields.html5</span> <span class="k">import</span> <span class="n">DateField</span><span class="p">,</span> <span class="n">EmailField</span>
 <span class="kn">from</span> <span class="nn">wtforms_components</span> <span class="k">import</span> <span class="n">TimeField</span>
 
@@ -80,6 +83,8 @@
 
 <div class="viewcode-block" id="EventForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.event.EventForm">[docs]</a><span class="k">class</span> <span class="nc">EventForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Defines the form for all events. &quot;&quot;&quot;</span>
+
+    <span class="n">timezone</span> <span class="o">=</span> <span class="s1">&#39;Europe/Zurich&#39;</span>
 
     <span class="n">email</span> <span class="o">=</span> <span class="n">EmailField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;E-Mail&quot;</span><span class="p">),</span>
@@ -140,16 +145,45 @@
         <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">InputRequired</span><span class="p">()]</span>
     <span class="p">)</span>
 
+    <span class="n">repeat</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Repeat&quot;</span><span class="p">),</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+            <span class="p">(</span><span class="s1">&#39;without&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Without&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;weekly&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Weekly&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;dates&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;On additional dates&quot;</span><span class="p">))</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
     <span class="n">weekly</span> <span class="o">=</span> <span class="n">MultiCheckboxField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Repeats itself every&quot;</span><span class="p">),</span>
         <span class="n">choices</span><span class="o">=</span><span class="n">WEEKDAYS</span><span class="p">,</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;prefix_label&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;oneline-checkboxes&#39;</span><span class="p">}</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;prefix_label&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;oneline-checkboxes&#39;</span><span class="p">},</span>
+        <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;repeat&#39;</span><span class="p">,</span> <span class="s1">&#39;weekly&#39;</span><span class="p">)</span>
     <span class="p">)</span>
 
     <span class="n">end_date</span> <span class="o">=</span> <span class="n">DateField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Until date&quot;</span><span class="p">),</span>
-        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">Optional</span><span class="p">()]</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">Optional</span><span class="p">()],</span>
+        <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;repeat&#39;</span><span class="p">,</span> <span class="s1">&#39;weekly&#39;</span><span class="p">)</span>
     <span class="p">)</span>
+
+    <span class="n">dates</span> <span class="o">=</span> <span class="n">TextAreaField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Dates&quot;</span><span class="p">),</span>
+        <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;repeat&#39;</span><span class="p">,</span> <span class="s1">&#39;dates&#39;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;many many-dates&#39;</span><span class="p">},</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">date_errors</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">on_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;common&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;many&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates_to_json</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
 
 <div class="viewcode-block" id="EventForm.validate"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.event.EventForm.validate">[docs]</a>    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Make sure a valid RRULE can be generated with the given fields.</span>
@@ -167,22 +201,26 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
                 <span class="n">result</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
-            <span class="n">weekday</span> <span class="o">=</span> <span class="n">WEEKDAYS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">weekday</span><span class="p">()][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">weekday</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
-                <span class="n">message</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The weekday of the start date must be selected.&quot;</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="s1">&#39;weekly&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+                <span class="n">weekday</span> <span class="o">=</span> <span class="n">WEEKDAYS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">weekday</span><span class="p">()][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">weekday</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span>
+                        <span class="s2">&quot;The weekday of the start date must be selected.&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span>
+                    <span class="s2">&quot;Please set and end date if the event is recurring.&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
                 <span class="n">result</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
-            <span class="n">message</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Please set and end date if the event is recurring.&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="kc">False</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
-            <span class="n">message</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Please select a weekday if the event is recurring.&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span>
+                    <span class="s2">&quot;Please select a weekday if the event is recurring.&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="k">return</span> <span class="n">result</span></div>
 
@@ -230,24 +268,34 @@
             <span class="n">model</span><span class="o">.</span><span class="n">timezone</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
-            <span class="n">until_date</span> <span class="o">=</span> <span class="n">to_timezone</span><span class="p">(</span>
-                <span class="n">replace_timezone</span><span class="p">(</span>
-                    <span class="n">datetime</span><span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">minute</span>
-                    <span class="p">),</span> <span class="n">model</span><span class="o">.</span><span class="n">timezone</span>
-                <span class="p">),</span> <span class="s1">&#39;UTC&#39;</span>
-            <span class="p">)</span>
-            <span class="n">model</span><span class="o">.</span><span class="n">recurrence</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="s2">&quot;RRULE:FREQ=WEEKLY;WKST=MO;BYDAY=</span><span class="si">{0}</span><span class="s2">;UNTIL=</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span><span class="p">),</span>
-                    <span class="n">until_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">T%H%M%SZ&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="s1">&#39;without&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recurrence</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="s1">&#39;weekly&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+                <span class="n">until_date</span> <span class="o">=</span> <span class="n">to_timezone</span><span class="p">(</span>
+                    <span class="n">replace_timezone</span><span class="p">(</span>
+                        <span class="n">datetime</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">minute</span>
+                        <span class="p">),</span> <span class="n">model</span><span class="o">.</span><span class="n">timezone</span>
+                    <span class="p">),</span> <span class="s1">&#39;UTC&#39;</span>
                 <span class="p">)</span>
-            <span class="p">)</span></div>
+                <span class="n">model</span><span class="o">.</span><span class="n">recurrence</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;RRULE:FREQ=WEEKLY;WKST=MO;BYDAY=</span><span class="si">{0}</span><span class="s2">;UNTIL=</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span><span class="p">),</span>
+                        <span class="n">until_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">T%H%M%SZ&#39;</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="s1">&#39;dates&#39;</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">recurrence</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">f</span><span class="s2">&quot;RDATE:{d.strftime(&#39;%Y%m</span><span class="si">%d</span><span class="s2">T000000Z&#39;)}&quot;</span>
+                <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed_dates</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="EventForm.process_obj"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.event.EventForm.process_obj">[docs]</a>    <span class="k">def</span> <span class="nf">process_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Stores the page values on the form. &quot;&quot;&quot;</span>
@@ -263,13 +311,51 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">last_occurrence</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
 
             <span class="n">rule</span> <span class="o">=</span> <span class="n">rrulestr</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">recurrence</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">_freq</span> <span class="o">==</span> <span class="n">rrule</span><span class="o">.</span><span class="n">WEEKLY</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="s1">&#39;_freq&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="n">rrule</span><span class="o">.</span><span class="n">WEEKLY</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;weekly&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates_to_json</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">weekly</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="n">WEEKDAYS</span><span class="p">[</span><span class="n">day</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">day</span> <span class="ow">in</span> <span class="n">rule</span><span class="o">.</span><span class="n">_byweekday</span>
                 <span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;dates&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates_to_json</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">rule</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates_to_json</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;without&#39;</span>
 
         <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">meta</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;submitter_email&#39;</span><span class="p">)</span></div></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;submitter_email&#39;</span><span class="p">)</span></div>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">parsed_dates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">json_to_dates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">json_to_dates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">text</span> <span class="ow">or</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;values&#39;</span><span class="p">,</span> <span class="p">[]):</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">date</span><span class="p">(</span><span class="o">*</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">))))</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">dates_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">dates</span> <span class="o">=</span> <span class="n">dates</span> <span class="ow">or</span> <span class="p">[]</span>
+
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+            <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Date&quot;</span><span class="p">)),</span>
+                <span class="s1">&#39;add&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Add&quot;</span><span class="p">)),</span>
+                <span class="s1">&#39;remove&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Remove&quot;</span><span class="p">)),</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="n">d</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">),</span>
+                    <span class="s1">&#39;error&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_errors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ix</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="p">}</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dates</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">})</span></div>
 </pre></div>
 
           </div>

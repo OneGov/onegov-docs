@@ -40,6 +40,7 @@
 <span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">dateutil</span> <span class="k">import</span> <span class="n">rrule</span>
+<span class="kn">from</span> <span class="nn">dateutil.rrule</span> <span class="k">import</span> <span class="n">rrulestr</span>
 <span class="kn">from</span> <span class="nn">decimal</span> <span class="k">import</span> <span class="n">Decimal</span>
 <span class="kn">from</span> <span class="nn">onegov.core.crypto</span> <span class="k">import</span> <span class="n">RANDOM_TOKEN_LENGTH</span>
 <span class="kn">from</span> <span class="nn">onegov.core.i18n</span> <span class="k">import</span> <span class="n">SiteLocale</span>
@@ -70,7 +71,6 @@
 <span class="kn">from</span> <span class="nn">onegov.org.new_elements</span> <span class="k">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">Confirm</span><span class="p">,</span> <span class="n">Intercooler</span>
 <span class="kn">from</span> <span class="nn">onegov.org.new_elements</span> <span class="k">import</span> <span class="n">Link</span><span class="p">,</span> <span class="n">LinkGroup</span>
 <span class="kn">from</span> <span class="nn">onegov.org.theme.org_theme</span> <span class="k">import</span> <span class="n">user_options</span>
-<span class="kn">from</span> <span class="nn">onegov.org.utils</span> <span class="k">import</span> <span class="n">rrulestr</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">PaymentCollection</span><span class="p">,</span> <span class="n">PaymentProviderCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.people</span> <span class="k">import</span> <span class="n">PersonCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">ResourceCollection</span>
@@ -1293,7 +1293,7 @@
         <span class="k">if</span> <span class="n">recurrence</span><span class="p">:</span>
             <span class="n">rule</span> <span class="o">=</span> <span class="n">rrulestr</span><span class="p">(</span><span class="n">recurrence</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">_freq</span> <span class="o">==</span> <span class="n">rrule</span><span class="o">.</span><span class="n">WEEKLY</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="s1">&#39;_freq&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="n">rrule</span><span class="o">.</span><span class="n">WEEKLY</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">_</span><span class="p">(</span>
                     <span class="s2">&quot;Every $</span><span class="si">{days}</span><span class="s2"> until $</span><span class="si">{end}</span><span class="s2">&quot;</span><span class="p">,</span>
                     <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
