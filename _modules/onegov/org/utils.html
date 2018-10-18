@@ -115,16 +115,6 @@
     <span class="k">return</span> <span class="n">get_random_color</span><span class="p">(</span><span class="n">extension</span><span class="p">,</span> <span class="n">lightness</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">saturation</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">format_time_range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">correct_time_range</span><span class="p">(</span><span class="s1">&#39;{:%H:%M} - {:%H:%M}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">))</span>
-
-
-<span class="k">def</span> <span class="nf">correct_time_range</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">string</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;00:00&#39;</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">string</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;24:00&#39;</span>
-    <span class="k">return</span> <span class="n">string</span>
-
-
 <div class="viewcode-block" id="add_class_to_node"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.utils.add_class_to_node">[docs]</a><span class="k">def</span> <span class="nf">add_class_to_node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">classname</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Adds the given classname to the given lxml node&#39;s class list. &quot;&quot;&quot;</span>
 
@@ -258,7 +248,7 @@
 <span class="k">def</span> <span class="nf">render_time_range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
     <span class="n">start</span> <span class="o">=</span> <span class="s1">&#39;{:%H:%M}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="n">end</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">==</span> <span class="n">time</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
+    <span class="k">if</span> <span class="n">end</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="n">time</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">time</span><span class="p">(</span><span class="mi">23</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="mi">999999</span><span class="p">)):</span>
         <span class="n">end</span> <span class="o">=</span> <span class="s1">&#39;24:00&#39;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">end</span> <span class="o">=</span> <span class="s1">&#39;{:%H:%M}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>

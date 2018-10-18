@@ -46,7 +46,6 @@
     <span class="n">HiddenFromPublicExtension</span><span class="p">,</span>
     <span class="n">PersonLinkExtension</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">onegov.org.utils</span> <span class="k">import</span> <span class="n">correct_time_range</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
 <span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">Ticket</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.sql.expression</span> <span class="k">import</span> <span class="n">cast</span>
@@ -149,13 +148,16 @@
         <span class="k">return</span> <span class="n">query</span>
 
     <span class="k">def</span> <span class="nf">reservation_title</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reservation</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">correct_time_range</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">title_template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">start</span><span class="o">=</span><span class="n">reservation</span><span class="o">.</span><span class="n">display_start</span><span class="p">(),</span>
-                <span class="n">end</span><span class="o">=</span><span class="n">reservation</span><span class="o">.</span><span class="n">display_end</span><span class="p">(),</span>
-                <span class="n">quota</span><span class="o">=</span><span class="n">reservation</span><span class="o">.</span><span class="n">quota</span>
-            <span class="p">)</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title_template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">start</span><span class="o">=</span><span class="n">reservation</span><span class="o">.</span><span class="n">display_start</span><span class="p">(),</span>
+            <span class="n">end</span><span class="o">=</span><span class="n">reservation</span><span class="o">.</span><span class="n">display_end</span><span class="p">(),</span>
+            <span class="n">quota</span><span class="o">=</span><span class="n">reservation</span><span class="o">.</span><span class="n">quota</span>
         <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">title</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;00:00&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">title</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;24:00&#39;</span>
+
+        <span class="k">return</span> <span class="n">title</span>
 
 
 <div class="viewcode-block" id="SearchableResource"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.resource.SearchableResource">[docs]</a><span class="k">class</span> <span class="nc">SearchableResource</span><span class="p">(</span><span class="n">ORMSearchable</span><span class="p">):</span>

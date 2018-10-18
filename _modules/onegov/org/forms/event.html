@@ -39,8 +39,12 @@
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">dateutil</span> <span class="k">import</span> <span class="n">rrule</span>
 <span class="kn">from</span> <span class="nn">dateutil.rrule</span> <span class="k">import</span> <span class="n">rrulestr</span>
+<span class="kn">from</span> <span class="nn">onegov.event.models</span> <span class="k">import</span> <span class="n">EventFile</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">Form</span>
 <span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">MultiCheckboxField</span>
+<span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">UploadFileWithORMSupport</span>
+<span class="kn">from</span> <span class="nn">onegov.form.validators</span> <span class="k">import</span> <span class="n">FileSizeLimit</span>
+<span class="kn">from</span> <span class="nn">onegov.form.validators</span> <span class="k">import</span> <span class="n">WhitelistedMimeType</span>
 <span class="kn">from</span> <span class="nn">onegov.gis</span> <span class="k">import</span> <span class="n">CoordinatesField</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">replace_timezone</span><span class="p">,</span> <span class="n">to_timezone</span>
@@ -104,6 +108,21 @@
         <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">12</span><span class="p">}</span>
     <span class="p">)</span>
 
+    <span class="n">image</span> <span class="o">=</span> <span class="n">UploadFileWithORMSupport</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Image&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Foobar&quot;</span><span class="p">,</span>
+        <span class="n">file_class</span><span class="o">=</span><span class="n">EventFile</span><span class="p">,</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">validators</span><span class="o">.</span><span class="n">Optional</span><span class="p">(),</span>
+            <span class="n">WhitelistedMimeType</span><span class="p">({</span>
+                <span class="s1">&#39;image/gif&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;image/jpeg&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;image/png&#39;</span>
+            <span class="p">}),</span>
+            <span class="n">FileSizeLimit</span><span class="p">(</span><span class="mi">1</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
     <span class="n">location</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Location&quot;</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Castle garden&quot;</span><span class="p">),</span>
@@ -147,7 +166,7 @@
 
     <span class="n">repeat</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Repeat&quot;</span><span class="p">),</span>
-        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;without&#39;</span><span class="p">,</span>
         <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
             <span class="p">(</span><span class="s1">&#39;without&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Without&quot;</span><span class="p">)),</span>
             <span class="p">(</span><span class="s1">&#39;weekly&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Weekly&quot;</span><span class="p">)),</span>
@@ -321,6 +340,9 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;dates&#39;</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates_to_json</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">rule</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;weekly&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates_to_json</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;weekly&#39;</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates_to_json</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;without&#39;</span>

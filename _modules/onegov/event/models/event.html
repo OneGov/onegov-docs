@@ -40,6 +40,7 @@
 <span class="kn">from</span> <span class="nn">icalendar</span> <span class="k">import</span> <span class="n">Event</span> <span class="k">as</span> <span class="n">vEvent</span>
 <span class="kn">from</span> <span class="nn">icalendar</span> <span class="k">import</span> <span class="n">vRecur</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.abstract</span> <span class="k">import</span> <span class="n">associated</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">content_property</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">ContentMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span>
@@ -47,6 +48,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
 <span class="kn">from</span> <span class="nn">onegov.event.models.mixins</span> <span class="k">import</span> <span class="n">OccurrenceMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.event.models.occurrence</span> <span class="k">import</span> <span class="n">Occurrence</span>
+<span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">File</span>
 <span class="kn">from</span> <span class="nn">onegov.gis</span> <span class="k">import</span> <span class="n">CoordinatesMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
 <span class="kn">from</span> <span class="nn">pytz</span> <span class="k">import</span> <span class="n">UTC</span>
@@ -63,6 +65,10 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">validates</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
+
+
+<div class="viewcode-block" id="EventFile"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.models.EventFile">[docs]</a><span class="k">class</span> <span class="nc">EventFile</span><span class="p">(</span><span class="n">File</span><span class="p">):</span>
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;eventfile&#39;</span><span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="Event"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.models.Event">[docs]</a><span class="k">class</span> <span class="nc">Event</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">OccurrenceMixin</span><span class="p">,</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span>
@@ -102,6 +108,9 @@
     <span class="c1">#: Recurrence of the event (RRULE, see RFC2445)</span>
     <span class="n">recurrence</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="c1">#: The associated image</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">associated</span><span class="p">(</span><span class="n">EventFile</span><span class="p">,</span> <span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="s1">&#39;one-to-one&#39;</span><span class="p">,</span> <span class="n">uselist</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
     <span class="c1">#: Recurrence of the event as icalendar object</span>
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">icalendar_recurrence</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -131,6 +140,16 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">es_skip</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;submitted&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;withdrawn&#39;</span>
+
+<div class="viewcode-block" id="Event.source_url"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.models.Event.source_url">[docs]</a>    <span class="k">def</span> <span class="nf">source_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns an url pointing to the external event if imported. &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;guidle&#39;</span><span class="p">):</span>
+            <span class="n">guidle_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">return</span> <span class="n">f</span><span class="s2">&quot;https://www.guidle.com/angebote/</span><span class="si">{guidle_id}</span><span class="s2">&quot;</span></div>
 
     <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Automatically update the occurrences if shared attributes change.</span>

@@ -143,6 +143,25 @@
             <span class="p">))</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
         <span class="p">))</span>
 
+    <span class="k">def</span> <span class="nf">image_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the image url for the offer with the given size or None.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">xpath</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">f</span><span class="s2">&quot;guidle:offerDetail/&quot;</span>
+            <span class="n">f</span><span class="s2">&quot;guidle:images/&quot;</span>
+            <span class="n">f</span><span class="s2">&quot;guidle:image/&quot;</span>
+            <span class="n">f</span><span class="s2">&quot;guidle:size[@label=&#39;</span><span class="si">{size}</span><span class="s2">&#39;]&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;(</span><span class="si">{xpath}</span><span class="s2">)[1]&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;url&#39;</span><span class="p">]</span>
+
     <span class="k">def</span> <span class="nf">tags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tagmap</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns a set of known and a set of unkonwn tags. &quot;&quot;&quot;</span>
 
@@ -215,7 +234,7 @@
         <span class="k">if</span> <span class="n">end_time</span><span class="p">:</span>
             <span class="n">end</span> <span class="o">=</span> <span class="n">end_time</span>
         <span class="k">if</span> <span class="n">end</span> <span class="o">&lt;=</span> <span class="n">start</span><span class="p">:</span>
-            <span class="n">end</span> <span class="o">=</span> <span class="n">end</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">end</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">microseconds</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="c1"># Add timezones</span>
         <span class="k">if</span> <span class="n">start</span><span class="p">:</span>
