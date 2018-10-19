@@ -104,7 +104,16 @@
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">title</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;guidle:offerDetail/guidle:title&#39;</span><span class="p">)</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;guidle:offerDetail/guidle:title&#39;</span><span class="p">)</span>
+
+        <span class="c1"># titles are rendered as unsafe html downstream, so we can</span>
+        <span class="c1"># losen the rules one tiny bit here.</span>
+
+        <span class="c1"># we&#39;ll still have &#39;&amp;gt,&#39; and &#39;&amp;lt;&#39;, but those are probably</span>
+        <span class="c1"># used very rarely in a title, so we can ignore that</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="n">title</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&amp;amp;&#39;</span><span class="p">,</span> <span class="s1">&#39;&amp;&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">title</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">description</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -121,7 +130,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;guidle:offerDetail/guidle:homepage&#39;</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;guidle:offerDetail/guidle:priceInformation&#39;</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;guidle:offerDetail/guidle:ticketingUrl&#39;</span><span class="p">)</span>
-        <span class="p">),</span> <span class="s1">&#39;</span><span class="se">\r\n\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="p">),</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">organizer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
