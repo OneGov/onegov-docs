@@ -38,7 +38,10 @@
 
 <span class="kn">from</span> <span class="nn">cgi</span> <span class="k">import</span> <span class="n">escape</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">_</span>
-<span class="kn">from</span> <span class="nn">wtforms.widgets</span> <span class="k">import</span> <span class="n">ListWidget</span><span class="p">,</span> <span class="n">FileInput</span><span class="p">,</span> <span class="n">TextInput</span>
+<span class="kn">from</span> <span class="nn">wtforms.widgets</span> <span class="k">import</span> <span class="n">FileInput</span>
+<span class="kn">from</span> <span class="nn">wtforms.widgets</span> <span class="k">import</span> <span class="n">ListWidget</span>
+<span class="kn">from</span> <span class="nn">wtforms.widgets</span> <span class="k">import</span> <span class="n">Select</span>
+<span class="kn">from</span> <span class="nn">wtforms.widgets</span> <span class="k">import</span> <span class="n">TextInput</span>
 <span class="kn">from</span> <span class="nn">wtforms.widgets.core</span> <span class="k">import</span> <span class="n">HTMLString</span>
 
 
@@ -216,6 +219,22 @@
             <span class="nb">id</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
             <span class="n">value</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">data</span> <span class="ow">or</span> <span class="n">icons</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="ChosenSelectWidget"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.widgets.ChosenSelectWidget">[docs]</a><span class="k">class</span> <span class="nc">ChosenSelectWidget</span><span class="p">(</span><span class="n">Select</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;class_&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> chosen-select&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;class_&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;data-placeholder&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Select an Option&quot;</span><span class="p">))</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;data-no_results_text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;No results match&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multiple</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;data-placeholder&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span>
+                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Select Some Options&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">ChosenSelectWidget</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 </pre></div>
 
           </div>
