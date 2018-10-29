@@ -49,6 +49,7 @@
 <span class="kn">from</span> <span class="nn">onegov.event.models.mixins</span> <span class="k">import</span> <span class="n">OccurrenceMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.event.models.occurrence</span> <span class="k">import</span> <span class="n">Occurrence</span>
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">File</span>
+<span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">as_fileintent</span>
 <span class="kn">from</span> <span class="nn">onegov.gis</span> <span class="k">import</span> <span class="n">CoordinatesMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
 <span class="kn">from</span> <span class="nn">pytz</span> <span class="k">import</span> <span class="n">UTC</span>
@@ -105,11 +106,29 @@
     <span class="c1">#: the source of the event, if imported</span>
     <span class="n">source</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
 
+    <span class="c1">#: when the source of the event was last updated (if imported)</span>
+    <span class="n">source_updated</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+
     <span class="c1">#: Recurrence of the event (RRULE, see RFC2445)</span>
     <span class="n">recurrence</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1">#: The associated image</span>
     <span class="n">image</span> <span class="o">=</span> <span class="n">associated</span><span class="p">(</span><span class="n">EventFile</span><span class="p">,</span> <span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="s1">&#39;one-to-one&#39;</span><span class="p">,</span> <span class="n">uselist</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Event.set_image"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.models.Event.set_image">[docs]</a>    <span class="k">def</span> <span class="nf">set_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Adds or removes the image. &quot;&quot;&quot;</span>
+
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span> <span class="ow">or</span> <span class="s1">&#39;file&#39;</span>
+        <span class="k">if</span> <span class="n">content</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">reference</span> <span class="o">=</span> <span class="n">as_fileintent</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">EventFile</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+                    <span class="n">reference</span><span class="o">=</span><span class="n">as_fileintent</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="kc">None</span></div>
 
     <span class="c1">#: Recurrence of the event as icalendar object</span>
     <span class="nd">@property</span>

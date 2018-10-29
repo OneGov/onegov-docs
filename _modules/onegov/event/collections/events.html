@@ -33,9 +33,11 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.event.collections.events</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">md5</span>
 <span class="kn">from</span> <span class="nn">icalendar</span> <span class="k">import</span> <span class="n">Calendar</span> <span class="k">as</span> <span class="n">vCalendar</span>
 <span class="kn">from</span> <span class="nn">onegov.core.collection</span> <span class="k">import</span> <span class="n">Pagination</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">increment_name</span>
@@ -49,6 +51,11 @@
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">to_timezone</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">and_</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">or_</span>
+
+
+<span class="n">EventImportItem</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s1">&#39;EventImportItem&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;event&#39;</span><span class="p">,</span> <span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="s1">&#39;filename&#39;</span><span class="p">)</span>
+<span class="p">)</span>
 
 
 <div class="viewcode-block" id="EventCollection"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.collections.EventCollection">[docs]</a><span class="k">class</span> <span class="nc">EventCollection</span><span class="p">(</span><span class="n">Pagination</span><span class="p">):</span>
@@ -171,46 +178,69 @@
         <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Event</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="nb">id</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">first</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="EventCollection.from_import"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.collections.EventCollection.from_import">[docs]</a>    <span class="k">def</span> <span class="nf">from_import</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span> <span class="n">purge</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="EventCollection.from_import"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.collections.EventCollection.from_import">[docs]</a>    <span class="k">def</span> <span class="nf">from_import</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">purge</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Add or updates the given events.</span>
 
-<span class="sd">        Only updates events which have changed. Doesn&#39;t change the states of</span>
-<span class="sd">        events allowing to permanently withdraw imported events.</span>
+<span class="sd">        Only updates events which have changed. Uses `Event.source_updated` if</span>
+<span class="sd">        available, falls back to comparing all relevant attributes.</span>
+
+<span class="sd">        Doesn&#39;t change the states of events allowing to permanently withdraw</span>
+<span class="sd">        imported events.</span>
 
 <span class="sd">        Optionally removes all events with the given meta-source-prefix not</span>
 <span class="sd">        present in the given events.</span>
 
+<span class="sd">        Images for the given items should be provided seperately to avoid</span>
+<span class="sd">        overhead due to the depot storage, see `EventImportItem`.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">sources</span> <span class="o">=</span> <span class="nb">set</span><span class="p">((</span><span class="n">event</span><span class="o">.</span><span class="n">source</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">))</span>
-        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">))</span>
-
         <span class="k">if</span> <span class="n">purge</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="nb">all</span><span class="p">((</span><span class="n">s</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">purge</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">))</span>
             <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;source&#39;</span><span class="p">))</span>
             <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astext</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">purge</span><span class="p">))</span>
-            <span class="n">purge</span> <span class="o">=</span> <span class="nb">set</span><span class="p">((</span><span class="n">r</span><span class="o">.</span><span class="n">source</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">query</span><span class="p">))</span> <span class="o">-</span> <span class="n">sources</span>
+            <span class="n">purge</span> <span class="o">=</span> <span class="nb">set</span><span class="p">((</span><span class="n">r</span><span class="o">.</span><span class="n">source</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">query</span><span class="p">))</span>
 
         <span class="n">added</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">updated</span> <span class="o">=</span> <span class="mi">0</span>
 
-        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="n">event</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">event</span>
             <span class="n">existing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Event</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
                 <span class="n">Event</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">event</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span>
             <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
 
+            <span class="k">if</span> <span class="n">purge</span><span class="p">:</span>
+                <span class="n">purge</span> <span class="o">-=</span> <span class="nb">set</span><span class="p">([</span><span class="n">event</span><span class="o">.</span><span class="n">source</span><span class="p">])</span>
+
             <span class="k">if</span> <span class="n">existing</span><span class="p">:</span>
-                <span class="k">if</span> <span class="p">(</span>
-                    <span class="n">existing</span><span class="o">.</span><span class="n">title</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span>
-                    <span class="n">existing</span><span class="o">.</span><span class="n">location</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">location</span> <span class="ow">or</span>
-                    <span class="nb">set</span><span class="p">(</span><span class="n">existing</span><span class="o">.</span><span class="n">tags</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">tags</span><span class="p">)</span> <span class="ow">or</span>
-                    <span class="n">existing</span><span class="o">.</span><span class="n">timezone</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">timezone</span> <span class="ow">or</span>
-                    <span class="n">existing</span><span class="o">.</span><span class="n">start</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">start</span> <span class="ow">or</span>
-                    <span class="n">existing</span><span class="o">.</span><span class="n">end</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">end</span> <span class="ow">or</span>
-                    <span class="n">existing</span><span class="o">.</span><span class="n">content</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">content</span> <span class="ow">or</span>
-                    <span class="n">existing</span><span class="o">.</span><span class="n">coordinates</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">coordinates</span> <span class="ow">or</span>
-                    <span class="n">existing</span><span class="o">.</span><span class="n">recurrence</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">recurrence</span>
-                <span class="p">):</span>
+                <span class="k">if</span> <span class="n">existing</span><span class="o">.</span><span class="n">source_updated</span><span class="p">:</span>
+                    <span class="n">changed</span> <span class="o">=</span> <span class="n">existing</span><span class="o">.</span><span class="n">source_updated</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">source_updated</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># No information on provided, figure it out ourselves!</span>
+                    <span class="n">image_changed</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="p">(</span><span class="n">existing</span><span class="o">.</span><span class="n">image</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">item</span><span class="o">.</span><span class="n">image</span><span class="p">)</span> <span class="ow">or</span>
+                        <span class="p">(</span><span class="ow">not</span> <span class="n">existing</span><span class="o">.</span><span class="n">image</span> <span class="ow">and</span> <span class="n">item</span><span class="o">.</span><span class="n">image</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">existing</span><span class="o">.</span><span class="n">image</span> <span class="ow">and</span> <span class="n">item</span><span class="o">.</span><span class="n">image</span><span class="p">:</span>
+                        <span class="n">image_changed</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="n">existing</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">checksum</span> <span class="o">!=</span>
+                            <span class="n">md5</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">read</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+                        <span class="p">)</span>
+                        <span class="n">item</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">changed</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">existing</span><span class="o">.</span><span class="n">title</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span>
+                        <span class="n">existing</span><span class="o">.</span><span class="n">location</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">location</span> <span class="ow">or</span>
+                        <span class="nb">set</span><span class="p">(</span><span class="n">existing</span><span class="o">.</span><span class="n">tags</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">tags</span><span class="p">)</span> <span class="ow">or</span>
+                        <span class="n">existing</span><span class="o">.</span><span class="n">timezone</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">timezone</span> <span class="ow">or</span>
+                        <span class="n">existing</span><span class="o">.</span><span class="n">start</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">start</span> <span class="ow">or</span>
+                        <span class="n">existing</span><span class="o">.</span><span class="n">end</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">end</span> <span class="ow">or</span>
+                        <span class="n">existing</span><span class="o">.</span><span class="n">content</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">content</span> <span class="ow">or</span>
+                        <span class="n">existing</span><span class="o">.</span><span class="n">coordinates</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">coordinates</span> <span class="ow">or</span>
+                        <span class="n">existing</span><span class="o">.</span><span class="n">recurrence</span> <span class="o">!=</span> <span class="n">event</span><span class="o">.</span><span class="n">recurrence</span> <span class="ow">or</span>
+                        <span class="n">image_changed</span>
+                    <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">changed</span><span class="p">:</span>
                     <span class="n">updated</span> <span class="o">+=</span> <span class="mi">1</span>
                     <span class="n">state</span> <span class="o">=</span> <span class="n">existing</span><span class="o">.</span><span class="n">state</span>  <span class="c1"># avoid updating occurrences</span>
                     <span class="n">existing</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;initiated&#39;</span>
@@ -224,11 +254,13 @@
                     <span class="n">existing</span><span class="o">.</span><span class="n">coordinates</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">coordinates</span>
                     <span class="n">existing</span><span class="o">.</span><span class="n">recurrence</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">recurrence</span>
                     <span class="n">existing</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
+                    <span class="n">existing</span><span class="o">.</span><span class="n">set_image</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
 
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">added</span> <span class="o">+=</span> <span class="mi">1</span>
                 <span class="n">event</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_unique_name</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
                 <span class="n">event</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;initiated&#39;</span>
+                <span class="n">event</span><span class="o">.</span><span class="n">set_image</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
                 <span class="n">event</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
                 <span class="n">event</span><span class="o">.</span><span class="n">publish</span><span class="p">()</span>
@@ -250,7 +282,7 @@
 <span class="sd">        We assume the timezone to be Europe/Zurich!</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="n">cal</span> <span class="o">=</span> <span class="n">vCalendar</span><span class="o">.</span><span class="n">from_ical</span><span class="p">(</span><span class="n">ical</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">vevent</span> <span class="ow">in</span> <span class="n">cal</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="s1">&#39;vevent&#39;</span><span class="p">):</span>
@@ -309,24 +341,28 @@
             <span class="n">organizer</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;organizer&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
             <span class="n">location</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">vevent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;location&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
 
-            <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">Event</span><span class="p">(</span>
-                    <span class="n">state</span><span class="o">=</span><span class="s1">&#39;initiated&#39;</span><span class="p">,</span>
-                    <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
-                    <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
-                    <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span>
-                    <span class="n">timezone</span><span class="o">=</span><span class="n">timezone</span><span class="p">,</span>
-                    <span class="n">recurrence</span><span class="o">=</span><span class="n">recurrence</span><span class="p">,</span>
-                    <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
-                    <span class="n">organizer</span><span class="o">=</span><span class="n">organizer</span><span class="p">,</span>
-                    <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span>
-                    <span class="n">coordinates</span><span class="o">=</span><span class="n">coordinates</span><span class="p">,</span>
-                    <span class="n">tags</span><span class="o">=</span><span class="n">tags</span> <span class="ow">or</span> <span class="p">[],</span>
-                    <span class="n">source</span><span class="o">=</span><span class="n">f</span><span class="s1">&#39;ical-</span><span class="si">{uid}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">EventImportItem</span><span class="p">(</span>
+                    <span class="n">event</span><span class="o">=</span><span class="n">Event</span><span class="p">(</span>
+                        <span class="n">state</span><span class="o">=</span><span class="s1">&#39;initiated&#39;</span><span class="p">,</span>
+                        <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+                        <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+                        <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span>
+                        <span class="n">timezone</span><span class="o">=</span><span class="n">timezone</span><span class="p">,</span>
+                        <span class="n">recurrence</span><span class="o">=</span><span class="n">recurrence</span><span class="p">,</span>
+                        <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
+                        <span class="n">organizer</span><span class="o">=</span><span class="n">organizer</span><span class="p">,</span>
+                        <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span>
+                        <span class="n">coordinates</span><span class="o">=</span><span class="n">coordinates</span><span class="p">,</span>
+                        <span class="n">tags</span><span class="o">=</span><span class="n">tags</span> <span class="ow">or</span> <span class="p">[],</span>
+                        <span class="n">source</span><span class="o">=</span><span class="n">f</span><span class="s1">&#39;ical-</span><span class="si">{uid}</span><span class="s1">&#39;</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">image</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">filename</span><span class="o">=</span><span class="kc">None</span>
                 <span class="p">)</span>
             <span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_import</span><span class="p">(</span><span class="n">events</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_import</span><span class="p">(</span><span class="n">items</span><span class="p">)</span></div></div>
 </pre></div>
 
           </div>
