@@ -85,6 +85,30 @@
         <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">HTTPForbidden</span><span class="p">()</span></div>
 
 
+<span class="k">def</span> <span class="nf">respond_with_success</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+    <span class="k">def</span> <span class="nf">trigger_calendar_update</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;rc-reservations-changed&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">respond_with_error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">error</span><span class="p">):</span>
+    <span class="n">message</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;message&#39;</span><span class="p">:</span> <span class="n">error</span><span class="p">,</span>
+        <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">False</span>
+    <span class="p">}</span>
+
+    <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
+    <span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;rc-reservation-error&#39;</span><span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger-Data&#39;</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">message</span>
+
+
 <div class="viewcode-block" id="reserve_allocation"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.reservation.reserve_allocation">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Allocation</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;reserve&#39;</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
              <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">reserve_allocation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
@@ -119,6 +143,35 @@
 
     <span class="n">resource</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">libres_resources</span><span class="o">.</span><span class="n">by_allocation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
+    <span class="c1"># if there&#39;s a deadline, make sure to observe it for anonymous users...</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">is_manager</span> <span class="ow">and</span> <span class="n">resource</span><span class="o">.</span><span class="n">is_past_deadline</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+        <span class="n">n</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">deadline</span>
+
+        <span class="k">if</span> <span class="n">unit</span> <span class="o">==</span> <span class="s1">&#39;h&#39;</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;hour&quot;</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="n">unit</span> <span class="o">==</span> <span class="s1">&#39;h&#39;</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;hours&quot;</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="n">unit</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;day&quot;</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="n">unit</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;days&quot;</span><span class="p">))</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+        <span class="n">err</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span>
+            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reservations must be made $</span><span class="si">{n}</span><span class="s2"> $</span><span class="si">{unit}</span><span class="s2"> in advance&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;n&#39;</span><span class="p">:</span> <span class="n">n</span><span class="p">,</span>
+                <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="n">unit</span>
+            <span class="p">})</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">respond_with_error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+
+    <span class="c1"># ...otherwise, try to reserve</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">resource</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">reserve</span><span class="p">(</span>
             <span class="n">email</span><span class="o">=</span><span class="s1">&#39;0xdeadbeef@example.org&#39;</span><span class="p">,</span>  <span class="c1"># will be set later</span>
@@ -128,26 +181,9 @@
             <span class="n">single_token_per_session</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
     <span class="k">except</span> <span class="n">LibresError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">message</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;message&#39;</span><span class="p">:</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_libres_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">request</span><span class="p">),</span>
-            <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">False</span>
-        <span class="p">}</span>
-
-        <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
-        <span class="k">def</span> <span class="nf">trigger_calendar_update</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
-            <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;rc-reservation-error&#39;</span><span class="p">)</span>
-            <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger-Data&#39;</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
-
-        <span class="k">return</span> <span class="n">message</span>
+        <span class="k">return</span> <span class="n">respond_with_error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_libres_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">request</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-
-        <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
-        <span class="k">def</span> <span class="nf">trigger_calendar_update</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
-            <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;rc-reservations-changed&#39;</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">True</span>
-        <span class="p">}</span></div>
+        <span class="k">return</span> <span class="n">respond_with_success</span><span class="p">(</span><span class="n">request</span><span class="p">)</span></div>
 
 
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Reservation</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>

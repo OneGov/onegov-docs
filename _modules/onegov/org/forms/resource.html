@@ -46,7 +46,7 @@
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">TextAreaField</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">TextField</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">validators</span>
-<span class="kn">from</span> <span class="nn">wtforms.fields.html5</span> <span class="k">import</span> <span class="n">DecimalField</span>
+<span class="kn">from</span> <span class="nn">wtforms.fields.html5</span> <span class="k">import</span> <span class="n">DecimalField</span><span class="p">,</span> <span class="n">IntegerField</span>
 
 
 <div class="viewcode-block" id="ResourceBaseForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.resource.ResourceBaseForm">[docs]</a><span class="k">class</span> <span class="nc">ResourceBaseForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
@@ -76,6 +76,43 @@
             <span class="p">)</span>
         <span class="p">],</span>
         <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span> <span class="s1">&#39;data-editor&#39;</span><span class="p">:</span> <span class="s1">&#39;form&#39;</span><span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="n">deadline_unit</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Closing date for the public&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Closing date&quot;</span><span class="p">),</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;n&#39;</span><span class="p">,</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">InputRequired</span><span class="p">()],</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+            <span class="p">(</span><span class="s1">&#39;n&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span>
+                <span class="s2">&quot;No closing date&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span>
+                <span class="s2">&quot;Stop accepting reservations days before the allocation&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span>
+                <span class="s2">&quot;Stop accepting reservations hours before the allocation&quot;</span><span class="p">)),</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">deadline_hours</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Hours&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Closing date&quot;</span><span class="p">),</span>
+        <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;deadline_unit&#39;</span><span class="p">,</span> <span class="s1">&#39;h&#39;</span><span class="p">),</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">validators</span><span class="o">.</span><span class="n">InputRequired</span><span class="p">(),</span>
+            <span class="n">validators</span><span class="o">.</span><span class="n">NumberRange</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">deadline_days</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Days&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Closing date&quot;</span><span class="p">),</span>
+        <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;deadline_unit&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">),</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">validators</span><span class="o">.</span><span class="n">InputRequired</span><span class="p">(),</span>
+            <span class="n">validators</span><span class="o">.</span><span class="n">NumberRange</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">]</span>
     <span class="p">)</span>
 
     <span class="n">pricing_method</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span>
@@ -127,7 +164,42 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">price_per_hour</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span>
                     <span class="s2">&quot;The price must be larger than zero&quot;</span>
                 <span class="p">))</span>
-                <span class="k">return</span> <span class="kc">False</span></div>
+                <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">deadline</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline_unit</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="s1">&#39;h&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deadline_hours</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;h&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline_unit</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deadline_days</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@deadline</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">deadline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deadline_unit</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;n&#39;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">value</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deadline_unit</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">unit</span>
+
+        <span class="k">if</span> <span class="n">unit</span> <span class="o">==</span> <span class="s1">&#39;h&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">deadline_hours</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">elif</span> <span class="n">unit</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">deadline_days</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ResourceBaseForm.populate_obj"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.resource.ResourceBaseForm.populate_obj">[docs]</a>    <span class="k">def</span> <span class="nf">populate_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">populate_obj</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;deadline&#39;</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">deadline</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span></div>
+
+<div class="viewcode-block" id="ResourceBaseForm.process_obj"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.resource.ResourceBaseForm.process_obj">[docs]</a>    <span class="k">def</span> <span class="nf">process_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">process_obj</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">deadline</span></div></div>
 
 
 <div class="viewcode-block" id="ResourceForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.resource.ResourceForm">[docs]</a><span class="k">class</span> <span class="nc">ResourceForm</span><span class="p">(</span><span class="n">merge_forms</span><span class="p">(</span><span class="n">ResourceBaseForm</span><span class="p">,</span> <span class="n">PaymentMethodForm</span><span class="p">)):</span>
