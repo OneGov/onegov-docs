@@ -346,6 +346,23 @@
 <span class="k">def</span> <span class="nf">discard_metadata_on_rollback</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">previous_transaction</span><span class="p">):</span>
     <span class="k">if</span> <span class="s1">&#39;pending_metadata_changes&#39;</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">info</span><span class="p">:</span>
         <span class="k">del</span> <span class="n">session</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;pending_metadata_changes&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="after_delete"><a class="viewcode-back" href="../../../../onegov_file.html#onegov.file.models.file.after_delete">[docs]</a><span class="nd">@event</span><span class="o">.</span><span class="n">listens_for</span><span class="p">(</span><span class="n">File</span><span class="p">,</span> <span class="s1">&#39;after_delete&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">after_delete</span><span class="p">(</span><span class="n">mapper</span><span class="p">,</span> <span class="n">connection</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Depot doesn&#39;t support associations and it is unclear if it should.</span>
+
+<span class="sd">    Luckily, we can easily work around this by automatically adding files to</span>
+<span class="sd">    depot&#39;s kill-list whenver a file is deleted.</span>
+
+<span class="sd">    This kill list is executed whenever a commit has succeded, so we can add</span>
+<span class="sd">    these files even if it&#39;s not necessary at the end.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+    <span class="n">session</span><span class="o">.</span><span class="n">_depot_old</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="s1">&#39;_depot_old&#39;</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">_depot_old</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">files</span><span class="p">)</span></div>
 </pre></div>
 
           </div>
