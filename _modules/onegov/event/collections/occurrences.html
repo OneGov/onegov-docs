@@ -34,19 +34,16 @@
   <h1>Source code for onegov.event.collections.occurrences</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">dateutil.relativedelta</span> <span class="k">import</span> <span class="n">relativedelta</span>
 <span class="kn">from</span> <span class="nn">icalendar</span> <span class="k">import</span> <span class="n">Calendar</span> <span class="k">as</span> <span class="n">vCalendar</span>
-<span class="kn">from</span> <span class="nn">icalendar</span> <span class="k">import</span> <span class="n">Event</span> <span class="k">as</span> <span class="n">vEvent</span>
 <span class="kn">from</span> <span class="nn">onegov.core.collection</span> <span class="k">import</span> <span class="n">Pagination</span>
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">get_unique_hstore_keys</span>
 <span class="kn">from</span> <span class="nn">onegov.event.models</span> <span class="k">import</span> <span class="n">Event</span>
 <span class="kn">from</span> <span class="nn">onegov.event.models</span> <span class="k">import</span> <span class="n">Occurrence</span>
-<span class="kn">from</span> <span class="nn">pytz</span> <span class="k">import</span> <span class="n">UTC</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">as_datetime</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">replace_timezone</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">standardize_date</span>
-<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">to_timezone</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">and_</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">distinct</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">or_</span>
@@ -59,16 +56,29 @@
 <span class="sd">    Occurrences are read only (no ``add`` method here), they are generated</span>
 <span class="sd">    automatically when adding a new event.</span>
 
-<span class="sd">    Occurrences can be filtered by start and end dates as well as tags.</span>
+<span class="sd">    Occurrences can be filtered by relative date ranges (``today``,</span>
+<span class="sd">    ``tomorrow``, ``weekend``, ``week``, ``month``) or by a given start date</span>
+<span class="sd">    and/or end date. The range filter is dominant and overwrites the start and</span>
+<span class="sd">    end dates if provided.</span>
 
-<span class="sd">    By default, only current occurrences are returned.</span>
+<span class="sd">    By default, only current occurrences are used.</span>
+
+<span class="sd">    Occurrences can be additionally filtered by tags.</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">date_ranges</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;today&#39;</span><span class="p">,</span> <span class="s1">&#39;tomorrow&#39;</span><span class="p">,</span> <span class="s1">&#39;weekend&#39;</span><span class="p">,</span> <span class="s1">&#39;week&#39;</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="nb">range</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">outdated</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">tags</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">session</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">page</span> <span class="o">=</span> <span class="n">page</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="o">=</span> <span class="nb">range</span> <span class="k">if</span> <span class="nb">range</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_ranges</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_to_dates</span><span class="p">(</span><span class="nb">range</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outdated</span> <span class="o">=</span> <span class="n">outdated</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tags</span> <span class="o">=</span> <span class="n">tags</span> <span class="k">if</span> <span class="n">tags</span> <span class="k">else</span> <span class="p">[]</span>
 
     <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
@@ -83,28 +93,90 @@
 
 <div class="viewcode-block" id="OccurrenceCollection.page_by_index"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.collections.OccurrenceCollection.page_by_index">[docs]</a>    <span class="k">def</span> <span class="nf">page_by_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span>
+            <span class="n">page</span><span class="o">=</span><span class="n">index</span><span class="p">,</span>
+            <span class="nb">range</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">,</span>
+            <span class="n">start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span>
+            <span class="n">end</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">,</span>
+            <span class="n">outdated</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">outdated</span><span class="p">,</span>
+            <span class="n">tags</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tags</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="OccurrenceCollection.for_filter"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.collections.OccurrenceCollection.for_filter">[docs]</a>    <span class="k">def</span> <span class="nf">for_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns a new instance of the collection.</span>
+<div class="viewcode-block" id="OccurrenceCollection.range_to_dates"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.collections.OccurrenceCollection.range_to_dates">[docs]</a>    <span class="k">def</span> <span class="nf">range_to_dates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the start and end date for the given range relative to now.</span>
+<span class="sd">        Defaults to the given start and end date.</span>
 
-<span class="sd">        Copies the current filters if not specified. Also adds or removes a</span>
-<span class="sd">        single tag if given.</span>
+<span class="sd">        Valid ranges are:</span>
+<span class="sd">            - today</span>
+<span class="sd">            - tomorrow</span>
+<span class="sd">            - weekend (next or current Friday to Sunday)</span>
+<span class="sd">            - week (current Monday to Sunday)</span>
+<span class="sd">            - month (current)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">range</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_ranges</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span>
+
+        <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+        <span class="n">weekday</span> <span class="o">=</span> <span class="n">today</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">range</span> <span class="o">==</span> <span class="s1">&#39;today&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">today</span><span class="p">,</span> <span class="n">today</span>
+        <span class="k">if</span> <span class="nb">range</span> <span class="o">==</span> <span class="s1">&#39;tomorrow&#39;</span><span class="p">:</span>
+            <span class="n">tomorrow</span> <span class="o">=</span> <span class="n">today</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">tomorrow</span><span class="p">,</span> <span class="n">tomorrow</span>
+        <span class="k">if</span> <span class="nb">range</span> <span class="o">==</span> <span class="s1">&#39;weekend&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">today</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">4</span> <span class="o">-</span> <span class="n">weekday</span><span class="p">),</span>
+                <span class="n">today</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">6</span> <span class="o">-</span> <span class="n">weekday</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">range</span> <span class="o">==</span> <span class="s1">&#39;week&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">today</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">weekday</span><span class="p">),</span>
+                <span class="n">today</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">6</span> <span class="o">-</span> <span class="n">weekday</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">range</span> <span class="o">==</span> <span class="s1">&#39;month&#39;</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">today</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">day</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">start</span><span class="p">,</span> <span class="n">start</span> <span class="o">+</span> <span class="n">relativedelta</span><span class="p">(</span><span class="n">months</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">days</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="OccurrenceCollection.for_filter"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.collections.OccurrenceCollection.for_filter">[docs]</a>    <span class="k">def</span> <span class="nf">for_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a new instance of the collection with the given filters</span>
+<span class="sd">        and copies the current filters if not specified.</span>
+
+<span class="sd">        If a valid range is provided, start and end dates are ignored. If the</span>
+<span class="sd">        range is invalid, it is ignored.</span>
+
+<span class="sd">        Adds or removes a single tag if given.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">start</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;start&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;start&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span>
-        <span class="n">end</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;end&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span>
-        <span class="n">tags</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;tags&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;tags&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">)</span>
-
+        <span class="n">tags</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">))</span>
         <span class="k">if</span> <span class="s1">&#39;tag&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="n">tag</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;tag&#39;</span><span class="p">]</span>
+            <span class="n">tag</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tag&#39;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">:</span>
                 <span class="n">tags</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">tags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">tags</span><span class="p">)</span></div>
+        <span class="nb">range</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;range&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;range&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;range&#39;</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_ranges</span><span class="p">:</span>
+            <span class="nb">range</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;range&#39;</span><span class="p">)</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="s1">&#39;start&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">or</span> <span class="s1">&#39;end&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="nb">range</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span>
+            <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="nb">range</span><span class="o">=</span><span class="nb">range</span><span class="p">,</span>
+            <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+            <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span>
+            <span class="n">outdated</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;outdated&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdated</span><span class="p">),</span>
+            <span class="n">tags</span><span class="o">=</span><span class="n">tags</span>
+        <span class="p">)</span></div>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">used_timezones</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -127,7 +199,7 @@
 
         <span class="k">return</span> <span class="n">get_unique_hstore_keys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="n">Occurrence</span><span class="o">.</span><span class="n">_tags</span><span class="p">)</span>
 
-<div class="viewcode-block" id="OccurrenceCollection.query"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.collections.OccurrenceCollection.query">[docs]</a>    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outdated</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="OccurrenceCollection.query"><a class="viewcode-back" href="../../../../onegov_event.html#onegov.event.collections.OccurrenceCollection.query">[docs]</a>    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Queries occurrences with the set parameters.</span>
 
 <span class="sd">        Finds all occurrences with any of the set tags and within the set</span>
@@ -135,30 +207,18 @@
 <span class="sd">        therefore without a timezone - we search for the given date in the</span>
 <span class="sd">        timezone of the occurrence!.</span>
 
-<span class="sd">        If no start date is set and ``outdated`` is not set, only current</span>
-<span class="sd">        occurrences are returned.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Occurrence</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">)</span> <span class="ow">is</span> <span class="n">date</span>
-            <span class="n">start</span> <span class="o">=</span> <span class="n">as_datetime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
-
-            <span class="n">expressions</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">timezone</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">used_timezones</span><span class="p">:</span>
-                <span class="n">localized_start</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">timezone</span><span class="p">)</span>
-                <span class="n">localized_start</span> <span class="o">=</span> <span class="n">standardize_date</span><span class="p">(</span><span class="n">localized_start</span><span class="p">,</span> <span class="n">timezone</span><span class="p">)</span>
-                <span class="n">expressions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="n">and_</span><span class="p">(</span>
-                        <span class="n">Occurrence</span><span class="o">.</span><span class="n">timezone</span> <span class="o">==</span> <span class="n">timezone</span><span class="p">,</span>
-                        <span class="n">Occurrence</span><span class="o">.</span><span class="n">start</span> <span class="o">&gt;=</span> <span class="n">localized_start</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
-
-            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span><span class="o">*</span><span class="n">expressions</span><span class="p">))</span>
-        <span class="k">elif</span> <span class="ow">not</span> <span class="n">outdated</span><span class="p">:</span>
-            <span class="n">start</span> <span class="o">=</span> <span class="n">as_datetime</span><span class="p">(</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdated</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdated</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                    <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">())</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">as_datetime</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
 
             <span class="n">expressions</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">timezone</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">used_timezones</span><span class="p">:</span>
@@ -174,7 +234,6 @@
             <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span><span class="o">*</span><span class="n">expressions</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">)</span> <span class="ow">is</span> <span class="n">date</span>
             <span class="n">end</span> <span class="o">=</span> <span class="n">as_datetime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
             <span class="n">end</span> <span class="o">=</span> <span class="n">end</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
@@ -226,28 +285,11 @@
 
         <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">()</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">Occurrence</span><span class="o">.</span><span class="n">event_id</span><span class="p">)</span>
         <span class="n">event_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">event_id</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">query</span><span class="p">])</span>
+
         <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Event</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">event_ids</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">query</span><span class="p">:</span>
-            <span class="n">modified</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">modified</span> <span class="ow">or</span> <span class="n">event</span><span class="o">.</span><span class="n">created</span> <span class="ow">or</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
-
-            <span class="n">vevent</span> <span class="o">=</span> <span class="n">vEvent</span><span class="p">()</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;uid&#39;</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{event.name}</span><span class="s1">@onegov.event&#39;</span><span class="p">)</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;summary&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;dtstart&#39;</span><span class="p">,</span> <span class="n">to_timezone</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">UTC</span><span class="p">))</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;dtend&#39;</span><span class="p">,</span> <span class="n">to_timezone</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="n">UTC</span><span class="p">))</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;last-modified&#39;</span><span class="p">,</span> <span class="n">modified</span><span class="p">)</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;dtstamp&#39;</span><span class="p">,</span> <span class="n">modified</span><span class="p">)</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;location&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">location</span><span class="p">)</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;categories&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">tags</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">recurrence</span><span class="p">:</span>
-                <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;rrule&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">icalendar_recurrence</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">coordinates</span><span class="p">:</span>
-                <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
-                    <span class="s1">&#39;geo&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">lon</span><span class="p">)</span>
-                <span class="p">)</span>
-            <span class="n">vevent</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;url&#39;</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">event</span><span class="p">))</span>
-            <span class="n">vcalendar</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">vevent</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">vevent</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">get_ical_vevents</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">event</span><span class="p">)):</span>
+                <span class="n">vcalendar</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">vevent</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">vcalendar</span><span class="o">.</span><span class="n">to_ical</span><span class="p">()</span></div></div>
 </pre></div>

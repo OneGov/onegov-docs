@@ -71,6 +71,32 @@
         <span class="p">)</span> <span class="k">for</span> <span class="n">tag</span><span class="p">,</span> <span class="n">translation</span> <span class="ow">in</span> <span class="n">translated_tags</span>
     <span class="p">)</span>
 
+    <span class="n">ranges</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">Link</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;All&quot;</span><span class="p">),</span>
+            <span class="n">url</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">for_filter</span><span class="p">(</span><span class="nb">range</span><span class="o">=</span><span class="nb">range</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">active</span><span class="o">=</span><span class="p">(</span>
+                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span>
+            <span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;active&#39;</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
+        <span class="p">)</span>
+    <span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="n">Link</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="n">translation</span><span class="p">,</span>
+            <span class="n">url</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">for_filter</span><span class="p">(</span><span class="nb">range</span><span class="o">=</span><span class="nb">range</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">active</span><span class="o">=</span><span class="nb">range</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="ow">and</span> <span class="s1">&#39;active&#39;</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
+        <span class="p">)</span> <span class="k">for</span> <span class="nb">range</span><span class="p">,</span> <span class="n">translation</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="p">(</span><span class="s1">&#39;today&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Today&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;tomorrow&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Tomorrow&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;weekend&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This weekend&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;week&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This week&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;month&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This month&quot;</span><span class="p">)),</span>
+        <span class="p">)</span>
+    <span class="p">]</span>
+
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;active_tags&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">,</span>
         <span class="s1">&#39;add_link&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;new&#39;</span><span class="p">),</span>
@@ -80,6 +106,7 @@
         <span class="s1">&#39;number_of_occurrences&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">subset_count</span><span class="p">,</span>
         <span class="s1">&#39;occurrences&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch</span><span class="p">,</span>
         <span class="s1">&#39;start&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;ranges&#39;</span><span class="p">:</span> <span class="n">ranges</span><span class="p">,</span>
         <span class="s1">&#39;tags&#39;</span><span class="p">:</span> <span class="n">tags</span><span class="p">,</span>
         <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Events&#39;</span><span class="p">),</span>
     <span class="p">}</span></div>
