@@ -46,8 +46,6 @@
 <span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">OccurrenceLayout</span><span class="p">,</span> <span class="n">OccurrencesLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">TicketCollection</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">as_datetime</span><span class="p">,</span> <span class="n">replace_timezone</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">or_</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.dialects.postgresql</span> <span class="k">import</span> <span class="n">array</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">joinedload</span>
 
 
@@ -63,13 +61,21 @@
     <span class="p">]</span>
     <span class="n">translated_tags</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
-    <span class="n">tags</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">tags</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">Link</span><span class="p">(</span>
             <span class="n">text</span><span class="o">=</span><span class="n">translation</span><span class="p">,</span>
             <span class="n">url</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">for_filter</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">)),</span>
             <span class="n">active</span><span class="o">=</span><span class="n">tag</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span> <span class="ow">and</span> <span class="s1">&#39;active&#39;</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
         <span class="p">)</span> <span class="k">for</span> <span class="n">tag</span><span class="p">,</span> <span class="n">translation</span> <span class="ow">in</span> <span class="n">translated_tags</span>
-    <span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">locations</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">Link</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="n">location</span><span class="p">,</span>
+            <span class="n">url</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">for_filter</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">)),</span>
+            <span class="n">active</span><span class="o">=</span><span class="n">location</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">locations</span> <span class="ow">and</span> <span class="s1">&#39;active&#39;</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
+        <span class="p">)</span> <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">event_locations</span>
+    <span class="p">]</span>
 
     <span class="n">ranges</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">Link</span><span class="p">(</span>
@@ -103,11 +109,11 @@
         <span class="s1">&#39;date_placeholder&#39;</span><span class="p">:</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
         <span class="s1">&#39;end&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
         <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
-        <span class="s1">&#39;number_of_occurrences&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">subset_count</span><span class="p">,</span>
         <span class="s1">&#39;occurrences&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch</span><span class="p">,</span>
         <span class="s1">&#39;start&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
         <span class="s1">&#39;ranges&#39;</span><span class="p">:</span> <span class="n">ranges</span><span class="p">,</span>
         <span class="s1">&#39;tags&#39;</span><span class="p">:</span> <span class="n">tags</span><span class="p">,</span>
+        <span class="s1">&#39;locations&#39;</span><span class="p">:</span> <span class="n">locations</span><span class="p">,</span>
         <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Events&#39;</span><span class="p">),</span>
     <span class="p">}</span></div>
 
@@ -225,20 +231,10 @@
     <span class="k">def</span> <span class="nf">cors</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
         <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;Access-Control-Allow-Origin&#39;</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">)</span>
 
-    <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
-
-    <span class="n">tags</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">getall</span><span class="p">(</span><span class="s1">&#39;cat1&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">tags</span><span class="p">:</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Occurrence</span><span class="o">.</span><span class="n">_tags</span><span class="o">.</span><span class="n">has_any</span><span class="p">(</span><span class="n">array</span><span class="p">(</span><span class="n">tags</span><span class="p">)))</span>
-
-    <span class="n">locations</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">getall</span><span class="p">(</span><span class="s1">&#39;cat2&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">locations</span><span class="p">:</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-            <span class="n">or_</span><span class="p">(</span><span class="o">*</span><span class="p">[</span>
-                <span class="n">Occurrence</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;%</span><span class="si">{location}</span><span class="s1">%&#39;</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="n">locations</span>
-            <span class="p">])</span>
-        <span class="p">)</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">for_filter</span><span class="p">(</span>
+        <span class="n">tags</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">getall</span><span class="p">(</span><span class="s1">&#39;cat1&#39;</span><span class="p">),</span>
+        <span class="n">locations</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">getall</span><span class="p">(</span><span class="s1">&#39;cat2&#39;</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
 
     <span class="n">limit</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">limit</span> <span class="ow">and</span> <span class="n">limit</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>

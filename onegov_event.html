@@ -319,7 +319,7 @@ overhead due to the depot storage, see <cite>EventImportItem</cite>.</p>
 
 <dl class="class">
 <dt id="onegov.event.collections.OccurrenceCollection">
-<em class="property">class </em><code class="descclassname">onegov.event.collections.</code><code class="descname">OccurrenceCollection</code><span class="sig-paren">(</span><em>session</em>, <em>page=0</em>, <em>range=None</em>, <em>start=None</em>, <em>end=None</em>, <em>outdated=False</em>, <em>tags=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections/occurrences.html#OccurrenceCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.OccurrenceCollection" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">onegov.event.collections.</code><code class="descname">OccurrenceCollection</code><span class="sig-paren">(</span><em>session</em>, <em>page=0</em>, <em>range=None</em>, <em>start=None</em>, <em>end=None</em>, <em>outdated=False</em>, <em>tags=None</em>, <em>locations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections/occurrences.html#OccurrenceCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.OccurrenceCollection" title="Permalink to this definition">¶</a></dt>
 <dd><p>Manages a list of occurrences.</p>
 <p>Occurrences are read only (no <code class="docutils literal notranslate"><span class="pre">add</span></code> method here), they are generated
 automatically when adding a new event.</p>
@@ -328,7 +328,7 @@ automatically when adding a new event.</p>
 and/or end date. The range filter is dominant and overwrites the start and
 end dates if provided.</p>
 <p>By default, only current occurrences are used.</p>
-<p>Occurrences can be additionally filtered by tags.</p>
+<p>Occurrences can be additionally filtered by tags and locations.</p>
 <dl class="method">
 <dt id="onegov.event.collections.OccurrenceCollection.subset">
 <code class="descname">subset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections/occurrences.html#OccurrenceCollection.subset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.OccurrenceCollection.subset" title="Permalink to this definition">¶</a></dt>
@@ -374,7 +374,7 @@ Defaults to the given start and end date.</p>
 and copies the current filters if not specified.</p>
 <p>If a valid range is provided, start and end dates are ignored. If the
 range is invalid, it is ignored.</p>
-<p>Adds or removes a single tag if given.</p>
+<p>Adds or removes a single tag/location if given.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -397,10 +397,13 @@ currently not supported by SQLAlchemy (e.g.
 <dt id="onegov.event.collections.OccurrenceCollection.query">
 <code class="descname">query</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/event/collections/occurrences.html#OccurrenceCollection.query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.event.collections.OccurrenceCollection.query" title="Permalink to this definition">¶</a></dt>
 <dd><p>Queries occurrences with the set parameters.</p>
-<p>Finds all occurrences with any of the set tags and within the set
-start and end date. Start and end date are assumed to be dates only and
-therefore without a timezone - we search for the given date in the
-timezone of the occurrence!.</p>
+<p>Finds occurrences which:
+* are between start and end date
+* have any of the tags
+* have any of the locations (exact word)</p>
+<p>Start and end date are assumed to be dates only and therefore without
+a timezone - we search for the given date in the timezone of the
+occurrence.</p>
 </dd></dl>
 
 <dl class="method">

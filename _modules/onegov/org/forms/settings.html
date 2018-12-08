@@ -37,7 +37,7 @@
 <span class="kn">from</span> <span class="nn">lxml</span> <span class="k">import</span> <span class="n">etree</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">Form</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">with_options</span>
-<span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">MultiCheckboxField</span>
+<span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">MultiCheckboxField</span><span class="p">,</span> <span class="n">TagsField</span>
 <span class="kn">from</span> <span class="nn">onegov.form.validators</span> <span class="k">import</span> <span class="n">Stdnum</span>
 <span class="kn">from</span> <span class="nn">onegov.gis</span> <span class="k">import</span> <span class="n">CoordinatesField</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
@@ -228,6 +228,11 @@
         <span class="p">],</span>
     <span class="p">)</span>
 
+    <span class="n">event_locations</span> <span class="o">=</span> <span class="n">TagsField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Values of the location filter&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Events&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+
     <span class="n">default_map_view</span> <span class="o">=</span> <span class="n">CoordinatesField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The default map view. This should show the whole town&quot;</span><span class="p">),</span>
         <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span>
@@ -257,6 +262,9 @@
     <span class="c1"># the footer height is determined by javascript, see org.scss and</span>
     <span class="c1"># common.js for more information (search for footer)</span>
     <span class="n">footer_height</span> <span class="o">=</span> <span class="n">HiddenField</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">on_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;tags-input&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">validate_homepage_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
