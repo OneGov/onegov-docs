@@ -38,7 +38,7 @@
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
 <span class="kn">from</span> <span class="nn">morepath.request</span> <span class="k">import</span> <span class="n">Response</span>
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span><span class="p">,</span> <span class="n">Private</span>
-<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">linkify</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">linkify</span><span class="p">,</span> <span class="n">normalize_for_url</span>
 <span class="kn">from</span> <span class="nn">onegov.event</span> <span class="k">import</span> <span class="n">Occurrence</span><span class="p">,</span> <span class="n">OccurrenceCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span><span class="p">,</span> <span class="n">OrgApp</span>
 <span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">Link</span>
@@ -74,7 +74,10 @@
             <span class="n">text</span><span class="o">=</span><span class="n">location</span><span class="p">,</span>
             <span class="n">url</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">for_filter</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">)),</span>
             <span class="n">active</span><span class="o">=</span><span class="n">location</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">locations</span> <span class="ow">and</span> <span class="s1">&#39;active&#39;</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
-        <span class="p">)</span> <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">event_locations</span>
+        <span class="p">)</span> <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">event_locations</span><span class="p">,</span>
+            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">l</span><span class="p">:</span> <span class="n">normalize_for_url</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="p">)</span>
     <span class="p">]</span>
 
     <span class="n">ranges</span> <span class="o">=</span> <span class="p">[</span>
