@@ -32,14 +32,18 @@
           <div class="body" role="main">
             
   <h1>Source code for onegov.org.views.resource</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">morepath</span>
+<span></span><span class="kn">import</span> <span class="nn">icalendar</span>
+<span class="kn">import</span> <span class="nn">morepath</span>
 <span class="kn">import</span> <span class="nn">sedate</span>
 
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">namedtuple</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">isodate</span> <span class="k">import</span> <span class="n">parse_date</span><span class="p">,</span> <span class="n">ISO8601Error</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
+<span class="kn">from</span> <span class="nn">morepath.request</span> <span class="k">import</span> <span class="n">Response</span>
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span><span class="p">,</span> <span class="n">Private</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">module_path</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">as_selectable_from_path</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormSubmission</span>
 <span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">ResourceCollection</span><span class="p">,</span> <span class="n">Resource</span><span class="p">,</span> <span class="n">Reservation</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span><span class="p">,</span> <span class="n">OrgApp</span><span class="p">,</span> <span class="n">utils</span>
@@ -51,6 +55,10 @@
 <span class="kn">from</span> <span class="nn">onegov.org.models.resource</span> <span class="k">import</span> <span class="n">DaypassResource</span><span class="p">,</span> <span class="n">RoomResource</span>
 <span class="kn">from</span> <span class="nn">onegov.org.utils</span> <span class="k">import</span> <span class="n">group_by_column</span><span class="p">,</span> <span class="n">keywords_first</span>
 <span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">Ticket</span>
+<span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
+<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span><span class="p">,</span> <span class="n">standardize_date</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">and_</span><span class="p">,</span> <span class="n">select</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 <span class="kn">from</span> <span class="nn">webob</span> <span class="k">import</span> <span class="n">exc</span>
 
 
@@ -369,6 +377,82 @@
         <span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="n">count</span><span class="p">,</span>
         <span class="s1">&#39;utilisation&#39;</span><span class="p">:</span> <span class="n">utilisation</span>
     <span class="p">}</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;resource-subscribe.pt&#39;</span><span class="p">,</span>
+             <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;subscribe&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_resource_subscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">URL</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;ical&#39;</span><span class="p">))</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">scheme</span><span class="p">(</span><span class="s1">&#39;webcal&#39;</span><span class="p">)</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">remove_query_param</span><span class="p">(</span><span class="s1">&#39;view&#39;</span><span class="p">)</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">query_param</span><span class="p">(</span><span class="s1">&#39;access-token&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">access_token</span><span class="p">)</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">as_string</span><span class="p">()</span>
+
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">ResourceLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+    <span class="n">layout</span><span class="o">.</span><span class="n">breadcrumbs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Subscribe&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+        <span class="s1">&#39;resource&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">url</span>
+    <span class="p">}</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;ical&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_ical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">access_token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;access-token&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">access_token</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">HTTPForbidden</span><span class="p">()</span>
+
+    <span class="n">s</span> <span class="o">=</span> <span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+    <span class="n">e</span> <span class="o">=</span> <span class="n">utcnow</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">30</span> <span class="o">*</span> <span class="mi">12</span><span class="p">)</span>
+
+    <span class="n">cal</span> <span class="o">=</span> <span class="n">icalendar</span><span class="o">.</span><span class="n">Calendar</span><span class="p">()</span>
+    <span class="n">cal</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;prodid&#39;</span><span class="p">,</span> <span class="s1">&#39;-//OneGov//onegov.org//&#39;</span><span class="p">)</span>
+    <span class="n">cal</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;version&#39;</span><span class="p">,</span> <span class="s1">&#39;2.0&#39;</span><span class="p">)</span>
+    <span class="n">cal</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="s1">&#39;PUBLISH&#39;</span><span class="p">)</span>
+
+    <span class="n">cal</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;x-wr-calname&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
+    <span class="n">cal</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;x-wr-relcalid&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
+
+    <span class="c1"># refresh every 120 minutes by default (Outlook and maybe others)</span>
+    <span class="n">cal</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;x-published-ttl&#39;</span><span class="p">,</span> <span class="s1">&#39;PT120M&#39;</span><span class="p">)</span>
+
+    <span class="c1"># add allocations/reservations</span>
+    <span class="n">date</span> <span class="o">=</span> <span class="n">utcnow</span><span class="p">()</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">module_path</span><span class="p">(</span><span class="s1">&#39;onegov.org&#39;</span><span class="p">,</span> <span class="s1">&#39;queries/resource-ical.sql&#39;</span><span class="p">)</span>
+    <span class="n">stmt</span> <span class="o">=</span> <span class="n">as_selectable_from_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="n">records</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">select</span><span class="p">(</span><span class="n">stmt</span><span class="o">.</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">and_</span><span class="p">(</span>
+        <span class="n">stmt</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">resource</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">s</span> <span class="o">&lt;=</span> <span class="n">stmt</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">stmt</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;=</span> <span class="n">e</span>
+    <span class="p">)))</span>
+
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">records</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">start</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">end</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">microseconds</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">evt</span> <span class="o">=</span> <span class="n">icalendar</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;uid&#39;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">token</span><span class="p">)</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;summary&#39;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;location&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;dtstart&#39;</span><span class="p">,</span> <span class="n">standardize_date</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="s1">&#39;UTC&#39;</span><span class="p">))</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;dtend&#39;</span><span class="p">,</span> <span class="n">standardize_date</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="s1">&#39;UTC&#39;</span><span class="p">))</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;dtstamp&#39;</span><span class="p">,</span> <span class="n">date</span><span class="p">)</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;url&#39;</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">Ticket</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s1">&#39;handler_code&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">handler_code</span><span class="p">,</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">ticket_id</span>
+        <span class="p">}))</span>
+
+        <span class="n">cal</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">evt</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
+        <span class="n">cal</span><span class="o">.</span><span class="n">to_ical</span><span class="p">(),</span>
+        <span class="n">content_type</span><span class="o">=</span><span class="s1">&#39;text/calendar&#39;</span><span class="p">,</span>
+        <span class="n">content_disposition</span><span class="o">=</span><span class="n">f</span><span class="s1">&#39;inline; filename=</span><span class="si">{self.name}</span><span class="s1">.ics&#39;</span>
+    <span class="p">)</span>
 
 
 <span class="nd">@OrgApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;export&#39;</span><span class="p">,</span>
