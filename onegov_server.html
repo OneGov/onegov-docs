@@ -257,33 +257,33 @@ when any file in the current folder or any file somewhere inside ‘./src’
 changes.</p>
 <p>Changes to omlette directories require a manual restart.</p>
 <p>A onegov.yml file looks like this:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">applications</span><span class="p p-Indicator">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">path</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">/apps/*</span>
-    <span class="l l-Scalar l-Scalar-Plain">application</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">my.app.TestApp</span>
-    <span class="l l-Scalar l-Scalar-Plain">namespace</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">apps</span>
-    <span class="l l-Scalar l-Scalar-Plain">configuration</span><span class="p p-Indicator">:</span>
-      <span class="l l-Scalar l-Scalar-Plain">allowed_hosts_expression</span><span class="p p-Indicator">:</span> <span class="s">&#39;^[a-z]+.apps.dev&#39;</span>
-      <span class="l l-Scalar l-Scalar-Plain">dsn</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">postgres://username:password@localhost:5432/db</span>
-      <span class="l l-Scalar l-Scalar-Plain">identity_secure</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
-      <span class="l l-Scalar l-Scalar-Plain">identity_secret</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">very-secret-key</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span>applications:
+  - path: /apps/*
+    application: my.app.TestApp
+    namespace: apps
+    configuration:
+      allowed_hosts_expression: &#39;^[a-z]+.apps.dev&#39;
+      dsn: postgres://username:password@localhost:5432/db
+      identity_secure: false
+      identity_secret: very-secret-key
 
-<span class="l l-Scalar l-Scalar-Plain">logging</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">formatters</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">simpleFormater</span><span class="p p-Indicator">:</span>
-      <span class="l l-Scalar l-Scalar-Plain">format</span><span class="p p-Indicator">:</span> <span class="s">&#39;%(asctime)s</span><span class="nv"> </span><span class="s">-</span><span class="nv"> </span><span class="s">%(levelname)s:</span><span class="nv"> </span><span class="s">%(message)s&#39;</span>
-      <span class="l l-Scalar l-Scalar-Plain">datefmt</span><span class="p p-Indicator">:</span> <span class="s">&#39;%Y-%m-%d</span><span class="nv"> </span><span class="s">%H:%M:%S&#39;</span>
+logging:
+  formatters:
+    simpleFormater:
+      format: &#39;%(asctime)s - %(levelname)s: %(message)s&#39;
+      datefmt: &#39;%Y-%m-%d %H:%M:%S&#39;
 
-<span class="l l-Scalar l-Scalar-Plain">handlers</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">console</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">class</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">logging.StreamHandler</span>
-    <span class="l l-Scalar l-Scalar-Plain">formatter</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">simpleFormater</span>
-    <span class="l l-Scalar l-Scalar-Plain">level</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">DEBUG</span>
-    <span class="l l-Scalar l-Scalar-Plain">stream</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">ext://sys.stdout</span>
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: simpleFormater
+    level: DEBUG
+    stream: ext://sys.stdout
 
-<span class="l l-Scalar l-Scalar-Plain">loggers</span><span class="p p-Indicator">:</span>
-  <span class="l l-Scalar l-Scalar-Plain">onegov.core</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">level</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">DEBUG</span>
-    <span class="l l-Scalar l-Scalar-Plain">handlers</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">[</span><span class="nv">console</span><span class="p p-Indicator">]</span>
+loggers:
+  onegov.core:
+    level: DEBUG
+    handlers: [console]
 </pre></div>
 </div>
 <dl class="class">
