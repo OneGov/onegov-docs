@@ -1,16 +1,16 @@
 Onegov User API
 ===============
 
-Model
------
+Models
+------
 
-.. automodule:: onegov.user.model
+.. automodule:: onegov.user.models
     :members:
 
-Collection
-----------
+Collections
+-----------
 
-.. automodule:: onegov.user.collection
+.. automodule:: onegov.user.collections
     :members:
 
 Commandline Interface

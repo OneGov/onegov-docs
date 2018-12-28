@@ -34,11 +34,353 @@
             
   <div class="section" id="onegov-user-api">
 <h1>Onegov User API<a class="headerlink" href="#onegov-user-api" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="model">
-<h2>Model<a class="headerlink" href="#model" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-onegov.user.models">
+<span id="models"></span><h2>Models<a class="headerlink" href="#module-onegov.user.models" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.user.models.User">
+<em class="property">class </em><code class="descclassname">onegov.user.models.</code><code class="descname">User</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/models/user.html#User"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.models.User" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a generic user.</p>
+<dl class="attribute">
+<dt id="onegov.user.models.User.type">
+<code class="descname">type</code><a class="headerlink" href="#onegov.user.models.User.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>the type of the item, this can be used to create custom polymorphic
+subclasses of this class. See
+<a class="reference external" href="http://docs.sqlalchemy.org/en/improve_toc/ orm/extensions/declarative/inheritance.html">http://docs.sqlalchemy.org/en/improve_toc/ orm/extensions/declarative/inheritance.html</a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.es_suggestion">
+<code class="descname">es_suggestion</code><a class="headerlink" href="#onegov.user.models.User.es_suggestion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns suggest-as-you-type value of the document.
+The field used for this property should also be indexed, or the
+suggestion will lead to nowhere.</p>
+<p>If a single string is returned, the completion input equals the
+completion output. (My Title -&gt; My Title)</p>
+<p>If an array of strings is returned, all values are possible inputs and
+the first value is the output. (My Title/Title My -&gt; My Title)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.id">
+<code class="descname">id</code><a class="headerlink" href="#onegov.user.models.User.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>the user id is a uuid because that’s more secure (no id guessing)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.username">
+<code class="descname">username</code><a class="headerlink" href="#onegov.user.models.User.username" title="Permalink to this definition">¶</a></dt>
+<dd><p>the username may be any string, but will usually be an email address</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.password_hash">
+<code class="descname">password_hash</code><a class="headerlink" href="#onegov.user.models.User.password_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>the password is stored with the hashing algorithm defined by onegov.core</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.role">
+<code class="descname">role</code><a class="headerlink" href="#onegov.user.models.User.role" title="Permalink to this definition">¶</a></dt>
+<dd><p>the role is relevant for security in onegov.core</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.group_id">
+<code class="descname">group_id</code><a class="headerlink" href="#onegov.user.models.User.group_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>the group this user belongs to</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.realname">
+<code class="descname">realname</code><a class="headerlink" href="#onegov.user.models.User.realname" title="Permalink to this definition">¶</a></dt>
+<dd><p>the real name of the user for display (use the <code class="xref py py-attr docutils literal notranslate"><span class="pre">name</span></code> property
+to automatically get the name or the username)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.data">
+<code class="descname">data</code><a class="headerlink" href="#onegov.user.models.User.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>extra data that may be stored with this user, the format and content
+of this data is defined by the consumer of onegov.user
+by default, this data is only loaded by request, so if you need to
+load a lot of data columns, do something like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">undefer</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">))</span>
+</pre></div>
 </div>
-<div class="section" id="collection">
-<h2>Collection<a class="headerlink" href="#collection" title="Permalink to this headline">¶</a></h2>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.second_factor">
+<code class="descname">second_factor</code><a class="headerlink" href="#onegov.user.models.User.second_factor" title="Permalink to this definition">¶</a></dt>
+<dd><p>two-factor authentication schemes are enabled with this property
+if no two-factor auth is used, the value is NULL, if one <em>is</em> used,
+there should be a dictionary with the type of the two-factor
+authentication as well as custom values required by the two-factor
+implementation.</p>
+<p>e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;yubikey&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="s1">&#39;ccccccbcgujh&#39;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Note that ‘data’ could also be a nested dictionary!</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.active">
+<code class="descname">active</code><a class="headerlink" href="#onegov.user.models.User.active" title="Permalink to this definition">¶</a></dt>
+<dd><p>true if the user is active</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.signup_token">
+<code class="descname">signup_token</code><a class="headerlink" href="#onegov.user.models.User.signup_token" title="Permalink to this definition">¶</a></dt>
+<dd><p>the signup token used by the user</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.title">
+<code class="descname">title</code><a class="headerlink" href="#onegov.user.models.User.title" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the realname or the username of the user, depending on
+what’s available first.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.password">
+<code class="descname">password</code><a class="headerlink" href="#onegov.user.models.User.password" title="Permalink to this definition">¶</a></dt>
+<dd><p>An alias for <a class="reference internal" href="#onegov.user.models.User.password_hash" title="onegov.user.models.User.password_hash"><code class="xref py py-attr docutils literal notranslate"><span class="pre">password_hash</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.models.User.is_matching_password">
+<code class="descname">is_matching_password</code><span class="sig-paren">(</span><em>password</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/models/user.html#User.is_matching_password"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.models.User.is_matching_password" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the given password (cleartext) matches the
+stored password hash.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="onegov.user.models.User.get_initials">
+<em class="property">classmethod </em><code class="descname">get_initials</code><span class="sig-paren">(</span><em>username</em>, <em>realname=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/models/user.html#User.get_initials"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.models.User.get_initials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the name and returns initials which are at most two
+characters wide.</p>
+<p>Examples:</p>
+<p>admin =&gt; A
+<a class="reference external" href="mailto:nathan&#46;drake&#37;&#52;&#48;example&#46;org">nathan<span>&#46;</span>drake<span>&#64;</span>example<span>&#46;</span>org</a> =&gt; ND
+Victor Sullivan =&gt; VS
+Charles Montgomery Burns =&gt; CB</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.yubikey_serial">
+<code class="descname">yubikey_serial</code><a class="headerlink" href="#onegov.user.models.User.yubikey_serial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the yubikey serial of the yubikey associated with this
+user (if any).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.sessions">
+<code class="descname">sessions</code><em class="property"> = None</em><a class="headerlink" href="#onegov.user.models.User.sessions" title="Permalink to this definition">¶</a></dt>
+<dd><p>sessions of this user</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.tags">
+<code class="descname">tags</code><em class="property"> = None</em><a class="headerlink" href="#onegov.user.models.User.tags" title="Permalink to this definition">¶</a></dt>
+<dd><p>tags of this user</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.User.phone_number">
+<code class="descname">phone_number</code><em class="property"> = None</em><a class="headerlink" href="#onegov.user.models.User.phone_number" title="Permalink to this definition">¶</a></dt>
+<dd><p>the phone number of this user</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.models.User.cleanup_sessions">
+<code class="descname">cleanup_sessions</code><span class="sig-paren">(</span><em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/models/user.html#User.cleanup_sessions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.models.User.cleanup_sessions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes stored sessions not valid anymore.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.models.User.save_current_session">
+<code class="descname">save_current_session</code><span class="sig-paren">(</span><em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/models/user.html#User.save_current_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.models.User.save_current_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores the current browser session.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.models.User.remove_current_session">
+<code class="descname">remove_current_session</code><span class="sig-paren">(</span><em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/models/user.html#User.remove_current_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.models.User.remove_current_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes the current browser session.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.models.User.logout_all_sessions">
+<code class="descname">logout_all_sessions</code><span class="sig-paren">(</span><em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/models/user.html#User.logout_all_sessions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.models.User.logout_all_sessions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Terminates all open browser sessions.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.user.models.UserGroup">
+<em class="property">class </em><code class="descclassname">onegov.user.models.</code><code class="descname">UserGroup</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/models/group.html#UserGroup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.models.UserGroup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a generic user group.</p>
+<dl class="attribute">
+<dt id="onegov.user.models.UserGroup.type">
+<code class="descname">type</code><a class="headerlink" href="#onegov.user.models.UserGroup.type" title="Permalink to this definition">¶</a></dt>
+<dd><p>the type of the item, this can be used to create custom polymorphic
+subclasses of this class. See
+<a class="reference external" href="http://docs.sqlalchemy.org/en/improve_toc/ orm/extensions/declarative/inheritance.html">http://docs.sqlalchemy.org/en/improve_toc/ orm/extensions/declarative/inheritance.html</a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.UserGroup.id">
+<code class="descname">id</code><a class="headerlink" href="#onegov.user.models.UserGroup.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>the id of the user group</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.models.UserGroup.name">
+<code class="descname">name</code><a class="headerlink" href="#onegov.user.models.UserGroup.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>the name of this group</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-onegov.user.collections">
+<span id="collections"></span><h2>Collections<a class="headerlink" href="#module-onegov.user.collections" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="onegov.user.collections.UserCollection">
+<em class="property">class </em><code class="descclassname">onegov.user.collections.</code><code class="descname">UserCollection</code><span class="sig-paren">(</span><em>session</em>, <em>**filters</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manages a list of users.</p>
+<p>Use it like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">onegov.user</span> <span class="k">import</span> <span class="n">UserCollection</span>
+<span class="n">users</span> <span class="o">=</span> <span class="n">UserCollection</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="onegov.user.collections.UserCollection.query">
+<code class="descname">query</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a query using <a class="reference internal" href="#onegov.user.models.User" title="onegov.user.models.User"><code class="xref py py-class docutils literal notranslate"><span class="pre">onegov.user.models.User</span></code></a>. With
+the current filters applied.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.collections.UserCollection.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>username</em>, <em>password</em>, <em>role</em>, <em>data=None</em>, <em>second_factor=None</em>, <em>active=True</em>, <em>realname=None</em>, <em>signup_token=None</em>, <em>group=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a user to the collection.</p>
+<p>The arguments given to this function are the attributes of the
+<a class="reference internal" href="#onegov.user.models.User" title="onegov.user.models.User"><code class="xref py py-class docutils literal notranslate"><span class="pre">User</span></code></a> class with the same name.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.collections.UserCollection.tags">
+<code class="descname">tags</code><a class="headerlink" href="#onegov.user.collections.UserCollection.tags" title="Permalink to this definition">¶</a></dt>
+<dd><p>All available tags.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="onegov.user.collections.UserCollection.usernames">
+<code class="descname">usernames</code><a class="headerlink" href="#onegov.user.collections.UserCollection.usernames" title="Permalink to this definition">¶</a></dt>
+<dd><p>All available usernames.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.collections.UserCollection.usernames_by_tags">
+<code class="descname">usernames_by_tags</code><span class="sig-paren">(</span><em>tags</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.usernames_by_tags"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.usernames_by_tags" title="Permalink to this definition">¶</a></dt>
+<dd><p>All usernames where the user’s tags match at least one tag
+from the given list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.collections.UserCollection.exists">
+<code class="descname">exists</code><span class="sig-paren">(</span><em>username</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the given username exists.</p>
+<p>This function does not actually load a user, so it is the quickest
+way to find out if a user exists. It should be used if you don’t
+care about finding out anything about the user.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.collections.UserCollection.by_id">
+<code class="descname">by_id</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.by_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.by_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the user by the internal id.</p>
+<p>Use this if you need to refer to a user by path. Usernames are not
+the correct way, since they allow for user enumeration.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.collections.UserCollection.by_username">
+<code class="descname">by_username</code><span class="sig-paren">(</span><em>username</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.by_username"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.by_username" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the user by username.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.collections.UserCollection.by_username_and_password">
+<code class="descname">by_username_and_password</code><span class="sig-paren">(</span><em>username</em>, <em>password</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.by_username_and_password"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.by_username_and_password" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the user by username and password.</p>
+<p>Note that although the password can be empty on the user, this function
+will not query for empty passwords as an added security measure.</p>
+<p>Apart from that everything is fair game though, as it is not the job
+of onegov.user to enforce a password policy.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.collections.UserCollection.by_roles">
+<code class="descname">by_roles</code><span class="sig-paren">(</span><em>role</em>, <em>*roles</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.by_roles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.by_roles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Queries the users by roles.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.collections.UserCollection.register">
+<code class="descname">register</code><span class="sig-paren">(</span><em>username</em>, <em>password</em>, <em>request</em>, <em>role='member'</em>, <em>signup_token=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.register"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.register" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a new user.</p>
+<p>The so created user needs to activated with a token before it becomes
+active. Use the activation_token in the data dictionary together
+with the <a class="reference internal" href="#onegov.user.collections.UserCollection.activate_with_token" title="onegov.user.collections.UserCollection.activate_with_token"><code class="xref py py-meth docutils literal notranslate"><span class="pre">activate_with_token()</span></code></a> function.</p>
+<p>You probably want to use the provided
+<code class="xref py py-class docutils literal notranslate"><span class="pre">RegistrationForm</span></code> in
+conjunction with <code class="xref py py-class docutils literal notranslate"><span class="pre">Auth</span></code> as it includes a lot
+of extras like signup links and robots protection.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.collections.UserCollection.activate_with_token">
+<code class="descname">activate_with_token</code><span class="sig-paren">(</span><em>username</em>, <em>token</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.activate_with_token"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.activate_with_token" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activates the user if the given token matches the verification
+token stored in the data dictionary.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.collections.UserCollection.by_yubikey">
+<code class="descname">by_yubikey</code><span class="sig-paren">(</span><em>token</em>, <em>active_only=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.by_yubikey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.by_yubikey" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the user with the given yubikey token.</p>
+<p>Only considers active users by default.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.user.collections.UserCollection.delete">
+<code class="descname">delete</code><span class="sig-paren">(</span><em>username</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the user if it exists.</p>
+<p>If the user does not exist, an
+<a class="reference internal" href="#onegov.user.errors.UnknownUserError" title="onegov.user.errors.UnknownUserError"><code class="xref py py-class docutils literal notranslate"><span class="pre">onegov.user.errors.UnknownUserError</span></code></a> is raised.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.user.collections.UserGroupCollection">
+<em class="property">class </em><code class="descclassname">onegov.user.collections.</code><code class="descname">UserGroupCollection</code><span class="sig-paren">(</span><em>session</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/group.html#UserGroupCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserGroupCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manages a list of user groups.</p>
+<p>Use it like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">onegov.user</span> <span class="k">import</span> <span class="n">UserGroupCollection</span>
+<span class="n">groups</span> <span class="o">=</span> <span class="n">UserGroupCollection</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
 </div>
 <div class="section" id="module-onegov.user.cli">
 <span id="commandline-interface"></span><h2>Commandline Interface<a class="headerlink" href="#module-onegov.user.cli" title="Permalink to this headline">¶</a></h2>

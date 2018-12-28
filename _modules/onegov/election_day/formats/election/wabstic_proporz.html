@@ -1,0 +1,718 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.election_day.formats.election.wabstic_proporz &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.election_day.formats.election.wabstic_proporz</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Candidate</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">CandidateResult</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ElectionResult</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ListConnection</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ListResult</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">EXPATS</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">FileImportError</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">load_csv</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
+
+
+<span class="n">HEADERS_WP_WAHL</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s1">&#39;sortgeschaeft&#39;</span><span class="p">,</span>  <span class="c1"># provides the link to the election</span>
+    <span class="s1">&#39;ausmittlungsstand&#39;</span><span class="p">,</span>  <span class="c1"># complete</span>
+<span class="p">)</span>
+<span class="n">HEADERS_WPSTATIC_GEMEINDEN</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s1">&#39;sortwahlkreis&#39;</span><span class="p">,</span>  <span class="c1"># provides the link to the election</span>
+    <span class="s1">&#39;sortgeschaeft&#39;</span><span class="p">,</span>  <span class="c1"># provides the link to the election</span>
+    <span class="s1">&#39;sortgemeinde&#39;</span><span class="p">,</span>  <span class="c1"># id (BFS)</span>
+    <span class="s1">&#39;sortgemeindesub&#39;</span><span class="p">,</span>  <span class="c1"># id (BFS)</span>
+    <span class="s1">&#39;stimmberechtigte&#39;</span><span class="p">,</span>  <span class="c1"># eligible votes</span>
+<span class="p">)</span>
+<span class="n">HEADERS_WP_GEMEINDEN</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s1">&#39;sortgemeinde&#39;</span><span class="p">,</span>  <span class="c1"># id (BFS)</span>
+    <span class="s1">&#39;sortgemeindesub&#39;</span><span class="p">,</span>  <span class="c1"># id (BFS)</span>
+    <span class="s1">&#39;stimmberechtigte&#39;</span><span class="p">,</span>  <span class="c1"># eligible votes</span>
+    <span class="s1">&#39;sperrung&#39;</span><span class="p">,</span>  <span class="c1"># counted</span>
+    <span class="s1">&#39;stmabgegeben&#39;</span><span class="p">,</span>  <span class="c1"># received ballots</span>
+    <span class="s1">&#39;stmleer&#39;</span><span class="p">,</span>  <span class="c1"># blank ballots</span>
+    <span class="s1">&#39;stmungueltig&#39;</span><span class="p">,</span>  <span class="c1"># invalid ballots</span>
+    <span class="s1">&#39;anzwzamtleer&#39;</span><span class="p">,</span>  <span class="c1"># blank ballots</span>
+<span class="p">)</span>
+<span class="n">HEADERS_WP_LISTEN</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s1">&#39;sortgeschaeft&#39;</span><span class="p">,</span>  <span class="c1"># provides the link to the election</span>
+    <span class="s1">&#39;listnr&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;listcode&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;sitze&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;listverb&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;listuntverb&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">HEADERS_WP_LISTENGDE</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s1">&#39;sortgemeinde&#39;</span><span class="p">,</span>  <span class="c1"># id (BFS)</span>
+    <span class="s1">&#39;sortgemeindesub&#39;</span><span class="p">,</span>  <span class="c1"># id (BFS)</span>
+    <span class="s1">&#39;listnr&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;stimmentotal&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">HEADERS_WPSTATIC_KANDIDATEN</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s1">&#39;sortgeschaeft&#39;</span><span class="p">,</span>  <span class="c1"># provides the link to the election</span>
+    <span class="s1">&#39;knr&#39;</span><span class="p">,</span>  <span class="c1"># candidate id</span>
+    <span class="s1">&#39;nachname&#39;</span><span class="p">,</span>  <span class="c1"># familiy name</span>
+    <span class="s1">&#39;vorname&#39;</span><span class="p">,</span>  <span class="c1"># first name</span>
+<span class="p">)</span>
+<span class="n">HEADERS_WP_KANDIDATEN</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s1">&#39;sortgeschaeft&#39;</span><span class="p">,</span>  <span class="c1"># provides the link to the election</span>
+    <span class="s1">&#39;knr&#39;</span><span class="p">,</span>  <span class="c1"># candidate id</span>
+    <span class="s1">&#39;gewahlt&#39;</span><span class="p">,</span>  <span class="c1"># elected</span>
+<span class="p">)</span>
+<span class="n">HEADERS_WP_KANDIDATENGDE</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s1">&#39;sortgemeinde&#39;</span><span class="p">,</span>  <span class="c1"># id (BFS)</span>
+    <span class="s1">&#39;sortgemeindesub&#39;</span><span class="p">,</span>  <span class="c1"># id (BFS)</span>
+    <span class="s1">&#39;knr&#39;</span><span class="p">,</span>  <span class="c1"># candidate id</span>
+    <span class="s1">&#39;stimmen&#39;</span><span class="p">,</span>  <span class="c1"># votes</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">line_is_relevant</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">number</span><span class="p">,</span> <span class="n">district</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">district</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">sortwahlkreis</span> <span class="o">==</span> <span class="n">district</span> <span class="ow">and</span> <span class="n">line</span><span class="o">.</span><span class="n">sortgeschaeft</span> <span class="o">==</span> <span class="n">number</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">sortgeschaeft</span> <span class="o">==</span> <span class="n">number</span>
+
+
+<span class="k">def</span> <span class="nf">get_entity_id</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">entities</span><span class="p">):</span>
+    <span class="n">entity_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">sortgemeinde</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">sub_entity_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">sortgemeindesub</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">entities</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sub_entity_id</span> <span class="ow">in</span> <span class="n">entities</span><span class="p">:</span>
+            <span class="n">entity_id</span> <span class="o">=</span> <span class="n">sub_entity_id</span>
+        <span class="k">elif</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">EXPATS</span> <span class="ow">or</span> <span class="n">sub_entity_id</span> <span class="ow">in</span> <span class="n">EXPATS</span><span class="p">:</span>
+            <span class="n">entity_id</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">entity_id</span>
+
+
+<span class="k">def</span> <span class="nf">get_candidate_id</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">knr</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">get_list_id</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;listnr&#39;</span><span class="p">):</span>
+        <span class="n">number</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">listnr</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">number</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">get_candidate_id</span><span class="p">(</span><span class="n">line</span><span class="p">))</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="n">number</span> <span class="o">=</span> <span class="mi">999</span> <span class="k">if</span> <span class="n">number</span> <span class="o">==</span> <span class="mi">99</span> <span class="k">else</span> <span class="n">number</span>  <span class="c1"># blank list</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">number</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="import_election_wabstic_proporz"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.formats.import_election_wabstic_proporz">[docs]</a><span class="k">def</span> <span class="nf">import_election_wabstic_proporz</span><span class="p">(</span>
+    <span class="n">election</span><span class="p">,</span> <span class="n">principal</span><span class="p">,</span> <span class="n">number</span><span class="p">,</span> <span class="n">district</span><span class="p">,</span>
+    <span class="n">file_wp_wahl</span><span class="p">,</span> <span class="n">mimetype_wp_wahl</span><span class="p">,</span>
+    <span class="n">file_wpstatic_gemeinden</span><span class="p">,</span> <span class="n">mimetype_wpstatic_gemeinden</span><span class="p">,</span>
+    <span class="n">file_wp_gemeinden</span><span class="p">,</span> <span class="n">mimetype_wp_gemeinden</span><span class="p">,</span>
+    <span class="n">file_wp_listen</span><span class="p">,</span> <span class="n">mimetype_wp_listen</span><span class="p">,</span>
+    <span class="n">file_wp_listengde</span><span class="p">,</span> <span class="n">mimetype_wp_listengde</span><span class="p">,</span>
+    <span class="n">file_wpstatic_kandidaten</span><span class="p">,</span> <span class="n">mimetype_wpstatic_kandidaten</span><span class="p">,</span>
+    <span class="n">file_wp_kandidaten</span><span class="p">,</span> <span class="n">mimetype_wp_kandidaten</span><span class="p">,</span>
+    <span class="n">file_wp_kandidatengde</span><span class="p">,</span> <span class="n">mimetype_wp_kandidatengde</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Tries to import the files in the given folder.</span>
+
+<span class="sd">    We assume that the files there have been uploaded using the WabstiCExport</span>
+<span class="sd">    2.1.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">entities</span> <span class="o">=</span> <span class="n">principal</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="n">election</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">]</span>
+
+    <span class="c1"># Read the files</span>
+    <span class="n">wp_wahl</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+        <span class="n">file_wp_wahl</span><span class="p">,</span> <span class="n">mimetype_wp_wahl</span><span class="p">,</span>
+        <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_WP_WAHL</span><span class="p">,</span>
+        <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wp_wahl&#39;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+    <span class="n">wpstatic_gemeinden</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+        <span class="n">file_wpstatic_gemeinden</span><span class="p">,</span> <span class="n">mimetype_wpstatic_gemeinden</span><span class="p">,</span>
+        <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_WPSTATIC_GEMEINDEN</span><span class="p">,</span>
+        <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wpstatic_gemeinden&#39;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+    <span class="n">wp_gemeinden</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+        <span class="n">file_wp_gemeinden</span><span class="p">,</span> <span class="n">mimetype_wp_gemeinden</span><span class="p">,</span>
+        <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_WP_GEMEINDEN</span><span class="p">,</span>
+        <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wp_gemeinden&#39;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+    <span class="n">wp_listen</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+        <span class="n">file_wp_listen</span><span class="p">,</span> <span class="n">mimetype_wp_listen</span><span class="p">,</span>
+        <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_WP_LISTEN</span><span class="p">,</span>
+        <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wp_listen&#39;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+    <span class="n">wp_listengde</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+        <span class="n">file_wp_listengde</span><span class="p">,</span> <span class="n">mimetype_wp_listengde</span><span class="p">,</span>
+        <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_WP_LISTENGDE</span><span class="p">,</span>
+        <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wp_listengde&#39;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+    <span class="n">wpstatic_kandidaten</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+        <span class="n">file_wpstatic_kandidaten</span><span class="p">,</span> <span class="n">mimetype_wpstatic_kandidaten</span><span class="p">,</span>
+        <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_WPSTATIC_KANDIDATEN</span><span class="p">,</span>
+        <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wpstatic_kandidaten&#39;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+    <span class="n">wp_kandidaten</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+        <span class="n">file_wp_kandidaten</span><span class="p">,</span> <span class="n">mimetype_wp_kandidaten</span><span class="p">,</span>
+        <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_WP_KANDIDATEN</span><span class="p">,</span>
+        <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wp_kandidaten&#39;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+    <span class="n">wp_kandidatengde</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+        <span class="n">file_wp_kandidatengde</span><span class="p">,</span> <span class="n">mimetype_wp_kandidatengde</span><span class="p">,</span>
+        <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_WP_KANDIDATENGDE</span><span class="p">,</span>
+        <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wp_kandidatengde&#39;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">errors</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">errors</span>
+
+    <span class="c1"># Parse the election</span>
+    <span class="n">complete</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">wp_wahl</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+        <span class="n">line_errors</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">line_is_relevant</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">number</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">complete</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">ausmittlungsstand</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">complete</span> <span class="o">&lt;=</span> <span class="mi">3</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">AssertionError</span><span class="p">):</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid values&quot;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="n">FileImportError</span><span class="p">(</span>
+                    <span class="n">error</span><span class="o">=</span><span class="n">err</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wp_wahl&#39;</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">line_errors</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+    <span class="c1"># Parse the entities</span>
+    <span class="n">added_entities</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">wpstatic_gemeinden</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+        <span class="n">line_errors</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">line_is_relevant</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">number</span><span class="p">,</span> <span class="n">district</span><span class="o">=</span><span class="n">district</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Parse the id of the entity</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">entity_id</span> <span class="o">=</span> <span class="n">get_entity_id</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">entities</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid id&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">and</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">entities</span><span class="p">:</span>
+                <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{name}</span><span class="s2"> is unknown&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">entity_id</span><span class="p">}))</span>
+
+            <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">added_entities</span><span class="p">:</span>
+                <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{name}</span><span class="s2"> was found twice&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">entity_id</span><span class="p">}))</span>
+
+        <span class="c1"># Parse the eligible voters</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">eligible_voters</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stimmberechtigte</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Could not read the eligible voters&quot;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="n">FileImportError</span><span class="p">(</span>
+                    <span class="n">error</span><span class="o">=</span><span class="n">err</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span>
+                    <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wpstatic_gemeinden&#39;</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">line_errors</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">entity</span> <span class="o">=</span> <span class="n">entities</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity_id</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;district&#39;</span><span class="p">:</span> <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;district&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;eligible_voters&#39;</span><span class="p">:</span> <span class="n">eligible_voters</span>
+        <span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">wp_gemeinden</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+        <span class="n">line_errors</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Parse the id of the entity</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">entity_id</span> <span class="o">=</span> <span class="n">get_entity_id</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">entities</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid id&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">and</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">entities</span><span class="p">:</span>
+                <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{name}</span><span class="s2"> is unknown&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">entity_id</span><span class="p">}))</span>
+
+            <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_entities</span><span class="p">:</span>
+                <span class="c1"># Only add it if present (there is there no SortGeschaeft)</span>
+                <span class="k">continue</span>
+
+        <span class="n">entity</span> <span class="o">=</span> <span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span>
+
+        <span class="c1"># Check if the entity is counted</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;counted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">sperrung</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid entity values&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Parse the eligible voters</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">eligible_voters</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stimmberechtigte</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid entity values&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">eligible_voters</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">eligible_voters</span>
+                <span class="ow">or</span> <span class="n">added_entities</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity_id</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;eligible_voters&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;eligible_voters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">eligible_voters</span>
+
+        <span class="c1"># Parse the ballots and votes</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">received_ballots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stmabgegeben</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">blank_ballots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stmleer</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">invalid_ballots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stmungueltig</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid entity values&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;received_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">received_ballots</span>
+            <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;blank_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">blank_ballots</span>
+            <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;invalid_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">invalid_ballots</span>
+            <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;blank_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># they are in the list results</span>
+
+        <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="n">FileImportError</span><span class="p">(</span>
+                    <span class="n">error</span><span class="o">=</span><span class="n">err</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wp_gemeinden&#39;</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">line_errors</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+    <span class="c1"># Parse the lists</span>
+    <span class="n">added_lists</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">added_connections</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">wp_listen</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+        <span class="n">line_errors</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">line_is_relevant</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">number</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">list_id</span> <span class="o">=</span> <span class="n">get_list_id</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">listcode</span>
+            <span class="n">number_of_mandates</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">sitze</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">connection</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">listverb</span> <span class="ow">or</span> <span class="kc">None</span>
+            <span class="n">subconnection</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">listuntverb</span> <span class="ow">or</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">subconnection</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">connection</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">AssertionError</span><span class="p">):</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid list values&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">list_id</span> <span class="ow">in</span> <span class="n">added_lists</span><span class="p">:</span>
+                <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{name}</span><span class="s2"> was found twice&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">list_id</span><span class="p">}))</span>
+
+        <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="n">FileImportError</span><span class="p">(</span>
+                    <span class="n">error</span><span class="o">=</span><span class="n">err</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wp_listen&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">line_errors</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">connection_id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">connection</span><span class="p">:</span>
+            <span class="n">parent_id</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">subconnection</span><span class="p">:</span>
+                <span class="n">parent_id</span> <span class="o">=</span> <span class="n">added_connections</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="n">ListConnection</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span> <span class="n">connection_id</span><span class="o">=</span><span class="n">connection</span><span class="p">)</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">id</span>
+
+            <span class="n">connection_id</span> <span class="o">=</span> <span class="n">added_connections</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">subconnection</span><span class="p">),</span>
+                <span class="n">ListConnection</span><span class="p">(</span>
+                    <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+                    <span class="n">parent_id</span><span class="o">=</span><span class="n">parent_id</span><span class="p">,</span>
+                    <span class="n">connection_id</span><span class="o">=</span><span class="n">subconnection</span> <span class="ow">or</span> <span class="n">connection</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">id</span>
+
+        <span class="n">added_lists</span><span class="p">[</span><span class="n">list_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">List</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+            <span class="n">list_id</span><span class="o">=</span><span class="n">list_id</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">number_of_mandates</span><span class="o">=</span><span class="n">number_of_mandates</span><span class="p">,</span>
+            <span class="n">connection_id</span><span class="o">=</span><span class="n">connection_id</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Parse the list results</span>
+    <span class="n">added_list_results</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">wp_listengde</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+        <span class="n">line_errors</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">entity_id</span> <span class="o">=</span> <span class="n">get_entity_id</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">entities</span><span class="p">)</span>
+            <span class="n">list_id</span> <span class="o">=</span> <span class="n">get_list_id</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">votes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stimmentotal</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid list results&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_entities</span><span class="p">:</span>
+                <span class="c1"># Only add the list result if the entity is present (there is</span>
+                <span class="c1"># no SortGeschaeft in this file)</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_entities</span><span class="p">:</span>
+                <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid entity values&quot;</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">list_id</span> <span class="ow">in</span> <span class="n">added_list_results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity_id</span><span class="p">,</span> <span class="p">{}):</span>
+                <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span>
+                        <span class="s2">&quot;$</span><span class="si">{name}</span><span class="s2"> was found twice&quot;</span><span class="p">,</span>
+                        <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+                            <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">entity_id</span><span class="p">,</span> <span class="n">list_id</span><span class="p">)</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="n">FileImportError</span><span class="p">(</span>
+                    <span class="n">error</span><span class="o">=</span><span class="n">err</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wp_listengde&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">line_errors</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">list_id</span> <span class="o">==</span> <span class="s1">&#39;999&#39;</span><span class="p">:</span>
+            <span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="s1">&#39;blank_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">votes</span>
+
+        <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_list_results</span><span class="p">:</span>
+            <span class="n">added_list_results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">added_list_results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="n">list_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">votes</span>
+
+    <span class="c1"># Parse the candidates</span>
+    <span class="n">added_candidates</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">wpstatic_kandidaten</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+        <span class="n">line_errors</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">line_is_relevant</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">number</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">candidate_id</span> <span class="o">=</span> <span class="n">get_candidate_id</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">list_id</span> <span class="o">=</span> <span class="n">get_list_id</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">family_name</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">nachname</span>
+            <span class="n">first_name</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">vorname</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid candidate values&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">candidate_id</span> <span class="ow">in</span> <span class="n">added_candidates</span><span class="p">:</span>
+                <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{name}</span><span class="s2"> was found twice&quot;</span><span class="p">,</span>
+                      <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">candidate_id</span><span class="p">}))</span>
+
+            <span class="k">if</span> <span class="n">list_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_lists</span><span class="p">:</span>
+                <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid list values&quot;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="n">FileImportError</span><span class="p">(</span>
+                    <span class="n">error</span><span class="o">=</span><span class="n">err</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span>
+                    <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wpstatic_kandidaten&#39;</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">line_errors</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">added_candidates</span><span class="p">[</span><span class="n">candidate_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">Candidate</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+            <span class="n">candidate_id</span><span class="o">=</span><span class="n">candidate_id</span><span class="p">,</span>
+            <span class="n">family_name</span><span class="o">=</span><span class="n">family_name</span><span class="p">,</span>
+            <span class="n">first_name</span><span class="o">=</span><span class="n">first_name</span><span class="p">,</span>
+            <span class="n">list_id</span><span class="o">=</span><span class="n">added_lists</span><span class="p">[</span><span class="n">list_id</span><span class="p">]</span><span class="o">.</span><span class="n">id</span>
+        <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">wp_kandidaten</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+        <span class="n">line_errors</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">line_is_relevant</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">number</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">candidate_id</span> <span class="o">=</span> <span class="n">get_candidate_id</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">candidate_id</span> <span class="ow">in</span> <span class="n">added_candidates</span>
+            <span class="n">elected</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">gewahlt</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">AssertionError</span><span class="p">):</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid candidate values&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">added_candidates</span><span class="p">[</span><span class="n">candidate_id</span><span class="p">]</span><span class="o">.</span><span class="n">elected</span> <span class="o">=</span> <span class="n">elected</span>
+
+        <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="n">FileImportError</span><span class="p">(</span>
+                    <span class="n">error</span><span class="o">=</span><span class="n">err</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span>
+                    <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wpstatic_kandidaten&#39;</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">line_errors</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+    <span class="n">added_results</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">wp_kandidatengde</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+        <span class="n">line_errors</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">entity_id</span> <span class="o">=</span> <span class="n">get_entity_id</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">entities</span><span class="p">)</span>
+            <span class="n">candidate_id</span> <span class="o">=</span> <span class="n">get_candidate_id</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">votes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stimmen</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid candidate results&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_entities</span>
+                <span class="ow">or</span> <span class="n">candidate_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_candidates</span>
+            <span class="p">):</span>
+                <span class="c1"># Only add the candidate result if the entity and the candidate</span>
+                <span class="c1"># are present (there is no SortGeschaeft in this file)</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">candidate_id</span> <span class="ow">in</span> <span class="n">added_results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity_id</span><span class="p">,</span> <span class="p">{}):</span>
+                <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span>
+                        <span class="s2">&quot;$</span><span class="si">{name}</span><span class="s2"> was found twice&quot;</span><span class="p">,</span>
+                        <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+                            <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">entity_id</span><span class="p">,</span> <span class="n">candidate_id</span><span class="p">)</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="n">FileImportError</span><span class="p">(</span>
+                    <span class="n">error</span><span class="o">=</span><span class="n">err</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span>
+                    <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;wp_kandidatengde&#39;</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">line_errors</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_results</span><span class="p">:</span>
+            <span class="n">added_results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">added_results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="n">candidate_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">votes</span>
+
+    <span class="c1"># Check if all results are from the same district if regional election</span>
+    <span class="n">districts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;district&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">added_entities</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+    <span class="k">if</span> <span class="n">election</span><span class="o">.</span><span class="n">domain</span> <span class="o">==</span> <span class="s1">&#39;region&#39;</span> <span class="ow">and</span> <span class="n">districts</span> <span class="ow">and</span> <span class="n">election</span><span class="o">.</span><span class="n">distinct</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">principal</span><span class="o">.</span><span class="n">has_districts</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">districts</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FileImportError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;No clear district&quot;</span><span class="p">)))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">added_results</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FileImportError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;No clear district&quot;</span><span class="p">)))</span>
+
+    <span class="k">if</span> <span class="n">errors</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">errors</span>
+
+    <span class="n">election</span><span class="o">.</span><span class="n">clear_results</span><span class="p">()</span>
+
+    <span class="n">election</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;unknown&#39;</span>
+    <span class="k">if</span> <span class="n">complete</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">election</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;interim&#39;</span>
+    <span class="k">if</span> <span class="n">complete</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">election</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;final&#39;</span>
+
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="ow">not</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">added_connections</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="n">election</span><span class="o">.</span><span class="n">list_connections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">added_connections</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">added_connections</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="n">election</span><span class="o">.</span><span class="n">list_connections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">added_connections</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">list_id</span><span class="p">,</span> <span class="n">list_</span> <span class="ow">in</span> <span class="n">added_lists</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">list_id</span> <span class="o">!=</span> <span class="s1">&#39;999&#39;</span><span class="p">:</span>
+            <span class="n">election</span><span class="o">.</span><span class="n">lists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">added_candidates</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">election</span><span class="o">.</span><span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">added_results</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">entity</span> <span class="o">=</span> <span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">ElectionResult</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span>
+            <span class="n">district</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;district&#39;</span><span class="p">],</span>
+            <span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">,</span>
+            <span class="n">counted</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;counted&#39;</span><span class="p">],</span>
+            <span class="n">eligible_voters</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;eligible_voters&#39;</span><span class="p">],</span>
+            <span class="n">received_ballots</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;received_ballots&#39;</span><span class="p">],</span>
+            <span class="n">blank_ballots</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;blank_ballots&#39;</span><span class="p">],</span>
+            <span class="n">invalid_ballots</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;invalid_ballots&#39;</span><span class="p">],</span>
+            <span class="n">blank_votes</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;blank_votes&#39;</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">candidate_id</span><span class="p">,</span> <span class="n">votes</span> <span class="ow">in</span> <span class="n">added_results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">candidate_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">CandidateResult</span><span class="p">(</span>
+                    <span class="n">votes</span><span class="o">=</span><span class="n">votes</span><span class="p">,</span>
+                    <span class="n">candidate_id</span><span class="o">=</span><span class="n">added_candidates</span><span class="p">[</span><span class="n">candidate_id</span><span class="p">]</span><span class="o">.</span><span class="n">id</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">list_id</span><span class="p">,</span> <span class="n">votes</span> <span class="ow">in</span> <span class="n">added_list_results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">list_id</span> <span class="o">!=</span> <span class="s1">&#39;999&#39;</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">list_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ListResult</span><span class="p">(</span>
+                    <span class="n">votes</span><span class="o">=</span><span class="n">votes</span><span class="p">,</span>
+                    <span class="n">list_id</span><span class="o">=</span><span class="n">added_lists</span><span class="p">[</span><span class="n">list_id</span><span class="p">]</span><span class="o">.</span><span class="n">id</span>
+                <span class="p">))</span>
+        <span class="n">election</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="c1"># Add the missing entities</span>
+    <span class="n">remaining</span> <span class="o">=</span> <span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="n">added_results</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">remaining</span><span class="p">:</span>
+        <span class="n">entity</span> <span class="o">=</span> <span class="n">entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span>
+        <span class="n">district</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;district&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">election</span><span class="o">.</span><span class="n">domain</span> <span class="o">==</span> <span class="s1">&#39;region&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">election</span><span class="o">.</span><span class="n">distinct</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">principal</span><span class="o">.</span><span class="n">has_districts</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">district</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">districts</span><span class="p">:</span>
+                <span class="k">continue</span>
+        <span class="n">election</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">ElectionResult</span><span class="p">(</span>
+                <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="n">district</span><span class="o">=</span><span class="n">district</span><span class="p">,</span>
+                <span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">,</span>
+                <span class="n">counted</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">[]</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../../index.html">
+    <img class="logo" src="../../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,374 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.user.models.user &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.user.models.user</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">onegov.core.crypto</span> <span class="k">import</span> <span class="n">hash_password</span><span class="p">,</span> <span class="n">verify_password</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">data_property</span><span class="p">,</span> <span class="n">TimestampMixin</span>
+<span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">LowercaseText</span>
+<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">forget</span><span class="p">,</span> <span class="n">remembered</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">is_valid_yubikey_format</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">remove_repeated_spaces</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">yubikey_otp_to_serial</span>
+<span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
+<span class="kn">from</span> <span class="nn">onegov.user.models.group</span> <span class="k">import</span> <span class="n">UserGroup</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">ForeignKey</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.ext.hybrid</span> <span class="k">import</span> <span class="n">hybrid_property</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">backref</span><span class="p">,</span> <span class="n">deferred</span><span class="p">,</span> <span class="n">relationship</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
+
+
+<div class="viewcode-block" id="User"><a class="viewcode-back" href="../../../../onegov_user.html#onegov.user.models.User">[docs]</a><span class="k">class</span> <span class="nc">User</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">ORMSearchable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Defines a generic user. &quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;users&#39;</span>
+
+    <span class="c1">#: the type of the item, this can be used to create custom polymorphic</span>
+    <span class="c1">#: subclasses of this class. See</span>
+    <span class="c1">#: `&lt;http://docs.sqlalchemy.org/en/improve_toc/\</span>
+    <span class="c1">#: orm/extensions/declarative/inheritance.html&gt;`_.</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;polymorphic_on&#39;</span><span class="p">:</span> <span class="nb">type</span>
+    <span class="p">}</span>
+
+    <span class="n">es_properties</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;text&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;realname&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;text&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;userprofile&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;text&#39;</span><span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">es_public</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_suggestion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">realname</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">userprofile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">value</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="c1">#: the user id is a uuid because that&#39;s more secure (no id guessing)</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">uuid4</span><span class="p">)</span>
+
+    <span class="c1">#: the username may be any string, but will usually be an email address</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">LowercaseText</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the password is stored with the hashing algorithm defined by onegov.core</span>
+    <span class="n">password_hash</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the role is relevant for security in onegov.core</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1">#: the group this user belongs to</span>
+    <span class="n">group_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">UserGroup</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">group</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="n">UserGroup</span><span class="p">,</span> <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span><span class="s1">&#39;users&#39;</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="s1">&#39;dynamic&#39;</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1">#: the real name of the user for display (use the :attr:`name` property</span>
+    <span class="c1">#: to automatically get the name or the username)</span>
+    <span class="n">realname</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: extra data that may be stored with this user, the format and content</span>
+    <span class="c1">#: of this data is defined by the consumer of onegov.user</span>
+    <span class="c1">#: by default, this data is only loaded by request, so if you need to</span>
+    <span class="c1">#: load a lot of data columns, do something like this::</span>
+    <span class="c1">#:</span>
+    <span class="c1">#:     session.query(User).options(undefer(&quot;data&quot;))</span>
+    <span class="c1">#:</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">deferred</span><span class="p">(</span><span class="n">Column</span><span class="p">(</span><span class="n">JSON</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+    <span class="c1">#: two-factor authentication schemes are enabled with this property</span>
+    <span class="c1">#: if no two-factor auth is used, the value is NULL, if one *is* used,</span>
+    <span class="c1">#: there should be a dictionary with the type of the two-factor</span>
+    <span class="c1">#: authentication as well as custom values required by the two-factor</span>
+    <span class="c1">#: implementation.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: e.g.::</span>
+    <span class="c1">#:</span>
+    <span class="c1">#:      {</span>
+    <span class="c1">#:          &#39;type&#39;: &#39;yubikey&#39;,</span>
+    <span class="c1">#:          &#39;data&#39;: &#39;ccccccbcgujh&#39;</span>
+    <span class="c1">#:      }</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: Note that &#39;data&#39; could also be a nested dictionary!</span>
+    <span class="c1">#:</span>
+    <span class="n">second_factor</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">JSON</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: true if the user is active</span>
+    <span class="n">active</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">#: the signup token used by the user</span>
+    <span class="n">signup_token</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="n">__table_args__</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">Index</span><span class="p">(</span><span class="s1">&#39;lowercase_username&#39;</span><span class="p">,</span> <span class="n">func</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="n">username</span><span class="p">),</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="nd">@hybrid_property</span>
+    <span class="k">def</span> <span class="nf">title</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the realname or the username of the user, depending on</span>
+<span class="sd">        what&#39;s available first. &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">realname</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">realname</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">realname</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span>
+
+    <span class="nd">@title</span><span class="o">.</span><span class="n">expression</span>
+    <span class="k">def</span> <span class="nf">title</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">nullif</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">trim</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">realname</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="bp">cls</span><span class="o">.</span><span class="n">username</span>
+        <span class="p">)</span>
+
+    <span class="nd">@hybrid_property</span>
+    <span class="k">def</span> <span class="nf">password</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; An alias for :attr:`password_hash`. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">password_hash</span>
+
+    <span class="nd">@password</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">password</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; When set, the given password in cleartext is hashed using</span>
+<span class="sd">        onegov.core&#39;s default hashing algorithm.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">password_hash</span> <span class="o">=</span> <span class="n">hash_password</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+<div class="viewcode-block" id="User.is_matching_password"><a class="viewcode-back" href="../../../../onegov_user.html#onegov.user.models.User.is_matching_password">[docs]</a>    <span class="k">def</span> <span class="nf">is_matching_password</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns True if the given password (cleartext) matches the</span>
+<span class="sd">        stored password hash.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">verify_password</span><span class="p">(</span><span class="n">password</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">password_hash</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="User.get_initials"><a class="viewcode-back" href="../../../../onegov_user.html#onegov.user.models.User.get_initials">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_initials</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">realname</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Takes the name and returns initials which are at most two</span>
+<span class="sd">        characters wide.</span>
+
+<span class="sd">        Examples:</span>
+
+<span class="sd">        admin =&gt; A</span>
+<span class="sd">        nathan.drake@example.org =&gt; ND</span>
+<span class="sd">        Victor Sullivan =&gt; VS</span>
+<span class="sd">        Charles Montgomery Burns =&gt; CB</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># for e-mail addresses assume the dot splits the name and use</span>
+        <span class="c1"># the first two parts of said split (probably won&#39;t have a middle</span>
+        <span class="c1"># name in the e-mail address)</span>
+        <span class="k">if</span> <span class="n">realname</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">realname</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="n">username</span> <span class="o">=</span> <span class="n">username</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">username</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="c1"># for real names split by space and assume that with more than one</span>
+        <span class="c1"># part that the first and last part are the most important to get rid</span>
+        <span class="c1"># of middlenames</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">remove_repeated_spaces</span><span class="p">(</span><span class="n">realname</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">parts</span> <span class="o">=</span> <span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">initials</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_initials</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">realname</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_yubikey</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">second_factor</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">second_factor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;yubikey&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">yubikey</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_yubikey</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">second_factor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">)</span>
+
+    <span class="nd">@yubikey</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">yubikey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">yubikey</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">yubikey</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">second_factor</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">is_valid_yubikey_format</span><span class="p">(</span><span class="n">yubikey</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">second_factor</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;yubikey&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">yubikey</span><span class="p">[:</span><span class="mi">12</span><span class="p">]</span>
+            <span class="p">}</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">yubikey_serial</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the yubikey serial of the yubikey associated with this</span>
+<span class="sd">        user (if any).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">yubikey</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">yubikey</span>
+
+        <span class="k">return</span> <span class="n">yubikey</span> <span class="ow">and</span> <span class="n">yubikey_otp_to_serial</span><span class="p">(</span><span class="n">yubikey</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span>
+
+    <span class="c1">#: sessions of this user</span>
+    <span class="n">sessions</span> <span class="o">=</span> <span class="n">data_property</span><span class="p">()</span>
+
+    <span class="c1">#: tags of this user</span>
+    <span class="n">tags</span> <span class="o">=</span> <span class="n">data_property</span><span class="p">()</span>
+
+    <span class="c1">#: the phone number of this user</span>
+    <span class="n">phone_number</span> <span class="o">=</span> <span class="n">data_property</span><span class="p">()</span>
+
+<div class="viewcode-block" id="User.cleanup_sessions"><a class="viewcode-back" href="../../../../onegov_user.html#onegov.user.models.User.cleanup_sessions">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Removes stored sessions not valid anymore. &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">session_id</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">remembered</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="p">,</span> <span class="n">session_id</span><span class="p">):</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="User.save_current_session"><a class="viewcode-back" href="../../../../onegov_user.html#onegov.user.models.User.save_current_session">[docs]</a>    <span class="k">def</span> <span class="nf">save_current_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Stores the current browser session. &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="n">request</span><span class="o">.</span><span class="n">browser_session</span><span class="o">.</span><span class="n">_token</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;address&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">client_addr</span><span class="p">,</span>
+            <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s1">&#39;agent&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">user_agent</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_sessions</span><span class="p">(</span><span class="n">request</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="User.remove_current_session"><a class="viewcode-back" href="../../../../onegov_user.html#onegov.user.models.User.remove_current_session">[docs]</a>    <span class="k">def</span> <span class="nf">remove_current_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Removes the current browser session. &quot;&quot;&quot;</span>
+
+        <span class="n">token</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">browser_session</span><span class="o">.</span><span class="n">_token</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span> <span class="ow">and</span> <span class="n">token</span> <span class="ow">and</span> <span class="n">token</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="n">token</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_sessions</span><span class="p">(</span><span class="n">request</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="User.logout_all_sessions"><a class="viewcode-back" href="../../../../onegov_user.html#onegov.user.models.User.logout_all_sessions">[docs]</a>    <span class="k">def</span> <span class="nf">logout_all_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Terminates all open browser sessions. &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">session_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">:</span>
+            <span class="n">forget</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="p">,</span> <span class="n">session_id</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_sessions</span><span class="p">(</span><span class="n">request</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

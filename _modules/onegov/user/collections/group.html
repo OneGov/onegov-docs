@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>onegov.election_day.views.locale &#8212; OneGov Docs 0.0.1 documentation</title>
+    <title>onegov.user.collections.group &#8212; OneGov Docs 0.0.1 documentation</title>
     <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
     <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
@@ -32,21 +32,28 @@
 
           <div class="body" role="main">
             
-  <h1>Source code for onegov.election_day.views.locale</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">onegov.core.i18n</span> <span class="k">import</span> <span class="n">SiteLocale</span>
-<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">ElectionDayApp</span>
+  <h1>Source code for onegov.user.collections.group</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">onegov.user.models</span> <span class="k">import</span> <span class="n">UserGroup</span>
+<span class="kn">from</span> <span class="nn">onegov.core.collection</span> <span class="k">import</span> <span class="n">GenericCollection</span>
 
 
-<div class="viewcode-block" id="change_site_locale"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.views.locale.change_site_locale">[docs]</a><span class="nd">@ElectionDayApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
-    <span class="n">model</span><span class="o">=</span><span class="n">SiteLocale</span><span class="p">,</span>
-    <span class="n">permission</span><span class="o">=</span><span class="n">Public</span>
-<span class="p">)</span>
-<span class="k">def</span> <span class="nf">change_site_locale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+<div class="viewcode-block" id="UserGroupCollection"><a class="viewcode-back" href="../../../../onegov_user.html#onegov.user.collections.UserGroupCollection">[docs]</a><span class="k">class</span> <span class="nc">UserGroupCollection</span><span class="p">(</span><span class="n">GenericCollection</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Manages a list of user groups.</span>
 
-    <span class="sd">&quot;&quot;&quot; Changes the locale. &quot;&quot;&quot;</span>
+<span class="sd">    Use it like this::</span>
 
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">redirect</span><span class="p">()</span></div>
+<span class="sd">        from onegov.user import UserGroupCollection</span>
+<span class="sd">        groups = UserGroupCollection(session)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">model_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">UserGroup</span>
+
+    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">UserGroupCollection</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">UserGroup</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

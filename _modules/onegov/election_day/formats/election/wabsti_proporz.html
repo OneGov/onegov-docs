@@ -1,0 +1,572 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>onegov.election_day.formats.election.wabsti_proporz &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.election_day.formats.election.wabsti_proporz</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Candidate</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">CandidateResult</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ElectionResult</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ListConnection</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ListResult</span>
+<span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">PanachageResult</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">EXPATS</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">FileImportError</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">load_csv</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
+
+
+<span class="n">HEADERS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;einheit_bfs&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;liste_kandid&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;kand_nachname&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;kand_vorname&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;liste_id&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;liste_code&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;kand_stimmentotal&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;liste_parteistimmentotal&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="n">HEADERS_CONNECTIONS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;liste&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;lv&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;luv&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="n">HEADERS_CANDIDATES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;liste_kandid&#39;</span>
+<span class="p">]</span>
+
+<span class="n">HEADERS_STATS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;einheit_bfs&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;einheit_name&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;stimbertotal&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;wzeingegangen&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;wzleer&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;wzungueltig&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;stmwzveraendertleeramtlleer&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">parse_election_result</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">errors</span><span class="p">,</span> <span class="n">entities</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">entity_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">einheit_bfs</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid entity values&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">entities</span> <span class="ow">and</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">EXPATS</span><span class="p">:</span>
+            <span class="n">entity_id</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">and</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">entities</span><span class="p">:</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span>
+                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{name}</span><span class="s2"> is unknown&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">entity_id</span><span class="p">})</span>
+            <span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">entity</span> <span class="o">=</span> <span class="n">entities</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity_id</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="k">return</span> <span class="n">ElectionResult</span><span class="p">(</span>
+                <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="n">district</span><span class="o">=</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;district&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">,</span>
+                <span class="n">counted</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">parse_list</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">list_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">liste_id</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">liste_code</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid list values&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">List</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+            <span class="n">list_id</span><span class="o">=</span><span class="n">list_id</span><span class="p">,</span>
+            <span class="n">number_of_mandates</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">parse_list_result</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">votes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">liste_parteistimmentotal</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid list results&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ListResult</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+            <span class="n">votes</span><span class="o">=</span><span class="n">votes</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">parse_panachage_headers</span><span class="p">(</span><span class="n">csv</span><span class="p">):</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">header</span> <span class="ow">in</span> <span class="n">csv</span><span class="o">.</span><span class="n">headers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">header</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">header</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="s1">&#39;0123456789&#39;</span><span class="p">:</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">number</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">number</span> <span class="o">=</span> <span class="mi">999</span> <span class="k">if</span> <span class="n">number</span> <span class="o">==</span> <span class="mi">99</span> <span class="k">else</span> <span class="n">number</span>  <span class="c1"># blank list</span>
+                    <span class="n">headers</span><span class="p">[</span><span class="n">csv</span><span class="o">.</span><span class="n">as_valid_identifier</span><span class="p">(</span><span class="n">header</span><span class="p">)]</span> <span class="o">=</span> <span class="n">number</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">headers</span>
+
+
+<span class="k">def</span> <span class="nf">parse_panachage_results</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">errors</span><span class="p">,</span> <span class="n">panachage</span><span class="p">):</span>
+    <span class="c1"># Each line (candidate) contains a column for each list from where this</span>
+    <span class="c1"># candidate got votes. The column with the own list doesn&#39;t contain the</span>
+    <span class="c1"># votes. The name of the columns are &#39;{Listen-Nr} {Parteikurzbezeichnung}&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">liste_id</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">panachage</span><span class="p">:</span>
+            <span class="n">panachage</span><span class="p">[</span><span class="n">target</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">panachage</span><span class="p">[</span><span class="s1">&#39;headers&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">panachage</span><span class="p">[</span><span class="n">target</span><span class="p">]:</span>
+                <span class="n">panachage</span><span class="p">[</span><span class="n">target</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">panachage</span><span class="p">[</span><span class="n">target</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid list results&quot;</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">parse_candidate</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">candidate_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">liste_kandid</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">family_name</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">kand_nachname</span>
+        <span class="n">first_name</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">kand_vorname</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid candidate values&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Candidate</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+            <span class="n">candidate_id</span><span class="o">=</span><span class="n">candidate_id</span><span class="p">,</span>
+            <span class="n">family_name</span><span class="o">=</span><span class="n">family_name</span><span class="p">,</span>
+            <span class="n">first_name</span><span class="o">=</span><span class="n">first_name</span><span class="p">,</span>
+            <span class="n">elected</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">parse_candidate_result</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">votes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">kand_stimmentotal</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid candidate results&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CandidateResult</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+            <span class="n">votes</span><span class="o">=</span><span class="n">votes</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">parse_connection</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">list_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">liste</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">connection_id</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">lv</span>
+        <span class="n">subconnection_id</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">luv</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid list connection values&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">connection</span> <span class="o">=</span> <span class="n">ListConnection</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+            <span class="n">connection_id</span><span class="o">=</span><span class="n">connection_id</span><span class="p">,</span>
+        <span class="p">)</span> <span class="k">if</span> <span class="n">connection_id</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">subconnection</span> <span class="o">=</span> <span class="n">ListConnection</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+            <span class="n">connection_id</span><span class="o">=</span><span class="n">subconnection_id</span><span class="p">,</span>
+        <span class="p">)</span> <span class="k">if</span> <span class="n">subconnection_id</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">list_id</span><span class="p">,</span> <span class="n">connection</span><span class="p">,</span> <span class="n">subconnection</span>
+
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="import_election_wabsti_proporz"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.formats.import_election_wabsti_proporz">[docs]</a><span class="k">def</span> <span class="nf">import_election_wabsti_proporz</span><span class="p">(</span>
+    <span class="n">election</span><span class="p">,</span> <span class="n">principal</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">mimetype</span><span class="p">,</span>
+    <span class="n">connections_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">connections_mimetype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">elected_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">elected_mimetype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">statistics_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">statistics_mimetype</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Tries to import the given csv, xls or xlsx file.</span>
+
+<span class="sd">    This is the format used by Wabsti for proporz elections. Since there is no</span>
+<span class="sd">    format description, importing these files is somewhat experimental.</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">        A list containing errors.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">lists</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">list_results</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">connections</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">subconnections</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">entities</span> <span class="o">=</span> <span class="n">principal</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="n">election</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">]</span>
+
+    <span class="c1"># This format has one candiate per entity per line</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Results&quot;</span><span class="p">)</span>
+    <span class="n">csv</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+        <span class="n">file</span><span class="p">,</span> <span class="n">mimetype</span><span class="p">,</span> <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+        <span class="c1"># Wabsti files are sometimes UTF-16</span>
+        <span class="n">csv</span><span class="p">,</span> <span class="n">utf16_error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+            <span class="n">file</span><span class="p">,</span> <span class="n">mimetype</span><span class="p">,</span> <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+            <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-16-le&#39;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">utf16_error</span><span class="p">:</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">panachage</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;headers&#39;</span><span class="p">:</span> <span class="n">parse_panachage_headers</span><span class="p">(</span><span class="n">csv</span><span class="p">)}</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">csv</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+            <span class="n">line_errors</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="c1"># Parse the line</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">parse_election_result</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">line_errors</span><span class="p">,</span> <span class="n">entities</span><span class="p">)</span>
+            <span class="n">candidate</span> <span class="o">=</span> <span class="n">parse_candidate</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">line_errors</span><span class="p">)</span>
+            <span class="n">candidate_result</span> <span class="o">=</span> <span class="n">parse_candidate_result</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">line_errors</span><span class="p">)</span>
+            <span class="nb">list</span> <span class="o">=</span> <span class="n">parse_list</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">line_errors</span><span class="p">)</span>
+            <span class="n">list_result</span> <span class="o">=</span> <span class="n">parse_list_result</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">line_errors</span><span class="p">)</span>
+            <span class="n">parse_panachage_results</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">line_errors</span><span class="p">,</span> <span class="n">panachage</span><span class="p">)</span>
+
+            <span class="c1"># Pass the errors and continue to next line</span>
+            <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                    <span class="n">FileImportError</span><span class="p">(</span>
+                        <span class="n">error</span><span class="o">=</span><span class="n">err</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">line_errors</span>
+                <span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Add the data</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+
+            <span class="nb">list</span> <span class="o">=</span> <span class="n">lists</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="nb">list</span><span class="o">.</span><span class="n">list_id</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+
+            <span class="n">list_results</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">list_result</span> <span class="o">=</span> <span class="n">list_results</span><span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">entity_id</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+                <span class="nb">list</span><span class="o">.</span><span class="n">list_id</span><span class="p">,</span> <span class="n">list_result</span>
+            <span class="p">)</span>
+            <span class="n">list_result</span><span class="o">.</span><span class="n">list_id</span> <span class="o">=</span> <span class="nb">list</span><span class="o">.</span><span class="n">id</span>
+
+            <span class="n">candidate</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">candidate</span><span class="o">.</span><span class="n">candidate_id</span><span class="p">,</span>
+                                              <span class="n">candidate</span><span class="p">)</span>
+            <span class="n">candidate_result</span><span class="o">.</span><span class="n">candidate_id</span> <span class="o">=</span> <span class="n">candidate</span><span class="o">.</span><span class="n">id</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">candidate_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidate_result</span><span class="p">)</span>
+
+            <span class="n">candidate</span><span class="o">.</span><span class="n">list_id</span> <span class="o">=</span> <span class="nb">list</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="c1"># The list connections has one list per line</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;List connections&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">connections_file</span> <span class="ow">and</span> <span class="n">connections_mimetype</span><span class="p">:</span>
+        <span class="n">csv</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+            <span class="n">connections_file</span><span class="p">,</span> <span class="n">connections_mimetype</span><span class="p">,</span>
+            <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_CONNECTIONS</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="n">filename</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+            <span class="c1"># Wabsti files are sometimes UTF-16</span>
+            <span class="n">csv</span><span class="p">,</span> <span class="n">utf16_error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+                <span class="n">connections_file</span><span class="p">,</span> <span class="n">connections_mimetype</span><span class="p">,</span>
+                <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_CONNECTIONS</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+                <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-16-le&#39;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">utf16_error</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">indexes</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">item</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">lists</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">csv</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+                <span class="n">line_errors</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">list_id</span><span class="p">,</span> <span class="n">connection</span><span class="p">,</span> <span class="n">subconnection</span> <span class="o">=</span> <span class="n">parse_connection</span><span class="p">(</span>
+                    <span class="n">line</span><span class="p">,</span> <span class="n">line_errors</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
+                    <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                        <span class="n">FileImportError</span><span class="p">(</span>
+                            <span class="n">error</span><span class="o">=</span><span class="n">err</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">line_errors</span>
+                    <span class="p">)</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">list_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">lists</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">connection</span><span class="p">:</span>
+                    <span class="n">connection</span> <span class="o">=</span> <span class="n">connections</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+                        <span class="n">connection</span><span class="o">.</span><span class="n">connection_id</span><span class="p">,</span> <span class="n">connection</span>
+                    <span class="p">)</span>
+                    <span class="n">lists</span><span class="p">[</span><span class="n">list_id</span><span class="p">]</span><span class="o">.</span><span class="n">connection_id</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">id</span>
+                    <span class="k">if</span> <span class="n">subconnection</span><span class="p">:</span>
+                        <span class="n">subconnection</span> <span class="o">=</span> <span class="n">subconnections</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+                            <span class="n">subconnection</span><span class="o">.</span><span class="n">connection_id</span><span class="p">,</span> <span class="n">subconnection</span>
+                        <span class="p">)</span>
+                        <span class="n">subconnection</span><span class="o">.</span><span class="n">parent_id</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">id</span>
+                        <span class="n">lists</span><span class="p">[</span><span class="n">list_id</span><span class="p">]</span><span class="o">.</span><span class="n">connection_id</span> <span class="o">=</span> <span class="n">subconnection</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="c1"># The candidates file has one elected candidate per line</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Elected Candidates&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">elected_file</span> <span class="ow">and</span> <span class="n">elected_mimetype</span><span class="p">:</span>
+        <span class="n">csv</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+            <span class="n">elected_file</span><span class="p">,</span> <span class="n">elected_mimetype</span><span class="p">,</span>
+            <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_CANDIDATES</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="n">filename</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+            <span class="c1"># Wabsti files are sometimes UTF-16</span>
+            <span class="n">csv</span><span class="p">,</span> <span class="n">utf16_error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+                <span class="n">elected_file</span><span class="p">,</span> <span class="n">elected_mimetype</span><span class="p">,</span>
+                <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_CANDIDATES</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+                <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-16-le&#39;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">utf16_error</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">indexes</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">item</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">lists</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">csv</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">candidate_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">liste_kandid</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">FileImportError</span><span class="p">(</span>
+                            <span class="n">error</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid values&quot;</span><span class="p">),</span>
+                            <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span>
+                            <span class="n">filename</span><span class="o">=</span><span class="n">filename</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">candidate_id</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
+                        <span class="n">candidates</span><span class="p">[</span><span class="n">candidate_id</span><span class="p">]</span><span class="o">.</span><span class="n">elected</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="n">index</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="n">candidates</span><span class="p">[</span><span class="n">candidate_id</span><span class="p">]</span><span class="o">.</span><span class="n">list_id</span><span class="p">]</span>
+                        <span class="n">lists</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">number_of_mandates</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> \
+                            <span class="n">lists</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">number_of_mandates</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="n">FileImportError</span><span class="p">(</span>
+                                <span class="n">error</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Unknown candidate&quot;</span><span class="p">),</span>
+                                <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span>
+                                <span class="n">filename</span><span class="o">=</span><span class="n">filename</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+
+    <span class="c1"># The stats file has one muncipality per line</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Election statistics&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">statistics_file</span> <span class="ow">and</span> <span class="n">statistics_mimetype</span><span class="p">:</span>
+        <span class="n">csv</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+            <span class="n">statistics_file</span><span class="p">,</span> <span class="n">statistics_mimetype</span><span class="p">,</span>
+            <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_STATS</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+            <span class="c1"># Wabsti files are sometimes UTF-16</span>
+            <span class="n">csv</span><span class="p">,</span> <span class="n">utf16_error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
+                <span class="n">statistics_file</span><span class="p">,</span> <span class="n">statistics_mimetype</span><span class="p">,</span>
+                <span class="n">expected_headers</span><span class="o">=</span><span class="n">HEADERS_STATS</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+                <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-16-le&#39;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">utf16_error</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">csv</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">group</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">einheit_name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="n">entity_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">einheit_bfs</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="n">eligible_voters</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stimbertotal</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="n">received_ballots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">wzeingegangen</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="n">blank_ballots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">wzleer</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="n">invalid_ballots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">wzungueltig</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="n">blank_votes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stmwzveraendertleeramtlleer</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">FileImportError</span><span class="p">(</span>
+                            <span class="n">error</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid values&quot;</span><span class="p">),</span>
+                            <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">rownumber</span><span class="p">,</span>
+                            <span class="n">filename</span><span class="o">=</span><span class="n">filename</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">entities</span> <span class="ow">and</span> <span class="n">group</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> \
+                            <span class="s1">&#39;auslandschweizer&#39;</span><span class="p">:</span>
+                        <span class="n">entity_id</span> <span class="o">=</span> <span class="mi">0</span>
+
+                    <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+                        <span class="n">results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span><span class="o">.</span><span class="n">eligible_voters</span> <span class="o">=</span> <span class="n">eligible_voters</span>
+                        <span class="n">results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span><span class="o">.</span><span class="n">received_ballots</span> <span class="o">=</span> <span class="n">received_ballots</span>
+                        <span class="n">results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span><span class="o">.</span><span class="n">blank_ballots</span> <span class="o">=</span> <span class="n">blank_ballots</span>
+                        <span class="n">results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span><span class="o">.</span><span class="n">invalid_ballots</span> <span class="o">=</span> <span class="n">invalid_ballots</span>
+                        <span class="n">results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span><span class="o">.</span><span class="n">blank_votes</span> <span class="o">=</span> <span class="n">blank_votes</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">errors</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">results</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FileImportError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;No data found&quot;</span><span class="p">)))</span>
+
+    <span class="c1"># Check if all results are from the same district if regional election</span>
+    <span class="n">districts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">result</span><span class="o">.</span><span class="n">district</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+    <span class="k">if</span> <span class="n">election</span><span class="o">.</span><span class="n">domain</span> <span class="o">==</span> <span class="s1">&#39;region&#39;</span> <span class="ow">and</span> <span class="n">election</span><span class="o">.</span><span class="n">distinct</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">principal</span><span class="o">.</span><span class="n">has_districts</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">districts</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FileImportError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;No clear district&quot;</span><span class="p">)))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FileImportError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;No clear district&quot;</span><span class="p">)))</span>
+
+    <span class="k">if</span> <span class="n">errors</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">errors</span>
+
+    <span class="c1"># Add the missing entities</span>
+    <span class="n">remaining</span> <span class="o">=</span> <span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="n">results</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">remaining</span><span class="p">:</span>
+        <span class="n">entity</span> <span class="o">=</span> <span class="n">entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span>
+        <span class="n">district</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;district&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">election</span><span class="o">.</span><span class="n">domain</span> <span class="o">==</span> <span class="s1">&#39;region&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">election</span><span class="o">.</span><span class="n">distinct</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">principal</span><span class="o">.</span><span class="n">has_districts</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">district</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">districts</span><span class="p">:</span>
+                <span class="k">continue</span>
+        <span class="n">results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">ElectionResult</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+            <span class="n">district</span><span class="o">=</span><span class="n">district</span><span class="p">,</span>
+            <span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">,</span>
+            <span class="n">counted</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+    <span class="n">election</span><span class="o">.</span><span class="n">clear_results</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">connection</span> <span class="ow">in</span> <span class="n">connections</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">election</span><span class="o">.</span><span class="n">list_connections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">connection</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">connection</span> <span class="ow">in</span> <span class="n">subconnections</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">election</span><span class="o">.</span><span class="n">list_connections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">connection</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">list_</span> <span class="ow">in</span> <span class="n">lists</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">election</span><span class="o">.</span><span class="n">lists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">list_</span><span class="o">.</span><span class="n">list_id</span> <span class="ow">in</span> <span class="n">panachage</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">source</span><span class="p">,</span> <span class="n">votes</span> <span class="ow">in</span> <span class="n">panachage</span><span class="p">[</span><span class="n">list_</span><span class="o">.</span><span class="n">list_id</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">list_</span><span class="o">.</span><span class="n">panachage_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">PanachageResult</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span> <span class="n">votes</span><span class="o">=</span><span class="n">votes</span><span class="p">)</span>
+                <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">candidates</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">election</span><span class="o">.</span><span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">list_result</span> <span class="ow">in</span> <span class="n">list_results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">list_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_result</span><span class="p">)</span>
+        <span class="n">election</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">[]</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../../index.html">
+    <img class="logo" src="../../../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
