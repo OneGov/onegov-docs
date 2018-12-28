@@ -82,12 +82,6 @@ Templating (Chameleon)
 .. automodule:: onegov.core.templates
     :members:
 
-Distributed Locks
------------------
-
-.. automodule:: onegov.core.locking
-    :members:
-
 Cronjobs
 --------
 
@@ -143,12 +137,6 @@ Utils
 -----
 
 .. automodule:: onegov.core.utils
-    :members:
-
-Custom JSON
------------
-
-.. automodule:: onegov.core.custom_json
     :members:
 
 Webasset Filters

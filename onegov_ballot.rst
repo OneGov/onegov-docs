@@ -13,8 +13,8 @@ Vote Models
 .. automodule:: onegov.ballot.models.vote
     :members:
 
-Collection
-----------
+Collections
+-----------
 
-.. automodule:: onegov.ballot.collection
+.. automodule:: onegov.ballot.collections
     :members:

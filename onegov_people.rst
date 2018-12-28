@@ -7,8 +7,8 @@ Models
 .. autoclass:: onegov.people.models
     :members:
 
-Collection
-----------
+Collections
+-----------
 
-.. autoclass:: onegov.people.collection
+.. autoclass:: onegov.people.collections
     :members:
