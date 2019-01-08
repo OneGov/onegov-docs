@@ -597,6 +597,30 @@
                 <span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="SettingsLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.SettingsLayout">[docs]</a><span class="k">class</span> <span class="nc">SettingsLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">setting</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_editor</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_code_editor</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;check_contrast&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;tags-input&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">setting</span> <span class="o">=</span> <span class="n">setting</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">breadcrumbs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bc</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">homepage_url</span><span class="p">),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Settings&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">org</span><span class="p">,</span> <span class="s1">&#39;settings&#39;</span><span class="p">))</span>
+        <span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">setting</span><span class="p">:</span>
+            <span class="n">bc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">setting</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">bc</span></div>
+
+
 <div class="viewcode-block" id="PageLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.PageLayout">[docs]</a><span class="k">class</span> <span class="nc">PageLayout</span><span class="p">(</span><span class="n">AdjacencyListLayout</span><span class="p">):</span>
 
     <span class="nd">@cached_property</span>

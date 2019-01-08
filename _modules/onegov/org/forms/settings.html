@@ -39,7 +39,6 @@
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">Form</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">with_options</span>
 <span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">MultiCheckboxField</span><span class="p">,</span> <span class="n">TagsField</span>
-<span class="kn">from</span> <span class="nn">onegov.form.validators</span> <span class="k">import</span> <span class="n">Stdnum</span>
 <span class="kn">from</span> <span class="nn">onegov.gis</span> <span class="k">import</span> <span class="n">CoordinatesField</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.org.forms.fields</span> <span class="k">import</span> <span class="n">HtmlField</span>
@@ -58,148 +57,154 @@
 <span class="n">ERROR_LINE_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;line ([0-9]+)&#39;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="SettingsForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.SettingsForm">[docs]</a><span class="k">class</span> <span class="nc">SettingsForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+<div class="viewcode-block" id="GeneralSettingsForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.GeneralSettingsForm">[docs]</a><span class="k">class</span> <span class="nc">GeneralSettingsForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Defines the settings form for onegov org. &quot;&quot;&quot;</span>
 
     <span class="n">name</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">),</span>
-        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">InputRequired</span><span class="p">()],</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;General&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">InputRequired</span><span class="p">()])</span>
+
     <span class="n">logo_url</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Logo&quot;</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;URL pointing to the logo&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;General&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">}</span>
-    <span class="p">)</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">})</span>
+
     <span class="n">square_logo_url</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Logo (Square)&quot;</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;URL pointing to the logo&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;General&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">}</span>
-    <span class="p">)</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">})</span>
+
     <span class="n">reply_to</span> <span class="o">=</span> <span class="n">EmailField</span><span class="p">(</span>
         <span class="n">_</span><span class="p">(</span><span class="s2">&quot;E-Mail Reply Address&quot;</span><span class="p">),</span> <span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">InputRequired</span><span class="p">()],</span>
-        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Replies to automated e-mails go to this address.&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;General&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Replies to automated e-mails go to this address.&quot;</span><span class="p">))</span>
+
     <span class="n">primary_color</span> <span class="o">=</span> <span class="n">ColorField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Primary Color&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;General&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Primary Color&quot;</span><span class="p">))</span>
+
     <span class="n">locales</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Languages&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;General&quot;</span><span class="p">),</span>
         <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
             <span class="p">(</span><span class="s1">&#39;de_CH&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;German&quot;</span><span class="p">)),</span>
             <span class="p">(</span><span class="s1">&#39;fr_CH&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;French&quot;</span><span class="p">))</span>
         <span class="p">),</span>
-        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">InputRequired</span><span class="p">()]</span>
-    <span class="p">)</span>
-    <span class="n">bank_account</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Bank Account (IBAN)&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Payment&quot;</span><span class="p">),</span>
-        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">Stdnum</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s1">&#39;iban&#39;</span><span class="p">)]</span>
-    <span class="p">)</span>
-    <span class="n">bank_beneficiary</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Beneficiary&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Payment&quot;</span><span class="p">),</span>
-    <span class="p">)</span>
-    <span class="n">bank_payment_order_type</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Payment Order&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Payment&quot;</span><span class="p">),</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
-            <span class="p">(</span><span class="s1">&#39;basic&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Basic&quot;</span><span class="p">)),</span>
-            <span class="p">(</span><span class="s1">&#39;esr&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;With reference number (ESR)&quot;</span><span class="p">)),</span>
-        <span class="p">],</span>
-        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;basic&#39;</span>
-    <span class="p">)</span>
-    <span class="n">bank_esr_participant_number</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;ESR participant number&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Payment&quot;</span><span class="p">),</span>
-        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">InputRequired</span><span class="p">()],</span>
-        <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;bank_payment_order_type&#39;</span><span class="p">,</span> <span class="s1">&#39;esr&#39;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">InputRequired</span><span class="p">()])</span>
+
+    <span class="c1"># the footer height is determined by javascript, see org.scss and</span>
+    <span class="c1"># common.js for more information (search for footer)</span>
+    <span class="n">footer_height</span> <span class="o">=</span> <span class="n">HiddenField</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">theme_options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">theme_options</span>
+        <span class="n">options</span><span class="p">[</span><span class="s1">&#39;footer-height&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">footer_height</span><span class="o">.</span><span class="n">data</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">options</span><span class="p">[</span><span class="s1">&#39;primary-color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_color</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get_hex</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">options</span><span class="p">[</span><span class="s1">&#39;primary-color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">user_options</span><span class="p">[</span><span class="s1">&#39;primary-color&#39;</span><span class="p">]</span>
+
+        <span class="c1"># override the options using the default values if no value was given</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                <span class="n">options</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">user_options</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">options</span>
+
+    <span class="nd">@theme_options</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">theme_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primary_color</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;primary-color&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">footer_height</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;footer-height&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GeneralSettingsForm.populate_obj"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.GeneralSettingsForm.populate_obj">[docs]</a>    <span class="k">def</span> <span class="nf">populate_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">populate_obj</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">theme_options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theme_options</span></div>
+
+<div class="viewcode-block" id="GeneralSettingsForm.process_obj"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.GeneralSettingsForm.process_obj">[docs]</a>    <span class="k">def</span> <span class="nf">process_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">process_obj</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theme_options</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">theme_options</span></div>
+
+    <span class="k">def</span> <span class="nf">on_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="nd">@self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">after</span>
+        <span class="k">def</span> <span class="nf">clear_locale</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">delete_cookie</span><span class="p">(</span><span class="s1">&#39;locale&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FooterSettingsForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.FooterSettingsForm">[docs]</a><span class="k">class</span> <span class="nc">FooterSettingsForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+
     <span class="n">contact</span> <span class="o">=</span> <span class="n">TextAreaField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Contact&quot;</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The address and phone number of the municipality&quot;</span><span class="p">),</span>
         <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Information&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Information&quot;</span><span class="p">))</span>
+
     <span class="n">contact_url</span> <span class="o">=</span> <span class="n">URLField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Contact Link&quot;</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;URL pointing to a contact page&quot;</span><span class="p">),</span>
         <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Information&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;internal-url&#39;</span><span class="p">}</span>
-    <span class="p">)</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;internal-url&#39;</span><span class="p">})</span>
+
     <span class="n">opening_hours</span> <span class="o">=</span> <span class="n">TextAreaField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Opening Hours&quot;</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The opening hours of the municipality&quot;</span><span class="p">),</span>
         <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Information&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Information&quot;</span><span class="p">))</span>
+
     <span class="n">opening_hours_url</span> <span class="o">=</span> <span class="n">URLField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Opening Hours Link&quot;</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;URL pointing to an opening hours page&quot;</span><span class="p">),</span>
         <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Information&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;internal-url&#39;</span><span class="p">}</span>
-    <span class="p">)</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;internal-url&#39;</span><span class="p">})</span>
+
     <span class="n">facebook_url</span> <span class="o">=</span> <span class="n">URLField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Facebook&quot;</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;URL pointing to the facebook site&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Social Media&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Social Media&quot;</span><span class="p">))</span>
+
     <span class="n">twitter_url</span> <span class="o">=</span> <span class="n">URLField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Twitter&quot;</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;URL pointing to the twitter site&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Social Media&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Social Media&quot;</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="HomepageSettingsForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.HomepageSettingsForm">[docs]</a><span class="k">class</span> <span class="nc">HomepageSettingsForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+
     <span class="n">homepage_image_1</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage Image #1&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">},</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">})</span>
+
     <span class="n">homepage_image_2</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage Image #2&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">},</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">})</span>
+
     <span class="n">homepage_image_3</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage Image #3&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">},</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">})</span>
+
     <span class="n">homepage_image_4</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage Image #4&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">},</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">})</span>
+
     <span class="n">homepage_image_5</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage Image #5&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">},</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">})</span>
+
     <span class="n">homepage_image_6</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage Image #6&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">},</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">})</span>
+
     <span class="n">homepage_cover</span> <span class="o">=</span> <span class="n">HtmlField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage Cover&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">})</span>
+
     <span class="n">homepage_structure</span> <span class="o">=</span> <span class="n">TextAreaField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage Structure (for advanced users only)&quot;</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The structure of the homepage&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span> <span class="s1">&#39;data-editor&#39;</span><span class="p">:</span> <span class="s1">&#39;xml&#39;</span><span class="p">},</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span> <span class="s1">&#39;data-editor&#39;</span><span class="p">:</span> <span class="s1">&#39;xml&#39;</span><span class="p">})</span>
 
     <span class="c1"># see homepage.py</span>
     <span class="n">redirect_homepage_to</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage redirect&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span>
         <span class="n">default</span><span class="o">=</span><span class="s1">&#39;no&#39;</span><span class="p">,</span>
         <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
             <span class="p">(</span><span class="s1">&#39;no&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;No&quot;</span><span class="p">)),</span>
@@ -208,64 +213,7 @@
             <span class="p">(</span><span class="s1">&#39;forms&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Yes, to forms&quot;</span><span class="p">)),</span>
             <span class="p">(</span><span class="s1">&#39;publications&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Yes, to publications&quot;</span><span class="p">)),</span>
             <span class="p">(</span><span class="s1">&#39;reservations&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Yes, to reservations&quot;</span><span class="p">)),</span>
-        <span class="p">],</span>
-    <span class="p">)</span>
-
-    <span class="n">hidden_people_fields</span> <span class="o">=</span> <span class="n">MultiCheckboxField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Hide these fields for non-logged-in users&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;People&quot;</span><span class="p">),</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
-            <span class="p">(</span><span class="s1">&#39;salutation&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Salutation&quot;</span><span class="p">)),</span>
-            <span class="p">(</span><span class="s1">&#39;academic_title&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Academic Title&quot;</span><span class="p">)),</span>
-            <span class="p">(</span><span class="s1">&#39;born&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Born&quot;</span><span class="p">)),</span>
-            <span class="p">(</span><span class="s1">&#39;profession&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Profession&quot;</span><span class="p">)),</span>
-            <span class="p">(</span><span class="s1">&#39;political_party&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Political Party&quot;</span><span class="p">)),</span>
-            <span class="p">(</span><span class="s1">&#39;email&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;E-Mail&quot;</span><span class="p">)),</span>
-            <span class="p">(</span><span class="s1">&#39;phone&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Phone&quot;</span><span class="p">)),</span>
-            <span class="p">(</span><span class="s1">&#39;phone_direct&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Direct Phone Number&quot;</span><span class="p">)),</span>
-            <span class="p">(</span><span class="s1">&#39;website&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Website&quot;</span><span class="p">)),</span>
-            <span class="p">(</span><span class="s1">&#39;address&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Address&quot;</span><span class="p">)),</span>
-            <span class="p">(</span><span class="s1">&#39;notes&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Notes&quot;</span><span class="p">)),</span>
-        <span class="p">],</span>
-    <span class="p">)</span>
-
-    <span class="n">event_locations</span> <span class="o">=</span> <span class="n">TagsField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Values of the location filter&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Events&quot;</span><span class="p">),</span>
-    <span class="p">)</span>
-
-    <span class="n">default_map_view</span> <span class="o">=</span> <span class="n">CoordinatesField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The default map view. This should show the whole town&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span>
-            <span class="s1">&#39;data-map-type&#39;</span><span class="p">:</span> <span class="s1">&#39;crosshair&#39;</span>
-        <span class="p">},</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Maps&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
-
-    <span class="n">geo_provider</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Geo provider&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Maps&quot;</span><span class="p">),</span>
-        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;geo-mapbox&#39;</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
-            <span class="p">(</span><span class="s1">&#39;geo-mapbox&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Mapbox (Default)&quot;</span><span class="p">)),</span>
-            <span class="p">(</span><span class="s1">&#39;geo-vermessungsamt-winterthur&#39;</span><span class="p">,</span> <span class="s2">&quot;Vermessungsamt Winterthur&quot;</span><span class="p">),</span>
-            <span class="p">(</span><span class="s1">&#39;geo-zugmap-luftbild&#39;</span><span class="p">,</span> <span class="s2">&quot;ZugMap Luftbild&quot;</span><span class="p">),</span>
-            <span class="p">(</span><span class="s1">&#39;geo-zugmap-ortsplan&#39;</span><span class="p">,</span> <span class="s2">&quot;ZugMap Ortsplan&quot;</span><span class="p">),</span>
-        <span class="p">]</span>
-    <span class="p">)</span>
-
-    <span class="n">analytics_code</span> <span class="o">=</span> <span class="n">TextAreaField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Analytics Code&quot;</span><span class="p">),</span>
-        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;JavaScript for web statistics support&quot;</span><span class="p">),</span>
-        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Advanced&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
-    <span class="c1"># the footer height is determined by javascript, see org.scss and</span>
-    <span class="c1"># common.js for more information (search for footer)</span>
-    <span class="n">footer_height</span> <span class="o">=</span> <span class="n">HiddenField</span><span class="p">()</span>
-
-    <span class="k">def</span> <span class="nf">on_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;tags-input&#39;</span><span class="p">)</span>
+        <span class="p">])</span>
 
     <span class="k">def</span> <span class="nf">validate_homepage_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
@@ -285,49 +233,91 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">theme_options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">primary_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_color</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get_hex</span><span class="p">()</span>
-        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-            <span class="n">primary_color</span> <span class="o">=</span> <span class="n">user_options</span><span class="p">[</span><span class="s1">&#39;primary-color&#39;</span><span class="p">]</span>
-
-        <span class="n">options</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;primary-color&#39;</span><span class="p">:</span> <span class="n">primary_color</span><span class="p">,</span>
-            <span class="s1">&#39;footer-height&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">footer_height</span><span class="o">.</span><span class="n">data</span>
-        <span class="p">}</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">theme_options</span>
 
         <span class="c1"># set the images only if provided</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">):</span>
             <span class="n">image</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;homepage_image_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span><span class="o">.</span><span class="n">data</span>
 
             <span class="k">if</span> <span class="ow">not</span> <span class="n">image</span><span class="p">:</span>
-                <span class="k">continue</span>
+                <span class="n">options</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;tile-image-</span><span class="si">{i}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">options</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;tile-image-</span><span class="si">{i}</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 
-            <span class="n">options</span><span class="p">[</span><span class="s1">&#39;tile-image-</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="s1">&#39;&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
-
-        <span class="c1"># override the options using the default vaules if no value was given</span>
+        <span class="c1"># override the options using the default values if no value was given</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
                 <span class="n">options</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">user_options</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
         <span class="k">return</span> <span class="n">options</span>
 
-    <span class="k">def</span> <span class="nf">ensure_beneificary_if_bank_account</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bank_account</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bank_beneficiary</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">bank_beneficiary</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span>
-                <span class="s2">&quot;A beneficiary is required if a bank account is given.&quot;</span>
-            <span class="p">))</span>
-            <span class="k">return</span> <span class="kc">False</span>
-
     <span class="nd">@theme_options</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span> <span class="nf">theme_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">primary_color</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;primary-color&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">footer_height</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;footer-height&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">homepage_image_1</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tile-image-1&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">homepage_image_2</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tile-image-2&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">homepage_image_3</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tile-image-3&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">homepage_image_4</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tile-image-4&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">homepage_image_5</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tile-image-5&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">homepage_image_6</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tile-image-6&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">homepage_image_6</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tile-image-6&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="HomepageSettingsForm.populate_obj"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.HomepageSettingsForm.populate_obj">[docs]</a>    <span class="k">def</span> <span class="nf">populate_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">populate_obj</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">theme_options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theme_options</span></div>
+
+<div class="viewcode-block" id="HomepageSettingsForm.process_obj"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.HomepageSettingsForm.process_obj">[docs]</a>    <span class="k">def</span> <span class="nf">process_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">process_obj</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theme_options</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">theme_options</span></div></div>
+
+
+<div class="viewcode-block" id="ModuleSettingsForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.ModuleSettingsForm">[docs]</a><span class="k">class</span> <span class="nc">ModuleSettingsForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+
+    <span class="n">hidden_people_fields</span> <span class="o">=</span> <span class="n">MultiCheckboxField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Hide these fields for non-logged-in users&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;People&quot;</span><span class="p">),</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s1">&#39;salutation&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Salutation&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;academic_title&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Academic Title&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;born&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Born&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;profession&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Profession&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;political_party&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Political Party&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;email&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;E-Mail&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;phone&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Phone&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;phone_direct&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Direct Phone Number&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;website&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Website&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;address&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Address&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;notes&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Notes&quot;</span><span class="p">)),</span>
+        <span class="p">])</span>
+
+    <span class="n">event_locations</span> <span class="o">=</span> <span class="n">TagsField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Values of the location filter&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Events&quot;</span><span class="p">),)</span></div>
+
+
+<div class="viewcode-block" id="MapSettingsForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.MapSettingsForm">[docs]</a><span class="k">class</span> <span class="nc">MapSettingsForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+
+    <span class="n">default_map_view</span> <span class="o">=</span> <span class="n">CoordinatesField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The default map view. This should show the whole town&quot;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span>
+            <span class="s1">&#39;data-map-type&#39;</span><span class="p">:</span> <span class="s1">&#39;crosshair&#39;</span>
+        <span class="p">})</span>
+
+    <span class="n">geo_provider</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Geo provider&quot;</span><span class="p">),</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;geo-mapbox&#39;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s1">&#39;geo-mapbox&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Mapbox (Default)&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;geo-vermessungsamt-winterthur&#39;</span><span class="p">,</span> <span class="s2">&quot;Vermessungsamt Winterthur&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;geo-zugmap-luftbild&#39;</span><span class="p">,</span> <span class="s2">&quot;ZugMap Luftbild&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;geo-zugmap-ortsplan&#39;</span><span class="p">,</span> <span class="s2">&quot;ZugMap Ortsplan&quot;</span><span class="p">),</span>
+        <span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="AnalyticsSettingsForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.AnalyticsSettingsForm">[docs]</a><span class="k">class</span> <span class="nc">AnalyticsSettingsForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+
+    <span class="n">analytics_code</span> <span class="o">=</span> <span class="n">TextAreaField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Analytics Code&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;JavaScript for web statistics support&quot;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;data-editor&#39;</span><span class="p">:</span> <span class="s1">&#39;html&#39;</span><span class="p">})</span></div>
 </pre></div>
 
           </div>

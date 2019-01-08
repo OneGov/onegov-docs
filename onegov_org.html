@@ -70,9 +70,15 @@
 <dd><p>Registers a directory search widget.</p>
 </dd></dl>
 
+<dl class="classmethod">
+<dt id="onegov.org.app.OrgApp.settings_view">
+<em class="property">classmethod </em><code class="descname">settings_view</code><span class="sig-paren">(</span><em>*args</em>, <em>**kw</em><span class="sig-paren">)</span><a class="headerlink" href="#onegov.org.app.OrgApp.settings_view" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a settings view.</p>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="onegov.org.app.OrgApp.version">
-<code class="descname">version</code><em class="property"> = '0.46.5'</em><a class="headerlink" href="#onegov.org.app.OrgApp.version" title="Permalink to this definition">¶</a></dt>
+<code class="descname">version</code><em class="property"> = '0.47.0'</em><a class="headerlink" href="#onegov.org.app.OrgApp.version" title="Permalink to this definition">¶</a></dt>
 <dd><p>the version of this application (do not change manually!)</p>
 </dd></dl>
 
@@ -455,6 +461,60 @@ by the <code class="docutils literal notranslate"><span class="pre">config</span
 
 </dd></dl>
 
+<dl class="class">
+<dt id="onegov.org.directives.SettingsView">
+<em class="property">class </em><code class="descclassname">onegov.org.directives.</code><code class="descname">SettingsView</code><span class="sig-paren">(</span><em>name</em>, <em>title</em>, <em>order=0</em>, <em>icon='fa-cogs'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/directives.html#SettingsView"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.directives.SettingsView" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a settings view.</p>
+<dl class="method">
+<dt id="onegov.org.directives.SettingsView.identifier">
+<code class="descname">identifier</code><span class="sig-paren">(</span><em>settings_view_registry</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/directives.html#SettingsView.identifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.directives.SettingsView.identifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an immutable that uniquely identifies this config.</p>
+<p>Needs to be implemented by the <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code> subclass.</p>
+<p>Used for overrides and conflict detection.</p>
+<p>If two actions in the same group have the same identifier in
+the same configurable, those two actions are in conflict and a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ConflictError</span></code> is raised during <code class="xref py py-func docutils literal notranslate"><span class="pre">commit()</span></code>.</p>
+<p>If an action in an extending configurable has the same
+identifier as the configurable being extended, that action
+overrides the original one in the extending configurable.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>**kw</strong> – a dictionary of configuration objects as specified
+by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">an immutable value uniquely identifying this action.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.directives.SettingsView.perform">
+<code class="descname">perform</code><span class="sig-paren">(</span><em>func</em>, <em>settings_view_registry</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/directives.html#SettingsView.perform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.directives.SettingsView.perform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do whatever configuration is needed for <code class="docutils literal notranslate"><span class="pre">obj</span></code>.</p>
+<p>Needs to be implemented by the <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code> subclass.</p>
+<p>Raise a <code class="xref py py-exc docutils literal notranslate"><span class="pre">DirectiveError</span></code> to indicate that the action
+cannot be performed due to incorrect configuration.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>obj</strong> – the object that the action should be performed
+for. Typically a function or a class object.</li>
+<li><strong>**kw</strong> – a dictionary of configuration objects as specified
+by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-onegov.org.homepage_widgets.core">
 <span id="homepage-widgets"></span><h2>Homepage Widgets<a class="headerlink" href="#module-onegov.org.homepage_widgets.core" title="Permalink to this headline">¶</a></h2>
@@ -690,6 +750,11 @@ lines (like on the site footer), this version puts it all on one line.</p>
 </dd></dl>
 
 </dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.layout.SettingsLayout">
+<em class="property">class </em><code class="descclassname">onegov.org.layout.</code><code class="descname">SettingsLayout</code><span class="sig-paren">(</span><em>model</em>, <em>request</em>, <em>setting=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/layout.html#SettingsLayout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.layout.SettingsLayout" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="class">
 <dt id="onegov.org.layout.PageLayout">
@@ -2010,10 +2075,71 @@ call <code class="docutils literal notranslate"><span class="pre">form.process(o
 </dd></dl>
 
 <span class="target" id="module-onegov.org.forms.settings"></span><dl class="class">
-<dt id="onegov.org.forms.settings.SettingsForm">
-<em class="property">class </em><code class="descclassname">onegov.org.forms.settings.</code><code class="descname">SettingsForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/settings.html#SettingsForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.settings.SettingsForm" title="Permalink to this definition">¶</a></dt>
+<dt id="onegov.org.forms.settings.GeneralSettingsForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.settings.</code><code class="descname">GeneralSettingsForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/settings.html#GeneralSettingsForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.settings.GeneralSettingsForm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines the settings form for onegov org.</p>
+<dl class="method">
+<dt id="onegov.org.forms.settings.GeneralSettingsForm.populate_obj">
+<code class="descname">populate_obj</code><span class="sig-paren">(</span><em>model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/settings.html#GeneralSettingsForm.populate_obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.settings.GeneralSettingsForm.populate_obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>A reimplementation of wtforms populate_obj function with the addage
+of optional include/exclude filters.</p>
+<p>If neither exclude nor include is passed, the function works like it
+does in wtforms. Otherwise fields are considered which are included
+but not excluded.</p>
 </dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.forms.settings.GeneralSettingsForm.process_obj">
+<code class="descname">process_obj</code><span class="sig-paren">(</span><em>model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/settings.html#GeneralSettingsForm.process_obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.settings.GeneralSettingsForm.process_obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called by <code class="xref py py-meth docutils literal notranslate"><span class="pre">process()</span></code> if an object was passed.</p>
+<p>Do <em>not</em> use this function directly. To process an object, you should
+call <code class="docutils literal notranslate"><span class="pre">form.process(obj=obj)</span></code> instead.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.forms.settings.FooterSettingsForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.settings.</code><code class="descname">FooterSettingsForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/settings.html#FooterSettingsForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.settings.FooterSettingsForm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.forms.settings.HomepageSettingsForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.settings.</code><code class="descname">HomepageSettingsForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/settings.html#HomepageSettingsForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.settings.HomepageSettingsForm" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="onegov.org.forms.settings.HomepageSettingsForm.populate_obj">
+<code class="descname">populate_obj</code><span class="sig-paren">(</span><em>model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/settings.html#HomepageSettingsForm.populate_obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.settings.HomepageSettingsForm.populate_obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>A reimplementation of wtforms populate_obj function with the addage
+of optional include/exclude filters.</p>
+<p>If neither exclude nor include is passed, the function works like it
+does in wtforms. Otherwise fields are considered which are included
+but not excluded.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.org.forms.settings.HomepageSettingsForm.process_obj">
+<code class="descname">process_obj</code><span class="sig-paren">(</span><em>model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/settings.html#HomepageSettingsForm.process_obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.settings.HomepageSettingsForm.process_obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called by <code class="xref py py-meth docutils literal notranslate"><span class="pre">process()</span></code> if an object was passed.</p>
+<p>Do <em>not</em> use this function directly. To process an object, you should
+call <code class="docutils literal notranslate"><span class="pre">form.process(obj=obj)</span></code> instead.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.forms.settings.ModuleSettingsForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.settings.</code><code class="descname">ModuleSettingsForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/settings.html#ModuleSettingsForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.settings.ModuleSettingsForm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.forms.settings.MapSettingsForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.settings.</code><code class="descname">MapSettingsForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/settings.html#MapSettingsForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.settings.MapSettingsForm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="onegov.org.forms.settings.AnalyticsSettingsForm">
+<em class="property">class </em><code class="descclassname">onegov.org.forms.settings.</code><code class="descname">AnalyticsSettingsForm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/forms/settings.html#AnalyticsSettingsForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.forms.settings.AnalyticsSettingsForm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <span class="target" id="module-onegov.org.forms.userprofile"></span><dl class="class">
 <dt id="onegov.org.forms.userprofile.UserProfileForm">
@@ -2372,12 +2498,6 @@ reservations on a resource.</p>
 </dd></dl>
 
 <span class="target" id="module-onegov.org.views.search"></span><span class="target" id="module-onegov.org.views.settings"></span><p>The settings view, defining things like the logo or color of the org.</p>
-<dl class="function">
-<dt id="onegov.org.views.settings.handle_settings">
-<code class="descclassname">onegov.org.views.settings.</code><code class="descname">handle_settings</code><span class="sig-paren">(</span><em>self</em>, <em>request</em>, <em>form</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/settings.html#handle_settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.settings.handle_settings" title="Permalink to this definition">¶</a></dt>
-<dd><p>Handles the GET and POST login requests.</p>
-</dd></dl>
-
 <span class="target" id="module-onegov.org.views.sitecollection"></span><dl class="function">
 <dt id="onegov.org.views.sitecollection.get_site_collection">
 <code class="descclassname">onegov.org.views.sitecollection.</code><code class="descname">get_site_collection</code><span class="sig-paren">(</span><em>self</em>, <em>request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/org/views/sitecollection.html#get_site_collection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.org.views.sitecollection.get_site_collection" title="Permalink to this definition">¶</a></dt>
