@@ -35,6 +35,7 @@
   <h1>Source code for onegov.org.forms.newsletter</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">onegov.core.layout</span> <span class="k">import</span> <span class="n">Layout</span>
+<span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">name_without_extension</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">Form</span>
 <span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">MultiCheckboxField</span>
 <span class="kn">from</span> <span class="nn">onegov.newsletter</span> <span class="k">import</span> <span class="n">Recipient</span>
@@ -155,7 +156,8 @@
             <span class="p">(</span>
                 <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">id</span><span class="p">),</span>
                 <span class="s1">&#39;&lt;div class=&quot;title&quot;&gt;</span><span class="si">{}</span><span class="s1">&lt;/div&gt;&lt;div class=&quot;date&quot;&gt;</span><span class="si">{}</span><span class="s1">&lt;/div&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">item</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">layout</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">created</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">)</span>
+                    <span class="n">name_without_extension</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
+                    <span class="n">layout</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">created</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">)</span>
                 <span class="p">)</span>
             <span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">publications</span>
         <span class="p">)</span>
@@ -166,7 +168,7 @@
         <span class="k">class</span> <span class="nc">NewsletterWithPublicationsForm</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
 
             <span class="n">publications</span> <span class="o">=</span> <span class="n">MultiCheckboxField</span><span class="p">(</span>
-                <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Events&quot;</span><span class="p">),</span>
+                <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Publications&quot;</span><span class="p">),</span>
                 <span class="n">choices</span><span class="o">=</span><span class="n">choices</span><span class="p">,</span>
                 <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span>
                     <span class="s1">&#39;prefix_label&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
