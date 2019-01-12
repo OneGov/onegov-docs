@@ -34,59 +34,72 @@
             
   <h1>Source code for sqlalchemy.dialects.postgresql.json</h1><div class="highlight"><pre>
 <span></span><span class="c1"># postgresql/json.py</span>
-<span class="c1"># Copyright (C) 2005-2018 the SQLAlchemy authors and contributors</span>
+<span class="c1"># Copyright (C) 2005-2019 the SQLAlchemy authors and contributors</span>
 <span class="c1"># &lt;see AUTHORS file&gt;</span>
 <span class="c1">#</span>
 <span class="c1"># This module is part of SQLAlchemy and is released under</span>
 <span class="c1"># the MIT License: http://www.opensource.org/licenses/mit-license.php</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
 
-<span class="kn">import</span> <span class="nn">json</span>
-
-<span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">ischema_names</span><span class="p">,</span> <span class="n">colspecs</span>
+<span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">colspecs</span>
+<span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">ischema_names</span>
 <span class="kn">from</span> <span class="nn">...</span> <span class="k">import</span> <span class="n">types</span> <span class="k">as</span> <span class="n">sqltypes</span>
-<span class="kn">from</span> <span class="nn">...sql</span> <span class="k">import</span> <span class="n">operators</span>
-<span class="kn">from</span> <span class="nn">...sql</span> <span class="k">import</span> <span class="n">elements</span>
 <span class="kn">from</span> <span class="nn">...</span> <span class="k">import</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">...sql</span> <span class="k">import</span> <span class="n">operators</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;JSON&#39;</span><span class="p">,</span> <span class="s1">&#39;JSONB&#39;</span><span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;JSON&quot;</span><span class="p">,</span> <span class="s2">&quot;JSONB&quot;</span><span class="p">)</span>
 
 <span class="n">idx_precedence</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">_PRECEDENCE</span><span class="p">[</span><span class="n">operators</span><span class="o">.</span><span class="n">json_getitem_op</span><span class="p">]</span>
 
 <span class="n">ASTEXT</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
-    <span class="s2">&quot;-&gt;&gt;&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+    <span class="s2">&quot;-&gt;&gt;&quot;</span><span class="p">,</span>
+    <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span>
+    <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">JSONPATH_ASTEXT</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
-    <span class="s2">&quot;#&gt;&gt;&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+    <span class="s2">&quot;#&gt;&gt;&quot;</span><span class="p">,</span>
+    <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span>
+    <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
 
 
 <span class="n">HAS_KEY</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
-    <span class="s2">&quot;?&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+    <span class="s2">&quot;?&quot;</span><span class="p">,</span>
+    <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span>
+    <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">HAS_ALL</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
-    <span class="s2">&quot;?&amp;&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+    <span class="s2">&quot;?&amp;&quot;</span><span class="p">,</span>
+    <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span>
+    <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">HAS_ANY</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
-    <span class="s2">&quot;?|&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+    <span class="s2">&quot;?|&quot;</span><span class="p">,</span>
+    <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span>
+    <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">CONTAINS</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
-    <span class="s2">&quot;@&gt;&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+    <span class="s2">&quot;@&gt;&quot;</span><span class="p">,</span>
+    <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span>
+    <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">CONTAINED_BY</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">custom_op</span><span class="p">(</span>
-    <span class="s2">&quot;&lt;@&quot;</span><span class="p">,</span> <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span> <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span>
+    <span class="s2">&quot;&lt;@&quot;</span><span class="p">,</span>
+    <span class="n">precedence</span><span class="o">=</span><span class="n">idx_precedence</span><span class="p">,</span>
+    <span class="n">natural_self_precedent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">eager_grouping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
 
 
@@ -96,7 +109,7 @@
 
         <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">util</span><span class="o">.</span><span class="n">collections_abc</span><span class="o">.</span><span class="n">Sequence</span><span class="p">)</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="n">util</span><span class="o">.</span><span class="n">text_type</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span><span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="n">util</span><span class="o">.</span><span class="n">text_type</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
             <span class="n">value</span> <span class="o">=</span> <span class="s2">&quot;{</span><span class="si">%s</span><span class="s2">}&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">super_proc</span><span class="p">:</span>
                 <span class="n">value</span> <span class="o">=</span> <span class="n">super_proc</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
@@ -109,13 +122,14 @@
 
         <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">util</span><span class="o">.</span><span class="n">collections_abc</span><span class="o">.</span><span class="n">Sequence</span><span class="p">)</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="n">util</span><span class="o">.</span><span class="n">text_type</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span><span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="n">util</span><span class="o">.</span><span class="n">text_type</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
             <span class="n">value</span> <span class="o">=</span> <span class="s2">&quot;{</span><span class="si">%s</span><span class="s2">}&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">super_proc</span><span class="p">:</span>
                 <span class="n">value</span> <span class="o">=</span> <span class="n">super_proc</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">value</span>
 
         <span class="k">return</span> <span class="n">process</span>
+
 
 <span class="n">colspecs</span><span class="p">[</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">JSON</span><span class="o">.</span><span class="n">JSONPathType</span><span class="p">]</span> <span class="o">=</span> <span class="n">JSONPathType</span>
 
@@ -155,8 +169,7 @@
 
 <span class="sd">    * Path index operations returning text (the ``#&gt;&gt;`` operator)::</span>
 
-<span class="sd">        data_table.c.data[(&#39;key_1&#39;, &#39;key_2&#39;, 5, ..., &#39;key_n&#39;)].astext == \</span>
-<span class="sd">&#39;some value&#39;</span>
+<span class="sd">        data_table.c.data[(&#39;key_1&#39;, &#39;key_2&#39;, 5, ..., &#39;key_n&#39;)].astext == &#39;some value&#39;</span>
 
 <span class="sd">    .. versionchanged:: 1.1  The :meth:`.ColumnElement.cast` operator on</span>
 <span class="sd">       JSON objects now requires that the :attr:`.JSON.Comparator.astext`</span>
@@ -186,7 +199,7 @@
 
 <span class="sd">        :class:`.JSONB`</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
 
     <span class="n">astext_type</span> <span class="o">=</span> <span class="n">sqltypes</span><span class="o">.</span><span class="n">Text</span><span class="p">()</span>
 
@@ -240,16 +253,19 @@
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">right</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">sqltypes</span><span class="o">.</span><span class="n">JSON</span><span class="o">.</span><span class="n">JSONPathType</span><span class="p">):</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">left</span><span class="o">.</span><span class="n">operate</span><span class="p">(</span>
                     <span class="n">JSONPATH_ASTEXT</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">right</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">astext_type</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">right</span><span class="p">,</span>
+                    <span class="n">result_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">astext_type</span><span class="p">,</span>
+                <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">left</span><span class="o">.</span><span class="n">operate</span><span class="p">(</span>
-                    <span class="n">ASTEXT</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">right</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">astext_type</span><span class="p">)</span>
+                    <span class="n">ASTEXT</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">right</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">astext_type</span>
+                <span class="p">)</span>
 
     <span class="n">comparator_factory</span> <span class="o">=</span> <span class="n">Comparator</span>
 
 
 <span class="n">colspecs</span><span class="p">[</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">JSON</span><span class="p">]</span> <span class="o">=</span> <span class="n">JSON</span>
-<span class="n">ischema_names</span><span class="p">[</span><span class="s1">&#39;json&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">JSON</span>
+<span class="n">ischema_names</span><span class="p">[</span><span class="s2">&quot;json&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">JSON</span>
 
 
 <span class="k">class</span> <span class="nc">JSONB</span><span class="p">(</span><span class="n">JSON</span><span class="p">):</span>
@@ -296,7 +312,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">__visit_name__</span> <span class="o">=</span> <span class="s1">&#39;JSONB&#39;</span>
+    <span class="n">__visit_name__</span> <span class="o">=</span> <span class="s2">&quot;JSONB&quot;</span>
 
     <span class="k">class</span> <span class="nc">Comparator</span><span class="p">(</span><span class="n">JSON</span><span class="o">.</span><span class="n">Comparator</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Define comparison operations for :class:`.JSON`.&quot;&quot;&quot;</span>
@@ -328,11 +344,13 @@
 <span class="sd">            keys of the argument jsonb expression.</span>
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">operate</span><span class="p">(</span>
-                <span class="n">CONTAINED_BY</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">Boolean</span><span class="p">)</span>
+                <span class="n">CONTAINED_BY</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="n">sqltypes</span><span class="o">.</span><span class="n">Boolean</span>
+            <span class="p">)</span>
 
     <span class="n">comparator_factory</span> <span class="o">=</span> <span class="n">Comparator</span>
 
-<span class="n">ischema_names</span><span class="p">[</span><span class="s1">&#39;jsonb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">JSONB</span>
+
+<span class="n">ischema_names</span><span class="p">[</span><span class="s2">&quot;jsonb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">JSONB</span>
 </pre></div>
 
           </div>

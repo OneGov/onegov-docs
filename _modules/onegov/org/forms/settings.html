@@ -39,13 +39,12 @@
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">Form</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">with_options</span>
 <span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">MultiCheckboxField</span><span class="p">,</span> <span class="n">TagsField</span>
+<span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">PreviewField</span>
 <span class="kn">from</span> <span class="nn">onegov.gis</span> <span class="k">import</span> <span class="n">CoordinatesField</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.org.forms.fields</span> <span class="k">import</span> <span class="n">HtmlField</span>
-<span class="kn">from</span> <span class="nn">onegov.org.homepage_widgets</span> <span class="k">import</span> <span class="p">(</span>
-    <span class="n">transform_homepage_structure</span><span class="p">,</span>
-    <span class="n">XML_LINE_OFFSET</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">onegov.org.homepage_widgets</span> <span class="k">import</span> <span class="n">transform_homepage_structure</span>
+<span class="kn">from</span> <span class="nn">onegov.org.homepage_widgets</span> <span class="k">import</span> <span class="n">XML_LINE_OFFSET</span>
 <span class="kn">from</span> <span class="nn">onegov.org.theme</span> <span class="k">import</span> <span class="n">user_options</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">HiddenField</span><span class="p">,</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">TextAreaField</span><span class="p">,</span> <span class="n">RadioField</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">ValidationError</span>
@@ -318,6 +317,113 @@
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Analytics Code&quot;</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;JavaScript for web statistics support&quot;</span><span class="p">),</span>
         <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;data-editor&#39;</span><span class="p">:</span> <span class="s1">&#39;html&#39;</span><span class="p">})</span></div>
+
+
+<div class="viewcode-block" id="HolidaySettingsForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.HolidaySettingsForm">[docs]</a><span class="k">class</span> <span class="nc">HolidaySettingsForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+
+    <span class="n">cantonal_holidays</span> <span class="o">=</span> <span class="n">MultiCheckboxField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cantonal holidays&quot;</span><span class="p">),</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s1">&#39;AG&#39;</span><span class="p">,</span> <span class="s1">&#39;Aargau&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;AR&#39;</span><span class="p">,</span> <span class="s1">&#39;Appenzell Ausserrhoden&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;AI&#39;</span><span class="p">,</span> <span class="s1">&#39;Appenzell Innerrhoden&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;BL&#39;</span><span class="p">,</span> <span class="s1">&#39;Basel-Landschaft&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;BS&#39;</span><span class="p">,</span> <span class="s1">&#39;Basel-Stadt&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;BE&#39;</span><span class="p">,</span> <span class="s1">&#39;Berne&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;FR&#39;</span><span class="p">,</span> <span class="s1">&#39;Fribourg&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;GE&#39;</span><span class="p">,</span> <span class="s1">&#39;Geneva&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;GL&#39;</span><span class="p">,</span> <span class="s1">&#39;Glarus&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;GR&#39;</span><span class="p">,</span> <span class="s1">&#39;Grisons&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;JU&#39;</span><span class="p">,</span> <span class="s1">&#39;Jura&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;LU&#39;</span><span class="p">,</span> <span class="s1">&#39;Lucerne&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;NE&#39;</span><span class="p">,</span> <span class="s1">&#39;Neuchâtel&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;NW&#39;</span><span class="p">,</span> <span class="s1">&#39;Nidwalden&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;OW&#39;</span><span class="p">,</span> <span class="s1">&#39;Obwalden&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;SH&#39;</span><span class="p">,</span> <span class="s1">&#39;Schaffhausen&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;SZ&#39;</span><span class="p">,</span> <span class="s1">&#39;Schwyz&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;SO&#39;</span><span class="p">,</span> <span class="s1">&#39;Solothurn&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;SG&#39;</span><span class="p">,</span> <span class="s1">&#39;St. Gallen&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;TG&#39;</span><span class="p">,</span> <span class="s1">&#39;Thurgau&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;TI&#39;</span><span class="p">,</span> <span class="s1">&#39;Ticino&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;UR&#39;</span><span class="p">,</span> <span class="s1">&#39;Uri&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;VS&#39;</span><span class="p">,</span> <span class="s1">&#39;Valais&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;VD&#39;</span><span class="p">,</span> <span class="s1">&#39;Vaud&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;ZG&#39;</span><span class="p">,</span> <span class="s1">&#39;Zug&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;ZH&#39;</span><span class="p">,</span> <span class="s1">&#39;Zürich&#39;</span><span class="p">),</span>
+        <span class="p">])</span>
+
+    <span class="n">other_holidays</span> <span class="o">=</span> <span class="n">TextAreaField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Other holidays&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;31.10 - Halloween&quot;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">})</span>
+
+    <span class="n">preview</span> <span class="o">=</span> <span class="n">PreviewField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Preview&quot;</span><span class="p">),</span>
+        <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;cantonal_holidays&#39;</span><span class="p">,</span> <span class="s1">&#39;other_holidays&#39;</span><span class="p">),</span>
+        <span class="n">events</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;change&#39;</span><span class="p">,</span> <span class="s1">&#39;click&#39;</span><span class="p">,</span> <span class="s1">&#39;enter&#39;</span><span class="p">),</span>
+        <span class="n">url</span><span class="o">=</span><span class="k">lambda</span> <span class="n">meta</span><span class="p">:</span> <span class="n">meta</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span>
+            <span class="n">meta</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">org</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;holiday-settings-preview&#39;</span>
+        <span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">validate_other_holidays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Format: Day.Month - Description&quot;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Please enter one date per line&quot;</span><span class="p">))</span>
+
+            <span class="n">date</span><span class="p">,</span> <span class="n">description</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">date</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Format: Day.Month - Description&quot;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">date</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Please enter only day and month&quot;</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">holiday_settings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">parse_line</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+            <span class="n">date</span><span class="p">,</span> <span class="n">desc</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="n">day</span><span class="p">,</span> <span class="n">month</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">month</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">day</span><span class="p">),</span> <span class="n">desc</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;cantons&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cantonal_holidays</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="s1">&#39;other&#39;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="n">parse_line</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">other_holidays</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="p">}</span>
+
+    <span class="nd">@holiday_settings</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">holiday_settings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span> <span class="ow">or</span> <span class="p">{}</span>
+
+        <span class="k">def</span> <span class="nf">format_other</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{d[1]:02d}</span><span class="s1">.</span><span class="si">{d[0]:02d}</span><span class="s1"> - </span><span class="si">{d[2]}</span><span class="s1">&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cantonal_holidays</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;cantons&#39;</span><span class="p">,</span> <span class="p">())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">other_holidays</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">format_other</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;other&#39;</span><span class="p">,</span> <span class="p">()))</span>
+
+<div class="viewcode-block" id="HolidaySettingsForm.populate_obj"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.HolidaySettingsForm.populate_obj">[docs]</a>    <span class="k">def</span> <span class="nf">populate_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">populate_obj</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">holiday_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">holiday_settings</span></div>
+
+<div class="viewcode-block" id="HolidaySettingsForm.process_obj"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.HolidaySettingsForm.process_obj">[docs]</a>    <span class="k">def</span> <span class="nf">process_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">process_obj</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">holiday_settings</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">holiday_settings</span></div></div>
 </pre></div>
 
           </div>
