@@ -137,12 +137,18 @@
         <span class="k">except</span> <span class="n">LibresError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">utils</span><span class="o">.</span><span class="n">show_libres_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Successfully added $</span><span class="si">{n}</span><span class="s2"> allocations&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
-                <span class="s1">&#39;n&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">allocations</span><span class="p">)</span>
-            <span class="p">}))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">allocations</span><span class="p">:</span>
+                <span class="n">request</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;No allocations to add&quot;</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Successfully added $</span><span class="si">{n}</span><span class="s2"> allocations&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+                        <span class="s1">&#39;n&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">allocations</span><span class="p">)</span>
+                    <span class="p">}))</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">highlight_allocations</span><span class="p">(</span><span class="n">allocations</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">highlight_allocations</span><span class="p">(</span><span class="n">allocations</span><span class="p">)</span>
+
+                <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
     <span class="k">elif</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">:</span>
         <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">parse_fullcalendar_request</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">)</span>
         <span class="n">whole_day</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;whole_day&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span>
