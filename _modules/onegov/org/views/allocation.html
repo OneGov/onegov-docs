@@ -35,20 +35,32 @@
   <h1>Source code for onegov.org.views.allocation</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">morepath</span>
 
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">libres.db.models</span> <span class="k">import</span> <span class="n">ReservedSlot</span>
 <span class="kn">from</span> <span class="nn">libres.modules.errors</span> <span class="k">import</span> <span class="n">LibresError</span>
-<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span><span class="p">,</span> <span class="n">Private</span>
-<span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Allocation</span><span class="p">,</span> <span class="n">Resource</span><span class="p">,</span> <span class="n">ResourceCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span><span class="p">,</span> <span class="n">Private</span><span class="p">,</span> <span class="n">Secret</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">is_uuid</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">merge_forms</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">OrgApp</span><span class="p">,</span> <span class="n">utils</span><span class="p">,</span> <span class="n">_</span>
-<span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">Link</span>
-<span class="kn">from</span> <span class="nn">onegov.org.forms</span> <span class="k">import</span> <span class="p">(</span>
-    <span class="n">DaypassAllocationForm</span><span class="p">,</span>
-    <span class="n">DaypassAllocationEditForm</span><span class="p">,</span>
-    <span class="n">RoomAllocationForm</span><span class="p">,</span>
-    <span class="n">RoomAllocationEditForm</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">ResourceLayout</span><span class="p">,</span> <span class="n">AllocationEditFormLayout</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">defer</span><span class="p">,</span> <span class="n">defaultload</span>
+<span class="kn">from</span> <span class="nn">onegov.org.forms</span> <span class="k">import</span> <span class="n">AllocationRuleForm</span>
+<span class="kn">from</span> <span class="nn">onegov.org.forms</span> <span class="k">import</span> <span class="n">DaypassAllocationEditForm</span>
+<span class="kn">from</span> <span class="nn">onegov.org.forms</span> <span class="k">import</span> <span class="n">DaypassAllocationForm</span>
+<span class="kn">from</span> <span class="nn">onegov.org.forms</span> <span class="k">import</span> <span class="n">RoomAllocationEditForm</span>
+<span class="kn">from</span> <span class="nn">onegov.org.forms</span> <span class="k">import</span> <span class="n">RoomAllocationForm</span>
+<span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">AllocationEditFormLayout</span>
+<span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">AllocationRulesLayout</span>
+<span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">ResourceLayout</span>
+<span class="kn">from</span> <span class="nn">onegov.org.new_elements</span> <span class="k">import</span> <span class="n">Link</span><span class="p">,</span> <span class="n">Confirm</span><span class="p">,</span> <span class="n">Intercooler</span>
+<span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Allocation</span>
+<span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Reservation</span>
+<span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Resource</span>
+<span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">ResourceCollection</span>
 <span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
+<span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">not_</span><span class="p">,</span> <span class="n">func</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.dialects.postgresql</span> <span class="k">import</span> <span class="n">JSON</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">defer</span><span class="p">,</span> <span class="n">defaultload</span>
+<span class="kn">from</span> <span class="nn">webob</span> <span class="k">import</span> <span class="n">exc</span>
 
 
 <div class="viewcode-block" id="view_allocations_json"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.view_allocations_json">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;slots&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Public</span><span class="p">)</span>
@@ -86,6 +98,97 @@
     <span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="process_rules"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.process_rules">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;process-rules&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Secret</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">process_rules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Manually runs the rules processing cronjobs for testing.</span>
+
+<span class="sd">    Not really dangerous, though it should be replaced with something</span>
+<span class="sd">    proper instead, cronjobs currently do not run in most tests and that</span>
+<span class="sd">    should be remedied.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span> <span class="o">==</span> <span class="s1">&#39;admin@example.org&#39;</span><span class="p">:</span>
+        <span class="n">handle_rules_cronjob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span></div>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;rules&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span>
+             <span class="n">template</span><span class="o">=</span><span class="s1">&#39;allocation_rules.pt&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">view_allocation_rules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">AllocationRulesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">link_for_rule</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">URL</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">query_param</span><span class="p">(</span><span class="s1">&#39;csrf-token&#39;</span><span class="p">,</span> <span class="n">layout</span><span class="o">.</span><span class="n">csrf_token</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">query_param</span><span class="p">(</span><span class="s1">&#39;rule&#39;</span><span class="p">,</span> <span class="n">rule</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">url</span><span class="o">.</span><span class="n">as_string</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">actions_for_rule</span><span class="p">(</span><span class="n">rule</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Stop&quot;</span><span class="p">),</span>
+            <span class="n">url</span><span class="o">=</span><span class="n">link_for_rule</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="s1">&#39;stop-rule&#39;</span><span class="p">),</span>
+            <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">Confirm</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span>
+                        <span class="s1">&#39;Do you really want to stop &quot;$</span><span class="si">{title}</span><span class="s1">&quot;?&#39;</span><span class="p">,</span>
+                        <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">rule</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]}</span>
+                    <span class="p">),</span>
+                    <span class="n">_</span><span class="p">(</span>
+                        <span class="s2">&quot;The rule will be removed without affecting &quot;</span>
+                        <span class="s2">&quot;existing allocations.&quot;</span>
+                    <span class="p">),</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Stop rule&quot;</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">Intercooler</span><span class="p">(</span>
+                    <span class="n">request_method</span><span class="o">=</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span>
+                    <span class="n">redirect_after</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;rules&#39;</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete&quot;</span><span class="p">),</span>
+            <span class="n">url</span><span class="o">=</span><span class="n">link_for_rule</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="s1">&#39;delete-rule&#39;</span><span class="p">),</span>
+            <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">Confirm</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span>
+                        <span class="s1">&#39;Do you really want to delete &quot;$</span><span class="si">{title}</span><span class="s1">&quot;?&#39;</span><span class="p">,</span>
+                        <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">rule</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]}</span>
+                    <span class="p">),</span>
+                    <span class="n">_</span><span class="p">(</span>
+                        <span class="s2">&quot;All allocations created by the rule will be removed, &quot;</span>
+                        <span class="s2">&quot;if they haven&#39;t been reserved yet.&quot;</span>
+                    <span class="p">),</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete rule&quot;</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">Intercooler</span><span class="p">(</span>
+                    <span class="n">request_method</span><span class="o">=</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span>
+                    <span class="n">redirect_after</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;rules&#39;</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">rules_with_actions</span><span class="p">():</span>
+        <span class="n">form_class</span> <span class="o">=</span> <span class="n">get_allocation_rule_form_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rules&#39;</span><span class="p">,</span> <span class="p">()):</span>
+            <span class="n">form</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_form</span><span class="p">(</span><span class="n">form_class</span><span class="p">,</span> <span class="n">csrf_support</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+            <span class="n">form</span><span class="o">.</span><span class="n">rule</span> <span class="o">=</span> <span class="n">rule</span>
+
+            <span class="k">yield</span> <span class="p">{</span>
+                <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">rule</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;actions&#39;</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">actions_for_rule</span><span class="p">(</span><span class="n">rule</span><span class="p">)),</span>
+                <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span>
+            <span class="p">}</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Rules&quot;</span><span class="p">),</span>
+        <span class="s1">&#39;rules&#39;</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">rules_with_actions</span><span class="p">())</span>
+    <span class="p">}</span>
+
+
 <div class="viewcode-block" id="get_new_allocation_form_class"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.get_new_allocation_form_class">[docs]</a><span class="k">def</span> <span class="nf">get_new_allocation_form_class</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Returns the form class for new allocations (different resources have</span>
 <span class="sd">    different allocation forms).</span>
@@ -117,6 +220,14 @@
         <span class="k">return</span> <span class="n">RoomAllocationEditForm</span>
 
     <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="get_allocation_rule_form_class"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.get_allocation_rule_form_class">[docs]</a><span class="k">def</span> <span class="nf">get_allocation_rule_form_class</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns the form class for allocation rules. &quot;&quot;&quot;</span>
+
+    <span class="n">form</span> <span class="o">=</span> <span class="n">get_new_allocation_form_class</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">merge_forms</span><span class="p">(</span><span class="n">AllocationRuleForm</span><span class="p">,</span> <span class="n">form</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="handle_new_allocation"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.handle_new_allocation">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;form.pt&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;new-allocation&#39;</span><span class="p">,</span>
@@ -215,6 +326,10 @@
         <span class="k">except</span> <span class="n">LibresError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">utils</span><span class="o">.</span><span class="n">show_libres_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># when we edit an allocation, we disassociate it from any rules</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="s1">&#39;rule&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s1">&#39;rule&#39;</span><span class="p">}</span>
+
             <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your changes were saved&quot;</span><span class="p">))</span>
             <span class="n">resource</span><span class="o">.</span><span class="n">highlight_allocations</span><span class="p">([</span><span class="bp">self</span><span class="p">])</span>
 
@@ -247,6 +362,170 @@
     <span class="nd">@request</span><span class="o">.</span><span class="n">after</span>
     <span class="k">def</span> <span class="nf">trigger_calendar_update</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
         <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;X-IC-Trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;rc-allocations-changed&#39;</span><span class="p">)</span></div>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">form</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;form.pt&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;new-rule&#39;</span><span class="p">,</span>
+             <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">get_allocation_rule_form_class</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_allocation_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="n">AllocationRulesLayout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="n">changes</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">rules</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rules&#39;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">rule</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;rules&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rules</span>
+
+        <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">_</span><span class="p">(</span>
+            <span class="s2">&quot;New rule active, $</span><span class="si">{n}</span><span class="s2"> allocations created&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;n&#39;</span><span class="p">:</span> <span class="n">changes</span><span class="p">}</span>
+        <span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;rules&#39;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;New Rule&quot;</span><span class="p">),</span>
+        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
+        <span class="s1">&#39;helptext&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span>
+            <span class="s2">&quot;Rules ensure that the allocations between start/end exist and &quot;</span>
+            <span class="s2">&quot;that they are extended beyond those dates at the given &quot;</span>
+            <span class="s2">&quot;intervals. &quot;</span>
+        <span class="p">)</span>
+    <span class="p">}</span>
+
+
+<div class="viewcode-block" id="rule_id_from_request"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.rule_id_from_request">[docs]</a><span class="k">def</span> <span class="nf">rule_id_from_request</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns the rule_id from the request params, ensuring that</span>
+<span class="sd">    an actual uuid is returned.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rule_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rule&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_uuid</span><span class="p">(</span><span class="n">rule_id</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">HTTPBadRequest</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">rule_id</span></div>
+
+
+<div class="viewcode-block" id="handle_rules_cronjob"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.handle_rules_cronjob">[docs]</a><span class="k">def</span> <span class="nf">handle_rules_cronjob</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Handles all cronjob duties of the rules stored on the given</span>
+<span class="sd">    resource.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">resource</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rules&#39;</span><span class="p">):</span>
+        <span class="k">return</span>
+
+    <span class="n">targets</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">now</span> <span class="o">=</span> <span class="n">utcnow</span><span class="p">()</span>
+    <span class="n">tomorrow</span> <span class="o">=</span> <span class="p">(</span><span class="n">now</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">should_process</span><span class="p">(</span><span class="n">rule</span><span class="p">):</span>
+        <span class="c1"># do not reprocess rules if they were processed less than 12 hours</span>
+        <span class="c1"># prior - this prevents flaky cronjobs from accidentally processing</span>
+        <span class="c1"># rules too often</span>
+        <span class="k">if</span> <span class="n">rule</span><span class="p">[</span><span class="s1">&#39;last_run&#39;</span><span class="p">]</span>\
+                <span class="ow">and</span> <span class="n">rule</span><span class="p">[</span><span class="s1">&#39;last_run&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">12</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># we assume to be called once a day, so if we are called, a daily</span>
+        <span class="c1"># rule has to be processed</span>
+        <span class="k">if</span> <span class="n">rule</span><span class="p">[</span><span class="s1">&#39;extend&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;daily&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">rule</span><span class="p">[</span><span class="s1">&#39;extend&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;monthly&#39;</span> <span class="ow">and</span> <span class="n">tomorrow</span><span class="o">.</span><span class="n">day</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">rule</span><span class="p">[</span><span class="s1">&#39;extend&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;yearly&#39;</span>\
+                <span class="ow">and</span> <span class="n">tomorrow</span><span class="o">.</span><span class="n">month</span> <span class="o">==</span> <span class="mi">1</span>\
+                <span class="ow">and</span> <span class="n">tomorrow</span><span class="o">.</span><span class="n">day</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">prepare_rule</span><span class="p">(</span><span class="n">rule</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">should_process</span><span class="p">(</span><span class="n">rule</span><span class="p">):</span>
+            <span class="n">rule</span><span class="p">[</span><span class="s1">&#39;iteration&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">rule</span><span class="p">[</span><span class="s1">&#39;last_run&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">now</span>
+
+            <span class="n">targets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rule</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">rule</span>
+
+    <span class="n">resource</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;rules&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">prepare_rule</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span>
+        <span class="ow">in</span> <span class="n">resource</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rules&#39;</span><span class="p">,</span> <span class="p">())]</span>
+
+    <span class="n">form_class</span> <span class="o">=</span> <span class="n">get_allocation_rule_form_class</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
+        <span class="n">form</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_form</span><span class="p">(</span><span class="n">form_class</span><span class="p">,</span> <span class="n">csrf_support</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">resource</span><span class="p">)</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">rule</span> <span class="o">=</span> <span class="n">rule</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="delete_rule"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.views.allocation.delete_rule">[docs]</a><span class="k">def</span> <span class="nf">delete_rule</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">rule_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Removes the given rule from the resource. &quot;&quot;&quot;</span>
+
+    <span class="n">resource</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;rules&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">rule</span> <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">resource</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rules&#39;</span><span class="p">,</span> <span class="p">())</span>
+        <span class="k">if</span> <span class="n">rule</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">rule_id</span>
+    <span class="p">]</span></div>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span>
+             <span class="n">name</span><span class="o">=</span><span class="s1">&#39;stop-rule&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_stop_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
+
+    <span class="n">rule_id</span> <span class="o">=</span> <span class="n">rule_id_from_request</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">delete_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule_id</span><span class="p">)</span>
+
+    <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The rule was stopped&quot;</span><span class="p">))</span>
+
+
+<span class="nd">@OrgApp</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Resource</span><span class="p">,</span> <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span> <span class="n">permission</span><span class="o">=</span><span class="n">Private</span><span class="p">,</span>
+             <span class="n">name</span><span class="o">=</span><span class="s1">&#39;delete-rule&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_delete_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">assert_valid_csrf_token</span><span class="p">()</span>
+
+    <span class="n">rule_id</span> <span class="o">=</span> <span class="n">rule_id_from_request</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+    <span class="c1"># all the slots</span>
+    <span class="n">slots</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">managed_reserved_slots</span><span class="p">()</span>
+    <span class="n">slots</span> <span class="o">=</span> <span class="n">slots</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">ReservedSlot</span><span class="o">.</span><span class="n">allocation_id</span><span class="p">)</span>
+
+    <span class="c1"># all the reservations</span>
+    <span class="n">reservations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">managed_reservations</span><span class="p">()</span>
+    <span class="n">reservations</span> <span class="o">=</span> <span class="n">reservations</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">Reservation</span><span class="o">.</span><span class="n">target</span><span class="p">)</span>
+
+    <span class="c1"># include the allocations created by the given rule...</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">managed_allocations</span><span class="p">()</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">func</span><span class="o">.</span><span class="n">json_extract_path_text</span><span class="p">(</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">Allocation</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">JSON</span><span class="p">),</span> <span class="s1">&#39;rule&#39;</span>
+        <span class="p">)</span> <span class="o">==</span> <span class="n">rule_id</span>
+    <span class="p">)</span>
+
+    <span class="c1"># .. without the ones with slots</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">not_</span><span class="p">(</span><span class="n">Allocation</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">slots</span><span class="o">.</span><span class="n">subquery</span><span class="p">())))</span>
+
+    <span class="c1"># .. without the ones with reservations</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">not_</span><span class="p">(</span><span class="n">Allocation</span><span class="o">.</span><span class="n">group</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">reservations</span><span class="o">.</span><span class="n">subquery</span><span class="p">())))</span>
+
+    <span class="c1"># delete the allocations</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s1">&#39;fetch&#39;</span><span class="p">)</span>
+
+    <span class="n">delete_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule_id</span><span class="p">)</span>
+
+    <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span>
+        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The rule was deleted, along with $</span><span class="si">{n}</span><span class="s2"> allocations&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
+            <span class="s1">&#39;n&#39;</span><span class="p">:</span> <span class="n">count</span>
+        <span class="p">})</span>
+    <span class="p">)</span>
 </pre></div>
 
           </div>

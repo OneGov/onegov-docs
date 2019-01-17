@@ -37,11 +37,13 @@
 
 <span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">dateutil.relativedelta</span> <span class="k">import</span> <span class="n">relativedelta</span>
 <span class="kn">from</span> <span class="nn">dateutil.rrule</span> <span class="k">import</span> <span class="n">rrule</span><span class="p">,</span> <span class="n">DAILY</span><span class="p">,</span> <span class="n">MO</span><span class="p">,</span> <span class="n">TU</span><span class="p">,</span> <span class="n">WE</span><span class="p">,</span> <span class="n">TH</span><span class="p">,</span> <span class="n">FR</span><span class="p">,</span> <span class="n">SA</span><span class="p">,</span> <span class="n">SU</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">Form</span>
 <span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">MultiCheckboxField</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
-<span class="kn">from</span> <span class="nn">wtforms.fields</span> <span class="k">import</span> <span class="n">RadioField</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
+<span class="kn">from</span> <span class="nn">wtforms.fields</span> <span class="k">import</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">RadioField</span>
 <span class="kn">from</span> <span class="nn">wtforms.fields.html5</span> <span class="k">import</span> <span class="n">DateField</span><span class="p">,</span> <span class="n">IntegerField</span>
 <span class="kn">from</span> <span class="nn">wtforms.validators</span> <span class="k">import</span> <span class="n">DataRequired</span><span class="p">,</span> <span class="n">NumberRange</span><span class="p">,</span> <span class="n">InputRequired</span>
 <span class="kn">from</span> <span class="nn">wtforms_components</span> <span class="k">import</span> <span class="n">TimeField</span>
@@ -120,6 +122,101 @@
         <span class="k">return</span> <span class="kc">False</span>
 
 
+<div class="viewcode-block" id="AllocationRuleForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.allocation.AllocationRuleForm">[docs]</a><span class="k">class</span> <span class="nc">AllocationRuleForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Base form form allocation rules. &quot;&quot;&quot;</span>
+
+    <span class="n">title</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Title&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;General availability&quot;</span><span class="p">),</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">InputRequired</span><span class="p">()],</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Rule&quot;</span><span class="p">))</span>
+
+    <span class="n">extend</span> <span class="o">=</span> <span class="n">RadioField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Extend&quot;</span><span class="p">),</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">InputRequired</span><span class="p">()],</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Rule&quot;</span><span class="p">),</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;daily&#39;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+            <span class="p">(</span><span class="s1">&#39;daily&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Extend by one day at midnight&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;monthly&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Extend by one month at the end of the month&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;yearly&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Extend by one year at the end of the year&quot;</span><span class="p">))</span>
+        <span class="p">))</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">rule_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">iteration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">last_run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">rule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule_id</span><span class="p">,</span>
+            <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="s1">&#39;extend&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">extend</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="s1">&#39;options&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span>
+            <span class="s1">&#39;iteration&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span><span class="p">,</span>
+            <span class="s1">&#39;last_run&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_run</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="nd">@rule</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;rule_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;iteration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;iteration&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;last_run&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;last_run&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extend</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;extend&#39;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">data</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="s1">&#39;extend&#39;</span><span class="p">,</span> <span class="s1">&#39;csrf_token&#39;</span><span class="p">)</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;daily&#39;</span><span class="p">:</span> <span class="s1">&#39;days&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;monthly&#39;</span><span class="p">:</span> <span class="s1">&#39;months&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;yearly&#39;</span><span class="p">:</span> <span class="s1">&#39;years&#39;</span>
+            <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">extend</span><span class="o">.</span><span class="n">data</span><span class="p">]</span>
+
+            <span class="n">start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">data</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">data</span> <span class="o">+</span> <span class="n">relativedelta</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">unit</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span><span class="p">})</span>
+
+            <span class="n">dates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_dates</span><span class="p">(</span>
+                <span class="n">start</span><span class="p">,</span>
+                <span class="n">end</span><span class="p">,</span>
+                <span class="n">weekdays</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">weekdays</span>
+            <span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="ow">or</span> <span class="p">{}),</span> <span class="s1">&#39;rule&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule_id</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">allocate</span><span class="p">(</span>
+            <span class="n">dates</span><span class="o">=</span><span class="n">dates</span><span class="p">,</span>
+            <span class="n">whole_day</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">whole_day</span><span class="p">,</span>
+            <span class="n">quota</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">quota</span><span class="p">,</span>
+            <span class="n">quota_limit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">quota_limit</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">partly_available</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">partly_available</span><span class="p">,</span>
+            <span class="n">skip_overlapping</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">))</span></div>
+
+
 <div class="viewcode-block" id="AllocationForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.allocation.AllocationForm">[docs]</a><span class="k">class</span> <span class="nc">AllocationForm</span><span class="p">(</span><span class="n">Form</span><span class="p">,</span> <span class="n">AllocationFormHelpers</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Baseform for all allocation forms. Allocation forms are expected</span>
 <span class="sd">    to implement the methods above (which contain a NotImplementedException).</span>
@@ -163,6 +260,12 @@
     <span class="k">def</span> <span class="nf">on_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">holidays</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">delete_field</span><span class="p">(</span><span class="s1">&#39;on_holidays&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">ensure_start_before_end</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">data</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Start date before end date&quot;</span><span class="p">))</span>
+                <span class="k">return</span> <span class="kc">False</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">weekdays</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

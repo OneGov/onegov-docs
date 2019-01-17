@@ -916,15 +916,6 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">links</span> <span class="o">=</span> <span class="p">[]</span>
 
-            <span class="c1"># if we have a payment, add pamyent links</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;pending&#39;</span><span class="p">:</span>
-                <span class="n">payment</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">handler</span><span class="o">.</span><span class="n">payment</span>
-
-                <span class="k">if</span> <span class="n">payment</span> <span class="ow">and</span> <span class="n">payment</span><span class="o">.</span><span class="n">source</span> <span class="o">==</span> <span class="s1">&#39;manual&#39;</span><span class="p">:</span>
-                    <span class="n">links</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_manual_payment_links</span><span class="p">(</span><span class="n">payment</span><span class="p">))</span>
-                <span class="k">if</span> <span class="n">payment</span> <span class="ow">and</span> <span class="n">payment</span><span class="o">.</span><span class="n">source</span> <span class="o">==</span> <span class="s1">&#39;stripe_connect&#39;</span><span class="p">:</span>
-                    <span class="n">links</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_stripe_payment_links</span><span class="p">(</span><span class="n">payment</span><span class="p">))</span>
-
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;open&#39;</span><span class="p">:</span>
                 <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
                     <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Accept ticket&quot;</span><span class="p">),</span>
@@ -946,24 +937,6 @@
                     <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;ticket-button&#39;</span><span class="p">,</span> <span class="s1">&#39;ticket-reopen&#39;</span><span class="p">)}</span>
                 <span class="p">))</span>
 
-            <span class="c1"># muting/unmuting is always enabled</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">muted</span><span class="p">:</span>
-                <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="n">Link</span><span class="p">(</span>
-                        <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Enable E-Mails&quot;</span><span class="p">),</span>
-                        <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;unmute&#39;</span><span class="p">),</span>
-                        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;unmute&#39;</span><span class="p">}</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="n">Link</span><span class="p">(</span>
-                        <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Disable E-Mails&quot;</span><span class="p">),</span>
-                        <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;mute&#39;</span><span class="p">),</span>
-                        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;mute&#39;</span><span class="p">}</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
-
             <span class="c1"># ticket notes are always enabled</span>
             <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">Link</span><span class="p">(</span>
@@ -973,86 +946,7 @@
                 <span class="p">)</span>
             <span class="p">)</span>
 
-            <span class="k">return</span> <span class="n">links</span>
-
-    <span class="k">def</span> <span class="nf">get_manual_payment_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payment</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">payment</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;open&#39;</span><span class="p">:</span>
-            <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
-                <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Mark as paid&quot;</span><span class="p">),</span>
-                <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">payment</span><span class="p">,</span> <span class="s1">&#39;mark-as-paid&#39;</span><span class="p">),</span>
-                <span class="p">),</span>
-                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;mark-as-paid&#39;</span><span class="p">},</span>
-                <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
-                    <span class="n">Intercooler</span><span class="p">(</span>
-                        <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
-                        <span class="n">redirect_after</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
-                    <span class="p">),</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
-                <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Mark as unpaid&quot;</span><span class="p">),</span>
-                <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">payment</span><span class="p">,</span> <span class="s1">&#39;mark-as-unpaid&#39;</span><span class="p">),</span>
-                <span class="p">),</span>
-                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;mark-as-unpaid&#39;</span><span class="p">},</span>
-                <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
-                    <span class="n">Intercooler</span><span class="p">(</span>
-                        <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
-                        <span class="n">redirect_after</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
-                    <span class="p">),</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">get_stripe_payment_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payment</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">payment</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;open&#39;</span><span class="p">:</span>
-            <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
-                <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Capture Payment&quot;</span><span class="p">),</span>
-                <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">payment</span><span class="p">,</span> <span class="s1">&#39;capture&#39;</span><span class="p">)</span>
-                <span class="p">),</span>
-                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;payment-capture&#39;</span><span class="p">},</span>
-                <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
-                    <span class="n">Confirm</span><span class="p">(</span>
-                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want capture the payment?&quot;</span><span class="p">),</span>
-                        <span class="n">_</span><span class="p">(</span>
-                            <span class="s2">&quot;This usually happens automatically, so there is &quot;</span>
-                            <span class="s2">&quot;no reason not do capture the payment.&quot;</span>
-                        <span class="p">),</span>
-                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Capture payment&quot;</span><span class="p">)</span>
-                    <span class="p">),</span>
-                    <span class="n">Intercooler</span><span class="p">(</span>
-                        <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
-                        <span class="n">redirect_after</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">url</span>
-                    <span class="p">),</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-        <span class="k">elif</span> <span class="n">payment</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;paid&#39;</span><span class="p">:</span>
-            <span class="n">amount</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:02f}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">payment</span><span class="o">.</span><span class="n">amount</span><span class="p">,</span> <span class="n">payment</span><span class="o">.</span><span class="n">currency</span><span class="p">)</span>
-
-            <span class="k">yield</span> <span class="n">Link</span><span class="p">(</span>
-                <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Refund Payment&quot;</span><span class="p">),</span>
-                <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrf_protected_url</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">payment</span><span class="p">,</span> <span class="s1">&#39;refund&#39;</span><span class="p">)</span>
-                <span class="p">),</span>
-                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;payment-refund&#39;</span><span class="p">},</span>
-                <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
-                    <span class="n">Confirm</span><span class="p">(</span>
-                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to refund $</span><span class="si">{amount}</span><span class="s2">?&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
-                            <span class="s1">&#39;amount&#39;</span><span class="p">:</span> <span class="n">amount</span>
-                        <span class="p">}),</span>
-                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Refund $</span><span class="si">{amount}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
-                            <span class="s1">&#39;amount&#39;</span><span class="p">:</span> <span class="n">amount</span>
-                        <span class="p">})</span>
-                    <span class="p">),</span>
-                    <span class="n">Intercooler</span><span class="p">(</span>
-                        <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
-                        <span class="n">redirect_after</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">url</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
-            <span class="p">)</span></div>
+            <span class="k">return</span> <span class="n">links</span></div>
 
 
 <div class="viewcode-block" id="TicketNoteLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.TicketNoteLayout">[docs]</a><span class="k">class</span> <span class="nc">TicketNoteLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
@@ -1258,12 +1152,47 @@
                     <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Subscribe&quot;</span><span class="p">),</span>
                     <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;subscribe&#39;</span><span class="p">),</span>
                     <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;subscribe-link&#39;</span><span class="p">}</span>
+                <span class="p">),</span>
+                <span class="n">Link</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Rules&quot;</span><span class="p">),</span>
+                    <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;rules&#39;</span><span class="p">),</span>
+                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;rule-link&#39;</span><span class="p">}</span>
                 <span class="p">)</span>
             <span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="ReservationLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.ReservationLayout">[docs]</a><span class="k">class</span> <span class="nc">ReservationLayout</span><span class="p">(</span><span class="n">ResourceLayout</span><span class="p">):</span>
     <span class="n">editbar_links</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="AllocationRulesLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.AllocationRulesLayout">[docs]</a><span class="k">class</span> <span class="nc">AllocationRulesLayout</span><span class="p">(</span><span class="n">ResourceLayout</span><span class="p">):</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">breadcrumbs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">homepage_url</span><span class="p">),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reservations&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">collection</span><span class="p">)),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">title</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Rules&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">editbar_links</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">LinkGroup</span><span class="p">(</span>
+                <span class="n">title</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Add&quot;</span><span class="p">),</span>
+                <span class="n">links</span><span class="o">=</span><span class="p">[</span>
+                    <span class="n">Link</span><span class="p">(</span>
+                        <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Rule&quot;</span><span class="p">),</span>
+                        <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;new-rule&#39;</span>
+                        <span class="p">),</span>
+                        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;new-link&#39;</span><span class="p">}</span>
+                    <span class="p">)</span>
+                <span class="p">]</span>
+            <span class="p">),</span>
+        <span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="AllocationEditFormLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.AllocationEditFormLayout">[docs]</a><span class="k">class</span> <span class="nc">AllocationEditFormLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
