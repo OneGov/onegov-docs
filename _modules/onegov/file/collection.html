@@ -35,7 +35,6 @@
   <h1>Source code for onegov.file.collection</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">depot.io.utils</span> <span class="k">import</span> <span class="n">file_from_content</span>
-<span class="kn">from</span> <span class="nn">onegov.chat</span> <span class="k">import</span> <span class="n">Message</span>
 <span class="kn">from</span> <span class="nn">onegov.file.models</span> <span class="k">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">FileSet</span>
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">as_fileintent</span><span class="p">,</span> <span class="n">digest</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">utcnow</span>
@@ -240,6 +239,8 @@
 
         <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">signature_metadata</span>
+
+        <span class="kn">from</span> <span class="nn">onegov.chat</span> <span class="k">import</span> <span class="n">Message</span>  <span class="c1"># circular import</span>
 
         <span class="n">match</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Message</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;file&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span>
             <span class="n">text</span><span class="p">(</span>
