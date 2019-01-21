@@ -100,7 +100,7 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy.ext.declarative</span> <span class="k">import</span> <span class="n">declared_attr</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">joinedload</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">backref</span><span class="p">,</span> <span class="n">relationship</span>
 
 
 <div class="viewcode-block" id="RegisteredLink"><a class="viewcode-back" href="../../../../../onegov_core.html#onegov.core.orm.abstract.associable.RegisteredLink">[docs]</a><span class="k">class</span> <span class="nc">RegisteredLink</span><span class="p">(</span><span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;RegisteredLink&quot;</span><span class="p">,</span> <span class="p">(</span>
@@ -172,7 +172,7 @@
         <span class="p">)</span>
         <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_id&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">)</span>
         <span class="n">target</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.id&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">)</span>
-        <span class="n">backref</span> <span class="o">=</span> <span class="s1">&#39;linked_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">)</span>
+        <span class="n">backref_name</span> <span class="o">=</span> <span class="s1">&#39;linked_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__tablename__</span><span class="p">)</span>
 
         <span class="n">association_key</span> <span class="o">=</span> <span class="n">associated_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;_id&#39;</span>
         <span class="n">association_id</span> <span class="o">=</span> <span class="n">associated_cls</span><span class="o">.</span><span class="n">id</span>
@@ -186,12 +186,30 @@
         <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">associated_cls</span><span class="p">,</span> <span class="n">Associable</span><span class="p">)</span>
 
         <span class="n">associated_cls</span><span class="o">.</span><span class="n">register_link</span><span class="p">(</span>
-            <span class="n">backref</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">association</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">attribute_name</span><span class="p">,</span> <span class="n">cardinality</span><span class="p">)</span>
+            <span class="n">backref_name</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">association</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">attribute_name</span><span class="p">,</span> <span class="n">cardinality</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">relationship</span><span class="p">(</span>
             <span class="n">argument</span><span class="o">=</span><span class="n">associated_cls</span><span class="p">,</span>
             <span class="n">secondary</span><span class="o">=</span><span class="n">association</span><span class="p">,</span>
-            <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">,</span>
+            <span class="c1"># The reference from the files class back to the target class fails</span>
+            <span class="c1"># to account for polymorphic identities.</span>
+            <span class="c1">#</span>
+            <span class="c1"># I think this cannot be fixed, as the file class would have to</span>
+            <span class="c1"># keep track of the polymorphic class in question through a</span>
+            <span class="c1"># separate column and a loading strategy that takes that into</span>
+            <span class="c1"># account.</span>
+            <span class="c1">#</span>
+            <span class="c1"># As a result we disable type-checks here. Note that the target</span>
+            <span class="c1"># class may have to override __eq__ and __hash__ to get cascades</span>
+            <span class="c1"># to work properly.</span>
+            <span class="c1">#</span>
+            <span class="c1"># Have a look at onegov.chat.models.Message to see how that has</span>
+            <span class="c1"># been done.</span>
+            <span class="n">backref</span><span class="o">=</span><span class="n">backref</span><span class="p">(</span>
+                <span class="n">backref_name</span><span class="p">,</span>
+                <span class="n">enable_typechecks</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">),</span>
+            <span class="n">active_history</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">single_parent</span><span class="o">=</span><span class="n">single_parent</span><span class="p">,</span>
             <span class="n">cascade</span><span class="o">=</span><span class="n">cascade</span><span class="p">,</span>
             <span class="n">uselist</span><span class="o">=</span><span class="n">uselist</span><span class="p">,</span>
