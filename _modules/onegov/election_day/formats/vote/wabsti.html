@@ -132,6 +132,10 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">added_entity_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">entity_id</span><span class="p">)</span>
 
+        <span class="c1"># Skip expats if not enabled</span>
+        <span class="k">if</span> <span class="n">entity_id</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">vote</span><span class="o">.</span><span class="n">expats</span><span class="p">:</span>
+            <span class="k">continue</span>
+
         <span class="c1"># the yeas</span>
         <span class="n">yeas</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">try</span><span class="p">:</span>
@@ -155,10 +159,6 @@
             <span class="n">eligible_voters</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stimmberechtigte</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
             <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Could not read the eligible voters&quot;</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Ignore the expats if no eligible voters</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">entity_id</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">eligible_voters</span><span class="p">:</span>
-                <span class="k">continue</span>
 
         <span class="c1"># the empty votes</span>
         <span class="n">empty</span> <span class="o">=</span> <span class="p">{}</span>

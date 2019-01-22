@@ -52,6 +52,20 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">extra_localized_text</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c1"># extracts of attachments are currently not searchable - if they were</span>
+        <span class="c1"># we would add this here - probably in a raw SQL query that</span>
+        <span class="c1"># concatenates all the text</span>
+        <span class="c1">#</span>
+        <span class="c1"># for now I&#39;ve decided against it as it would lower the hit-rate</span>
+        <span class="c1"># for notes (which should be very easy to find), just to be able</span>
+        <span class="c1"># to search through files which are mostly going to be irrelevant</span>
+        <span class="c1"># for what the user wants to find</span>
+        <span class="c1">#</span>
+        <span class="c1"># if the user wants to have a ticket findable through the file content</span>
+        <span class="c1"># we should advise them to enter a meaningful note with the file</span>
+        <span class="c1"># instead.</span>
+        <span class="c1">#</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">TicketNote</span><span class="p">)</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">channel_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;ticket_note&#39;</span><span class="p">)</span>

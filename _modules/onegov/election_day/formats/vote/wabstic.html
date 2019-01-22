@@ -176,6 +176,10 @@
                 <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="n">_</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{name}</span><span class="s2"> is unknown&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">entity_id</span><span class="p">}))</span>
 
+        <span class="c1"># Skip expats if not enabled</span>
+        <span class="k">if</span> <span class="n">entity_id</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">vote</span><span class="o">.</span><span class="n">expats</span><span class="p">:</span>
+            <span class="k">continue</span>
+
         <span class="c1"># Check if the entity is counted</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">counted</span> <span class="o">=</span> <span class="kc">False</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">sperrung</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">True</span>
@@ -190,10 +194,6 @@
             <span class="n">eligible_voters</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stimmberechtigte</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
             <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Could not read the eligible voters&quot;</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Ignore the expats if no eligible voters</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">entity_id</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">eligible_voters</span><span class="p">:</span>
-                <span class="k">continue</span>
 
         <span class="c1"># Parse the invalid votes</span>
         <span class="k">try</span><span class="p">:</span>

@@ -36,6 +36,7 @@
 <span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">Form</span>
+<span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">BooleanField</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">RadioField</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">StringField</span>
 <span class="kn">from</span> <span class="nn">wtforms.fields.html5</span> <span class="k">import</span> <span class="n">DateField</span>
@@ -62,6 +63,11 @@
         <span class="n">validators</span><span class="o">=</span><span class="p">[</span>
             <span class="n">InputRequired</span><span class="p">()</span>
         <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">expats</span> <span class="o">=</span> <span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Expats&quot;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">force_simple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="p">)</span>
 
     <span class="n">date</span> <span class="o">=</span> <span class="n">DateField</span><span class="p">(</span>
@@ -173,6 +179,7 @@
     <span class="k">def</span> <span class="nf">update_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
         <span class="n">model</span><span class="o">.</span><span class="n">date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">data</span>
         <span class="n">model</span><span class="o">.</span><span class="n">domain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">expats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expats</span><span class="o">.</span><span class="n">data</span>
         <span class="n">model</span><span class="o">.</span><span class="n">shortcode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shortcode</span><span class="o">.</span><span class="n">data</span>
         <span class="n">model</span><span class="o">.</span><span class="n">related_link</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_link</span><span class="o">.</span><span class="n">data</span>
 
@@ -219,6 +226,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">date</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">domain</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expats</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">expats</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">shortcode</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">shortcode</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">related_link</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">related_link</span>
 

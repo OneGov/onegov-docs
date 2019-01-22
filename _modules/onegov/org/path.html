@@ -54,7 +54,6 @@
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">CompleteFormSubmission</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormDefinition</span>
-<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormFile</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormRegistrationWindow</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">PendingFormSubmission</span>
 <span class="kn">from</span> <span class="nn">onegov.newsletter</span> <span class="k">import</span> <span class="n">Newsletter</span>
@@ -198,7 +197,7 @@
 
 <div class="viewcode-block" id="get_file_for_org"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.path.get_file_for_org">[docs]</a><span class="nd">@OrgApp</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">File</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/storage/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">get_file_for_org</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Form files are kept private and out of any caches.</span>
+    <span class="sd">&quot;&quot;&quot; Some files are kept private and out of any caches.</span>
 
 <span class="sd">    This approach is not all that morepath-y, as we could override the views</span>
 <span class="sd">    instead to change the required permissions, but this approach has the</span>
@@ -206,9 +205,15 @@
 <span class="sd">    have to care for additional views added in the future.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">protected_filetypes</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s1">&#39;formfile&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;messagefile&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
     <span class="n">obj</span> <span class="o">=</span> <span class="n">get_file</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">id</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">obj</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">FormFile</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">obj</span> <span class="ow">and</span> <span class="n">obj</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="n">protected_filetypes</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">has_role</span><span class="p">(</span><span class="s1">&#39;editor&#39;</span><span class="p">,</span> <span class="s1">&#39;admin&#39;</span><span class="p">):</span>
             <span class="n">obj</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>

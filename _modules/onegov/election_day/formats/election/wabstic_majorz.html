@@ -50,11 +50,11 @@
 <span class="n">HEADERS_WMSTATIC_GEMEINDEN</span> <span class="o">=</span> <span class="p">(</span>
     <span class="s1">&#39;sortwahlkreis&#39;</span><span class="p">,</span>  <span class="c1"># provides the link to the election</span>
     <span class="s1">&#39;sortgeschaeft&#39;</span><span class="p">,</span>  <span class="c1"># provides the link to the election</span>
-    <span class="s1">&#39;bfsnrgemeinde&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;bfsnrgemeinde&#39;</span><span class="p">,</span>  <span class="c1"># BFS</span>
     <span class="s1">&#39;stimmberechtigte&#39;</span><span class="p">,</span>  <span class="c1"># eligible votes</span>
 <span class="p">)</span>
 <span class="n">HEADERS_WM_GEMEINDEN</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="s1">&#39;bfsnrgemeinde&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;bfsnrgemeinde&#39;</span><span class="p">,</span>  <span class="c1"># BFS</span>
     <span class="s1">&#39;stimmberechtigte&#39;</span><span class="p">,</span>  <span class="c1"># eligible votes</span>
     <span class="s1">&#39;sperrung&#39;</span><span class="p">,</span>  <span class="c1"># counted</span>
     <span class="s1">&#39;stmabgegeben&#39;</span><span class="p">,</span>  <span class="c1"># received ballots</span>
@@ -73,7 +73,7 @@
 <span class="p">)</span>
 <span class="n">HEADERS_WM_KANDIDATENGDE</span> <span class="o">=</span> <span class="p">(</span>
     <span class="s1">&#39;sortgeschaeft&#39;</span><span class="p">,</span>  <span class="c1"># provides the link to the election</span>
-    <span class="s1">&#39;bfsnrgemeinde&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;bfsnrgemeinde&#39;</span><span class="p">,</span>  <span class="c1"># BFS</span>
     <span class="s1">&#39;knr&#39;</span><span class="p">,</span>  <span class="c1"># candidate id</span>
     <span class="s1">&#39;stimmen&#39;</span><span class="p">,</span>  <span class="c1"># votes</span>
 <span class="p">)</span>
@@ -172,6 +172,7 @@
             <span class="k">if</span> <span class="n">absolute_majority</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
                 <span class="n">absolute_majority</span> <span class="o">=</span> <span class="kc">None</span>
 
+        <span class="c1"># Pass the errors and continue to next line</span>
         <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
             <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
                 <span class="n">FileImportError</span><span class="p">(</span>
@@ -209,6 +210,11 @@
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
             <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Could not read the eligible voters&quot;</span><span class="p">))</span>
 
+        <span class="c1"># Skip expats if not enabled</span>
+        <span class="k">if</span> <span class="n">entity_id</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">election</span><span class="o">.</span><span class="n">expats</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Pass the errors and continue to next line</span>
         <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
             <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
                 <span class="n">FileImportError</span><span class="p">(</span>
@@ -241,6 +247,7 @@
 
             <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_entities</span><span class="p">:</span>
                 <span class="c1"># Only add it if present (there is there no SortGeschaeft)</span>
+                <span class="c1"># .. this also skips expats if not enabled</span>
                 <span class="k">continue</span>
 
         <span class="n">entity</span> <span class="o">=</span> <span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span>
@@ -279,6 +286,7 @@
             <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;blank_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">blank_votes</span>
             <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;invalid_votes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">invalid_votes</span>
 
+        <span class="c1"># Pass the errors and continue to next line</span>
         <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
             <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
                 <span class="n">FileImportError</span><span class="p">(</span>
@@ -314,6 +322,7 @@
                 <span class="n">party</span><span class="o">=</span><span class="n">party</span>
             <span class="p">)</span>
 
+        <span class="c1"># Pass the errors and continue to next line</span>
         <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
             <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
                 <span class="n">FileImportError</span><span class="p">(</span>
@@ -339,9 +348,14 @@
         <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">AssertionError</span><span class="p">):</span>
             <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid candidate results&quot;</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entity_id</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">election</span><span class="o">.</span><span class="n">expats</span><span class="p">:</span>
+                <span class="c1"># Skip expats if not enabled</span>
+                <span class="k">continue</span>
+
             <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_entities</span><span class="p">:</span>
                 <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid entity values&quot;</span><span class="p">))</span>
 
+        <span class="c1"># Pass the errors and continue to next line</span>
         <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
             <span class="n">errors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
                 <span class="n">FileImportError</span><span class="p">(</span>
