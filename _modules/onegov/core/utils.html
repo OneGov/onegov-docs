@@ -84,6 +84,9 @@
     <span class="sa">r</span><span class="s2">&quot;\sdot\s))+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)&quot;</span>
 <span class="p">))</span>
 
+<span class="c1"># detects multiple successive newlines</span>
+<span class="n">_multiple_newlines</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\n{2,}&#39;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
+
 <span class="c1"># for yubikeys</span>
 <span class="n">ALPHABET</span> <span class="o">=</span> <span class="s1">&#39;cbdefghijklnrtuv&#39;</span>
 <span class="n">ALPHABET_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^[cbdefghijklnrtuv]{12,44}$&#39;</span><span class="p">)</span>
@@ -344,6 +347,24 @@
 
     <span class="k">return</span> <span class="n">bleach</span><span class="o">.</span><span class="n">clean</span><span class="p">(</span>
         <span class="n">linkified</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">],</span> <span class="n">attributes</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;href&#39;</span><span class="p">,</span> <span class="s1">&#39;rel&#39;</span><span class="p">]})</span></div>
+
+
+<div class="viewcode-block" id="paragraphify"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.utils.paragraphify">[docs]</a><span class="k">def</span> <span class="nf">paragraphify</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a text with newlines groups them into paragraphs according to the</span>
+<span class="sd">    following rules:</span>
+
+<span class="sd">    If there&#39;s a single newline between two lines, a &lt;br&gt; will replace that</span>
+<span class="sd">    newline.</span>
+
+<span class="sd">    If there are multiple newlines between two lines, each line will become</span>
+<span class="sd">    a paragraph and the extra newlines are discarded.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;&lt;p&gt;</span><span class="si">{p}</span><span class="s1">&lt;/p&gt;&#39;</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;br&gt;&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">_multiple_newlines</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="ensure_scheme"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.utils.ensure_scheme">[docs]</a><span class="k">def</span> <span class="nf">ensure_scheme</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;http&#39;</span><span class="p">):</span>
