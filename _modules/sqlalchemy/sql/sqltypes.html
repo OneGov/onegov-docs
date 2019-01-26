@@ -199,9 +199,6 @@
 <span class="sd">            &gt;&gt;&gt; print select([cast(&#39;some string&#39;, String(collation=&#39;utf8&#39;))])</span>
 <span class="sd">            SELECT CAST(:param_1 AS VARCHAR COLLATE utf8) AS anon_1</span>
 
-<span class="sd">          .. versionadded:: 0.8 Added support for COLLATE to all</span>
-<span class="sd">             string types.</span>
-
 <span class="sd">        :param convert_unicode: When set to ``True``, the</span>
 <span class="sd">          :class:`.String` type will assume that</span>
 <span class="sd">          input is to be passed as Python Unicode objects under Python 2,</span>
@@ -414,7 +411,7 @@
 <span class="sd">    unicode.  The recipe at :ref:`coerce_to_unicode` illustrates</span>
 <span class="sd">    how this is done.</span>
 
-<span class="sd">    See also:</span>
+<span class="sd">    .. seealso::</span>
 
 <span class="sd">        :class:`.UnicodeText` - unlengthed textual counterpart</span>
 <span class="sd">        to :class:`.Unicode`.</span>
@@ -600,7 +597,7 @@
 <span class="sd">         be much longer due to decimal inaccuracy, and most floating point</span>
 <span class="sd">         database types don&#39;t have a notion of &quot;scale&quot;, so by default the</span>
 <span class="sd">         float type looks for the first ten decimal places when converting.</span>
-<span class="sd">         Specfiying this value will override that length.  Types which</span>
+<span class="sd">         Specifying this value will override that length.  Types which</span>
 <span class="sd">         do include an explicit &quot;.scale&quot; value, such as the base</span>
 <span class="sd">         :class:`.Numeric` as well as the MySQL float types, will use the</span>
 <span class="sd">         value of &quot;.scale&quot; as the default for decimal_return_scale, if not</span>
@@ -609,7 +606,7 @@
 <span class="sd">         .. versionadded:: 0.9.0</span>
 
 <span class="sd">        When using the ``Numeric`` type, care should be taken to ensure</span>
-<span class="sd">        that the asdecimal setting is apppropriate for the DBAPI in use -</span>
+<span class="sd">        that the asdecimal setting is appropriate for the DBAPI in use -</span>
 <span class="sd">        when Numeric applies a conversion from Decimal-&gt;float or float-&gt;</span>
 <span class="sd">        Decimal, this conversion incurs an additional performance overhead</span>
 <span class="sd">        for all result columns received.</span>
@@ -755,17 +752,22 @@
 <span class="sd">         be much longer due to decimal inaccuracy, and most floating point</span>
 <span class="sd">         database types don&#39;t have a notion of &quot;scale&quot;, so by default the</span>
 <span class="sd">         float type looks for the first ten decimal places when converting.</span>
-<span class="sd">         Specfiying this value will override that length.  Note that the</span>
+<span class="sd">         Specifying this value will override that length.  Note that the</span>
 <span class="sd">         MySQL float types, which do include &quot;scale&quot;, will use &quot;scale&quot;</span>
 <span class="sd">         as the default for decimal_return_scale, if not otherwise specified.</span>
 
 <span class="sd">         .. versionadded:: 0.9.0</span>
 
-<span class="sd">        :param \**kwargs: deprecated.  Additional arguments here are ignored</span>
-<span class="sd">         by the default :class:`.Float` type.  For database specific</span>
-<span class="sd">         floats that support additional arguments, see that dialect&#39;s</span>
-<span class="sd">         documentation for details, such as</span>
-<span class="sd">         :class:`sqlalchemy.dialects.mysql.FLOAT`.</span>
+<span class="sd">        :param \**kwargs:</span>
+
+<span class="sd">            .. deprecated:: 0.9</span>
+
+<span class="sd">                Additional keyword arguments are ignored by the base</span>
+<span class="sd">                :class:`.Float` type, and keyword arguments will no longer</span>
+<span class="sd">                be accepted in a future release.  For database specific floats</span>
+<span class="sd">                that support additional arguments, see that dialect&#39;s</span>
+<span class="sd">                documentation for details, such as</span>
+<span class="sd">                :class:`sqlalchemy.dialects.mysql.FLOAT`.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">precision</span> <span class="o">=</span> <span class="n">precision</span>
@@ -1009,7 +1011,12 @@
 
 <span class="k">class</span> <span class="nc">Binary</span><span class="p">(</span><span class="n">LargeBinary</span><span class="p">):</span>
 
-    <span class="sd">&quot;&quot;&quot;Deprecated.  Renamed to LargeBinary.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;.. deprecated:: 0.6</span>
+
+<span class="sd">            The :class:`.Binary` class is deprecated and will be removed</span>
+<span class="sd">            in a future relase.  Please use :class:`.LargeBinary`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">arg</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
         <span class="n">util</span><span class="o">.</span><span class="n">warn_deprecated</span><span class="p">(</span>
@@ -1972,9 +1979,9 @@
 <span class="sd">    Index operations return an expression object whose type defaults to</span>
 <span class="sd">    :class:`.JSON` by default, so that further JSON-oriented instructions may</span>
 <span class="sd">    be called upon the result type.   Note that there are backend-specific</span>
-<span class="sd">    idiosyncracies here, including that the PostgreSQL database does not</span>
+<span class="sd">    idiosyncrasies here, including that the PostgreSQL database does not</span>
 <span class="sd">    generally compare a &quot;json&quot; to a &quot;json&quot; structure without type casts.  These</span>
-<span class="sd">    idiosyncracies can be accommodated in a backend-neutral way by making</span>
+<span class="sd">    idiosyncrasies can be accommodated in a backend-neutral way by making</span>
 <span class="sd">    explicit use of the :func:`.cast` and :func:`.type_coerce` constructs.</span>
 <span class="sd">    Comparison of specific index elements of a :class:`.JSON` object to other</span>
 <span class="sd">    objects works best if the **left hand side is CAST to a string** and the</span>

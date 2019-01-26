@@ -147,7 +147,12 @@
         <span class="k">return</span> <span class="n">util</span><span class="o">.</span><span class="n">generic_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">omit_kwarg</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;info&quot;</span><span class="p">])</span>
 
     <span class="nd">@property</span>
-    <span class="nd">@util</span><span class="o">.</span><span class="n">deprecated</span><span class="p">(</span><span class="s2">&quot;0.9&quot;</span><span class="p">,</span> <span class="s2">&quot;Use ``&lt;obj&gt;.name.quote``&quot;</span><span class="p">)</span>
+    <span class="nd">@util</span><span class="o">.</span><span class="n">deprecated</span><span class="p">(</span>
+        <span class="s2">&quot;0.9&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;The :attr:`.SchemaItem.quote` attribute is deprecated and will be &quot;</span>
+        <span class="s2">&quot;removed in a future release.  Use the :attr:`.quoted_name.quote` &quot;</span>
+        <span class="s2">&quot;attribute on the ``name`` field of the target schema item to retrieve&quot;</span>
+        <span class="s2">&quot;quoted status.&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">quote</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the value of the ``quote`` flag passed</span>
 <span class="sd">        to this schema object, for those schema items which</span>
@@ -261,8 +266,6 @@
 <span class="sd">        replace existing columns of the same name when</span>
 <span class="sd">        :paramref:`.Table.extend_existing` is ``True``.</span>
 
-<span class="sd">        .. versionadded:: 0.7.5</span>
-
 <span class="sd">        .. seealso::</span>
 
 <span class="sd">            :paramref:`.Table.autoload`</span>
@@ -305,10 +308,6 @@
 <span class="sd">        and other options will be added into the state of the</span>
 <span class="sd">        :class:`.Table`, potentially overwriting existing columns</span>
 <span class="sd">        and options of the same name.</span>
-
-<span class="sd">        .. versionchanged:: 0.7.4 :paramref:`.Table.extend_existing` will</span>
-<span class="sd">           invoke a new reflection operation when combined with</span>
-<span class="sd">           :paramref:`.Table.autoload` set to True.</span>
 
 <span class="sd">        As is always the case with :paramref:`.Table.autoload`,</span>
 <span class="sd">        :class:`.Column` objects can be specified in the same :class:`.Table`</span>
@@ -505,7 +504,12 @@
                     <span class="n">metadata</span><span class="o">.</span><span class="n">_remove_table</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">schema</span><span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="nd">@util</span><span class="o">.</span><span class="n">deprecated</span><span class="p">(</span><span class="s2">&quot;0.9&quot;</span><span class="p">,</span> <span class="s2">&quot;Use ``table.schema.quote``&quot;</span><span class="p">)</span>
+    <span class="nd">@util</span><span class="o">.</span><span class="n">deprecated</span><span class="p">(</span>
+        <span class="s2">&quot;0.9&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;The :meth:`.SchemaItem.quote` method is deprecated and will be &quot;</span>
+        <span class="s2">&quot;removed in a future release.  Use the :attr:`.quoted_name.quote` &quot;</span>
+        <span class="s2">&quot;attribute on the ``schema`` field of the target schema item to &quot;</span>
+        <span class="s2">&quot;retrieve quoted status.&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">quote_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the value of the ``quote_schema`` flag passed</span>
 <span class="sd">        to this :class:`.Table`.</span>
@@ -876,7 +880,7 @@
 
 <span class="sd">            m1 = MetaData()</span>
 
-<span class="sd">            user = Table(&#39;user&#39;, m1, Column(&#39;id&#39;, Integer, priamry_key=True))</span>
+<span class="sd">            user = Table(&#39;user&#39;, m1, Column(&#39;id&#39;, Integer, primary_key=True))</span>
 
 <span class="sd">            m2 = MetaData()</span>
 <span class="sd">            user_copy = user.tometadata(m2)</span>
@@ -1266,9 +1270,6 @@
 <span class="sd">             conditionally rendered differently on different backends,</span>
 <span class="sd">             consider custom compilation rules for :class:`.CreateColumn`.</span>
 
-<span class="sd">             .. versionadded:: 0.8.3 Added the ``system=True`` parameter to</span>
-<span class="sd">                :class:`.Column`.</span>
-
 <span class="sd">        :param comment: Optional string that will render an SQL comment on</span>
 <span class="sd">             table creation.</span>
 
@@ -1516,7 +1517,7 @@
             <span class="n">event</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;after_parent_attach&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Create a copy of this ``Column``, unitialized.</span>
+        <span class="sd">&quot;&quot;&quot;Create a copy of this ``Column``, uninitialized.</span>
 
 <span class="sd">        This is used in ``Table.tometadata``.</span>
 
@@ -1683,11 +1684,6 @@
 <span class="sd">            ``columnkey`` is the ``key`` which has been assigned to the column</span>
 <span class="sd">            (defaults to the column name itself), unless ``link_to_name`` is</span>
 <span class="sd">            ``True`` in which case the rendered name of the column is used.</span>
-
-<span class="sd">            .. versionadded:: 0.7.4</span>
-<span class="sd">                Note that if the schema name is not included, and the</span>
-<span class="sd">                underlying :class:`.MetaData` has a &quot;schema&quot;, that value will</span>
-<span class="sd">                be used.</span>
 
 <span class="sd">        :param name: Optional string. An in-database name for the key if</span>
 <span class="sd">            `constraint` is not provided.</span>
@@ -2621,14 +2617,16 @@
     <span class="sd">&quot;&quot;&quot;A DDL-specified DEFAULT column value.</span>
 
 <span class="sd">    .. deprecated:: 0.6</span>
-<span class="sd">        :class:`.PassiveDefault` is deprecated.</span>
-<span class="sd">        Use :class:`.DefaultClause`.</span>
+
+<span class="sd">        The :class:`.PassiveDefault` class is deprecated and will be removed</span>
+<span class="sd">        in a future release.  Please use :class:`.DefaultClause`.</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@util</span><span class="o">.</span><span class="n">deprecated</span><span class="p">(</span>
         <span class="s2">&quot;0.6&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;:class:`.PassiveDefault` is deprecated.  &quot;</span>
-        <span class="s2">&quot;Use :class:`.DefaultClause`.&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;:class:`.PassiveDefault` is deprecated and will be removed in a &quot;</span>
+        <span class="s2">&quot;future release. Use :class:`.DefaultClause`.&quot;</span><span class="p">,</span>
         <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">arg</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
@@ -3540,8 +3538,6 @@
 
 <span class="sd">        Index(&quot;some_index&quot;, func.lower(sometable.c.name))</span>
 
-<span class="sd">    .. versionadded:: 0.8 support for functional and expression-based indexes.</span>
-
 <span class="sd">    An :class:`.Index` can also be manually associated with a :class:`.Table`,</span>
 <span class="sd">    either through inline declaration or using</span>
 <span class="sd">    :meth:`.Table.append_constraint`.  When this approach is used, the names</span>
@@ -3768,7 +3764,10 @@
 <span class="sd">          Defaults to False. ``bind`` is required when this option is set.</span>
 
 <span class="sd">          .. deprecated:: 0.8</span>
-<span class="sd">                Please use the :meth:`.MetaData.reflect` method.</span>
+
+<span class="sd">                The :paramref:`.MetaData.reflect` flag is deprecated and will</span>
+<span class="sd">                be removed in a future release.   Please use the</span>
+<span class="sd">                :meth:`.MetaData.reflect` method.</span>
 
 <span class="sd">        :param schema:</span>
 <span class="sd">           The default schema to use for the :class:`.Table`,</span>
@@ -4038,8 +4037,8 @@
 <span class="sd">            automatic resolution of dependency cycles between tables, which</span>
 <span class="sd">            are usually caused by mutually dependent foreign key constraints.</span>
 <span class="sd">            To resolve these cycles, either the</span>
-<span class="sd">            :paramref:`.ForeignKeyConstraint.use_alter` parameter may be appled</span>
-<span class="sd">            to those constraints, or use the</span>
+<span class="sd">            :paramref:`.ForeignKeyConstraint.use_alter` parameter may be</span>
+<span class="sd">            applied to those constraints, or use the</span>
 <span class="sd">            :func:`.schema.sort_tables_and_constraints` function which will</span>
 <span class="sd">            break out foreign key constraints involved in cycles separately.</span>
 
@@ -4084,7 +4083,7 @@
 <span class="sd">          the existing bind on this ``MetaData``, if any.</span>
 
 <span class="sd">        :param schema:</span>
-<span class="sd">          Optional, query and reflect tables from an alterate schema.</span>
+<span class="sd">          Optional, query and reflect tables from an alternate schema.</span>
 <span class="sd">          If None, the schema associated with this :class:`.MetaData`</span>
 <span class="sd">          is used, if any.</span>
 
