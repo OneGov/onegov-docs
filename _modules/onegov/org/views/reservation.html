@@ -47,7 +47,7 @@
 <span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">Link</span>
 <span class="kn">from</span> <span class="nn">onegov.org.forms</span> <span class="k">import</span> <span class="n">ReservationForm</span>
 <span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">ReservationLayout</span>
-<span class="kn">from</span> <span class="nn">onegov.org.mail</span> <span class="k">import</span> <span class="n">send_transactional_html_mail</span>
+<span class="kn">from</span> <span class="nn">onegov.org.mail</span> <span class="k">import</span> <span class="n">send_ticket_mail</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">TicketMessage</span><span class="p">,</span> <span class="n">ReservationMessage</span>
 <span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Allocation</span><span class="p">,</span> <span class="n">Reservation</span><span class="p">,</span> <span class="n">Resource</span>
 <span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">TicketCollection</span>
@@ -411,26 +411,25 @@
             <span class="p">)</span>
             <span class="n">TicketMessage</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">ticket</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;opened&#39;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">ticket</span><span class="o">.</span><span class="n">muted</span><span class="p">:</span>
-                <span class="n">show_submission</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;send_by_email&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span>
+        <span class="n">show_submission</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;send_by_email&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span>
 
-                <span class="k">if</span> <span class="n">submission</span> <span class="ow">and</span> <span class="n">show_submission</span><span class="p">:</span>
-                    <span class="n">form</span> <span class="o">=</span> <span class="n">submission</span><span class="o">.</span><span class="n">form_obj</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">form</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">submission</span> <span class="ow">and</span> <span class="n">show_submission</span><span class="p">:</span>
+            <span class="n">form</span> <span class="o">=</span> <span class="n">submission</span><span class="o">.</span><span class="n">form_obj</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">form</span> <span class="o">=</span> <span class="kc">None</span>
 
-                <span class="n">send_transactional_html_mail</span><span class="p">(</span>
-                    <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
-                    <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_ticket_opened.pt&#39;</span><span class="p">,</span>
-                    <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;A ticket has been opened&quot;</span><span class="p">),</span>
-                    <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="p">),</span>
-                    <span class="n">content</span><span class="o">=</span><span class="p">{</span>
-                        <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">ticket</span><span class="p">,</span>
-                        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
-                        <span class="s1">&#39;show_submission&#39;</span><span class="p">:</span> <span class="n">show_submission</span>
-                    <span class="p">}</span>
-                <span class="p">)</span>
+        <span class="n">send_ticket_mail</span><span class="p">(</span>
+            <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
+            <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_ticket_opened.pt&#39;</span><span class="p">,</span>
+            <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your ticket has been opened&quot;</span><span class="p">),</span>
+            <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="p">),</span>
+            <span class="n">ticket</span><span class="o">=</span><span class="n">ticket</span><span class="p">,</span>
+            <span class="n">content</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">ticket</span><span class="p">,</span>
+                <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
+                <span class="s1">&#39;show_submission&#39;</span><span class="p">:</span> <span class="n">show_submission</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
 
         <span class="n">request</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Thank you for your reservation!&quot;</span><span class="p">))</span>
 
@@ -447,18 +446,18 @@
         <span class="n">tickets</span> <span class="o">=</span> <span class="n">TicketCollection</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
         <span class="n">ticket</span> <span class="o">=</span> <span class="n">tickets</span><span class="o">.</span><span class="n">by_handler_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ticket</span><span class="o">.</span><span class="n">muted</span><span class="p">:</span>
-            <span class="n">send_transactional_html_mail</span><span class="p">(</span>
-                <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
-                <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_reservation_accepted.pt&#39;</span><span class="p">,</span>
-                <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your reservations were accepted&quot;</span><span class="p">),</span>
-                <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="p">),</span>
-                <span class="n">content</span><span class="o">=</span><span class="p">{</span>
-                    <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
-                    <span class="s1">&#39;resource&#39;</span><span class="p">:</span> <span class="n">resource</span><span class="p">,</span>
-                    <span class="s1">&#39;reservations&#39;</span><span class="p">:</span> <span class="n">reservations</span>
-                <span class="p">}</span>
-            <span class="p">)</span>
+        <span class="n">send_ticket_mail</span><span class="p">(</span>
+            <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
+            <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_reservation_accepted.pt&#39;</span><span class="p">,</span>
+            <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Your reservations were accepted&quot;</span><span class="p">),</span>
+            <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="p">),</span>
+            <span class="n">ticket</span><span class="o">=</span><span class="n">ticket</span><span class="p">,</span>
+            <span class="n">content</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+                <span class="s1">&#39;resource&#39;</span><span class="p">:</span> <span class="n">resource</span><span class="p">,</span>
+                <span class="s1">&#39;reservations&#39;</span><span class="p">:</span> <span class="n">reservations</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">reservation</span> <span class="ow">in</span> <span class="n">reservations</span><span class="p">:</span>
             <span class="n">reservation</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">reservation</span><span class="o">.</span><span class="n">data</span> <span class="ow">or</span> <span class="p">{}</span>
@@ -515,18 +514,18 @@
     <span class="k">if</span> <span class="n">payment</span><span class="p">:</span>
         <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">payment</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="n">request</span><span class="o">.</span><span class="n">current_username</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ticket</span><span class="o">.</span><span class="n">muted</span><span class="p">:</span>
-        <span class="n">send_transactional_html_mail</span><span class="p">(</span>
-            <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
-            <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_reservation_rejected.pt&#39;</span><span class="p">,</span>
-            <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The following reservations were rejected&quot;</span><span class="p">),</span>
-            <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="p">),</span>
-            <span class="n">content</span><span class="o">=</span><span class="p">{</span>
-                <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
-                <span class="s1">&#39;resource&#39;</span><span class="p">:</span> <span class="n">resource</span><span class="p">,</span>
-                <span class="s1">&#39;reservations&#39;</span><span class="p">:</span> <span class="n">targeted</span>
-            <span class="p">}</span>
-        <span class="p">)</span>
+    <span class="n">send_ticket_mail</span><span class="p">(</span>
+        <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
+        <span class="n">template</span><span class="o">=</span><span class="s1">&#39;mail_reservation_rejected.pt&#39;</span><span class="p">,</span>
+        <span class="n">subject</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The following reservations were rejected&quot;</span><span class="p">),</span>
+        <span class="n">receivers</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="p">),</span>
+        <span class="n">ticket</span><span class="o">=</span><span class="n">ticket</span><span class="p">,</span>
+        <span class="n">content</span><span class="o">=</span><span class="p">{</span>
+            <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
+            <span class="s1">&#39;resource&#39;</span><span class="p">:</span> <span class="n">resource</span><span class="p">,</span>
+            <span class="s1">&#39;reservations&#39;</span><span class="p">:</span> <span class="n">targeted</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
 
     <span class="n">ReservationMessage</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">targeted</span><span class="p">,</span> <span class="n">ticket</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="s1">&#39;rejected&#39;</span><span class="p">)</span>
 

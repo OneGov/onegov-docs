@@ -40,15 +40,35 @@
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">FormSubmissionCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.org.layout</span> <span class="k">import</span> <span class="n">DefaultLayout</span><span class="p">,</span> <span class="n">EventLayout</span>
-<span class="kn">from</span> <span class="nn">onegov.org.models.message</span> <span class="k">import</span> <span class="n">TicketNote</span>
-<span class="kn">from</span> <span class="nn">onegov.org.new_elements</span> <span class="k">import</span> <span class="n">Link</span><span class="p">,</span> <span class="n">LinkGroup</span><span class="p">,</span> <span class="n">Confirm</span><span class="p">,</span> <span class="n">Intercooler</span>
+<span class="kn">from</span> <span class="nn">onegov.chat</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="kn">from</span> <span class="nn">onegov.core.elements</span> <span class="k">import</span> <span class="n">Link</span><span class="p">,</span> <span class="n">LinkGroup</span><span class="p">,</span> <span class="n">Confirm</span><span class="p">,</span> <span class="n">Intercooler</span>
 <span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Allocation</span><span class="p">,</span> <span class="n">Resource</span><span class="p">,</span> <span class="n">Reservation</span>
 <span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">Ticket</span><span class="p">,</span> <span class="n">Handler</span><span class="p">,</span> <span class="n">handlers</span>
 <span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 
 
-<span class="k">class</span> <span class="nc">OrgTicketExtraText</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="OrgTicketMixin"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.OrgTicketMixin">[docs]</a><span class="k">class</span> <span class="nc">OrgTicketMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds additional methods to the ticket, needed by the organisations</span>
+<span class="sd">    implementation of it. Strictly limited to things that</span>
+<span class="sd">    do not belong into onegov.ticket.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="OrgTicketMixin.reference"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.OrgTicketMixin.reference">[docs]</a>    <span class="k">def</span> <span class="nf">reference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the reference which should be used wherever we talk about</span>
+<span class="sd">        a ticket, but do not show it (say in an e-mail subject).</span>
+
+<span class="sd">        This reference should not be changed so it stays consistent.</span>
+
+<span class="sd">        If you want, you can override the content of the reference group,</span>
+<span class="sd">        shown in brackets (see :meth:`reference_group`).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.number}</span><span class="s1"> / {self.reference_group(request)}&#39;</span></div>
+
+    <span class="k">def</span> <span class="nf">reference_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">group</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">extra_localized_text</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -66,30 +86,33 @@
         <span class="c1"># we should advise them to enter a meaningful note with the file</span>
         <span class="c1"># instead.</span>
         <span class="c1">#</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">TicketNote</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Message</span><span class="p">)</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">channel_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;ticket_note&#39;</span><span class="p">)</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">TicketNote</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">in_</span><span class="p">((</span><span class="s1">&#39;ticket_note&#39;</span><span class="p">,</span> <span class="s1">&#39;ticket_chat&#39;</span><span class="p">)))</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">n</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">q</span> <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">n</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">q</span> <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">text</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="FormSubmissionTicket"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.FormSubmissionTicket">[docs]</a><span class="k">class</span> <span class="nc">FormSubmissionTicket</span><span class="p">(</span><span class="n">OrgTicketExtraText</span><span class="p">,</span> <span class="n">Ticket</span><span class="p">):</span>
+<div class="viewcode-block" id="FormSubmissionTicket"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.FormSubmissionTicket">[docs]</a><span class="k">class</span> <span class="nc">FormSubmissionTicket</span><span class="p">(</span><span class="n">OrgTicketMixin</span><span class="p">,</span> <span class="n">Ticket</span><span class="p">):</span>
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;FRM&#39;</span><span class="p">}</span>
     <span class="n">es_type_name</span> <span class="o">=</span> <span class="s1">&#39;submission_tickets&#39;</span></div>
 
 
-<div class="viewcode-block" id="ReservationTicket"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.ReservationTicket">[docs]</a><span class="k">class</span> <span class="nc">ReservationTicket</span><span class="p">(</span><span class="n">OrgTicketExtraText</span><span class="p">,</span> <span class="n">Ticket</span><span class="p">):</span>
+<div class="viewcode-block" id="ReservationTicket"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.ReservationTicket">[docs]</a><span class="k">class</span> <span class="nc">ReservationTicket</span><span class="p">(</span><span class="n">OrgTicketMixin</span><span class="p">,</span> <span class="n">Ticket</span><span class="p">):</span>
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;RSV&#39;</span><span class="p">}</span>
     <span class="n">es_type_name</span> <span class="o">=</span> <span class="s1">&#39;reservation_tickets&#39;</span></div>
 
 
-<div class="viewcode-block" id="EventSubmissionTicket"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.EventSubmissionTicket">[docs]</a><span class="k">class</span> <span class="nc">EventSubmissionTicket</span><span class="p">(</span><span class="n">OrgTicketExtraText</span><span class="p">,</span> <span class="n">Ticket</span><span class="p">):</span>
+<div class="viewcode-block" id="EventSubmissionTicket"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.EventSubmissionTicket">[docs]</a><span class="k">class</span> <span class="nc">EventSubmissionTicket</span><span class="p">(</span><span class="n">OrgTicketMixin</span><span class="p">,</span> <span class="n">Ticket</span><span class="p">):</span>
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;EVN&#39;</span><span class="p">}</span>
-    <span class="n">es_type_name</span> <span class="o">=</span> <span class="s1">&#39;event_tickets&#39;</span></div>
+    <span class="n">es_type_name</span> <span class="o">=</span> <span class="s1">&#39;event_tickets&#39;</span>
+
+    <span class="k">def</span> <span class="nf">reference_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span></div>
 
 
-<div class="viewcode-block" id="DirectoryEntryTicket"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.DirectoryEntryTicket">[docs]</a><span class="k">class</span> <span class="nc">DirectoryEntryTicket</span><span class="p">(</span><span class="n">OrgTicketExtraText</span><span class="p">,</span> <span class="n">Ticket</span><span class="p">):</span>
+<div class="viewcode-block" id="DirectoryEntryTicket"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.DirectoryEntryTicket">[docs]</a><span class="k">class</span> <span class="nc">DirectoryEntryTicket</span><span class="p">(</span><span class="n">OrgTicketMixin</span><span class="p">,</span> <span class="n">Ticket</span><span class="p">):</span>
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;DIR&#39;</span><span class="p">}</span>
     <span class="n">es_type_name</span> <span class="o">=</span> <span class="s1">&#39;directory_tickets&#39;</span></div>
 
@@ -182,6 +205,9 @@
                         <span class="p">),</span>
                         <span class="n">_</span><span class="p">(</span>
                             <span class="s2">&quot;Confirm registration&quot;</span>
+                        <span class="p">),</span>
+                        <span class="n">_</span><span class="p">(</span>
+                            <span class="s2">&quot;Cancel&quot;</span>
                         <span class="p">)</span>
                     <span class="p">))</span>
 
@@ -429,7 +455,8 @@
                 <span class="n">Confirm</span><span class="p">(</span>
                     <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to reject all reservations?&quot;</span><span class="p">),</span>
                     <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Rejecting these reservations can&#39;t be undone.&quot;</span><span class="p">),</span>
-                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reject reservations&quot;</span><span class="p">)</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reject reservations&quot;</span><span class="p">),</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                 <span class="p">),</span>
                 <span class="n">Intercooler</span><span class="p">(</span>
                     <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span>
@@ -454,7 +481,8 @@
                         <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Rejecting $</span><span class="si">{title}</span><span class="s2"> can&#39;t be undone.&quot;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
                             <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">title</span>
                         <span class="p">}),</span>
-                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reject reservation&quot;</span><span class="p">)</span>
+                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reject reservation&quot;</span><span class="p">),</span>
+                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                     <span class="p">),</span>
                     <span class="n">Intercooler</span><span class="p">(</span>
                         <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span>
@@ -557,7 +585,8 @@
                         <span class="n">Confirm</span><span class="p">(</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to reject this event?&quot;</span><span class="p">),</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Rejecting this event can&#39;t be undone.&quot;</span><span class="p">),</span>
-                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reject event&quot;</span><span class="p">)</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reject event&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">),</span>
                         <span class="n">Intercooler</span><span class="p">(</span>
                             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
@@ -712,7 +741,8 @@
                     <span class="n">Confirm</span><span class="p">(</span>
                         <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to reject this entry?&quot;</span><span class="p">),</span>
                         <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reject entry&quot;</span><span class="p">)</span>
+                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Reject entry&quot;</span><span class="p">),</span>
+                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                     <span class="p">),</span>
                     <span class="n">Intercooler</span><span class="p">(</span>
                         <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>

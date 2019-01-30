@@ -68,8 +68,8 @@
 <span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">Search</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models</span> <span class="k">import</span> <span class="n">SiteCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models.extensions</span> <span class="k">import</span> <span class="n">PersonLinkExtension</span>
-<span class="kn">from</span> <span class="nn">onegov.org.new_elements</span> <span class="k">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">Confirm</span><span class="p">,</span> <span class="n">Intercooler</span>
-<span class="kn">from</span> <span class="nn">onegov.org.new_elements</span> <span class="k">import</span> <span class="n">Link</span><span class="p">,</span> <span class="n">LinkGroup</span>
+<span class="kn">from</span> <span class="nn">onegov.core.elements</span> <span class="k">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">Confirm</span><span class="p">,</span> <span class="n">Intercooler</span>
+<span class="kn">from</span> <span class="nn">onegov.core.elements</span> <span class="k">import</span> <span class="n">Link</span><span class="p">,</span> <span class="n">LinkGroup</span>
 <span class="kn">from</span> <span class="nn">onegov.org.theme.org_theme</span> <span class="k">import</span> <span class="n">user_options</span>
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">PaymentCollection</span><span class="p">,</span> <span class="n">PaymentProviderCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.people</span> <span class="k">import</span> <span class="n">PersonCollection</span>
@@ -514,11 +514,7 @@
     <span class="k">def</span> <span class="nf">top_navigation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
             <span class="n">Link</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">r</span><span class="p">))</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_pages</span>
-        <span class="p">)</span>
-
-    <span class="nd">@cached_property</span>
-    <span class="k">def</span> <span class="nf">elements</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_loader</span><span class="p">[</span><span class="s1">&#39;elements.pt&#39;</span><span class="p">]</span></div>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DefaultMailLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.DefaultMailLayout">[docs]</a><span class="k">class</span> <span class="nc">DefaultMailLayout</span><span class="p">(</span><span class="n">Layout</span><span class="p">):</span>
@@ -717,7 +713,8 @@
                         <span class="n">_</span><span class="p">(</span>
                             <span class="s2">&quot;There are submissions associated with the form. &quot;</span>
                             <span class="s2">&quot;Those need to be removed first.&quot;</span>
-                        <span class="p">)</span>
+                        <span class="p">),</span>
+                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
             <span class="p">)</span>
@@ -733,7 +730,8 @@
                     <span class="n">Confirm</span><span class="p">(</span>
                         <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to delete this form?&quot;</span><span class="p">),</span>
                         <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete form&quot;</span><span class="p">)</span>
+                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete form&quot;</span><span class="p">),</span>
+                        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                     <span class="p">),</span>
                     <span class="n">Intercooler</span><span class="p">(</span>
                         <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
@@ -862,7 +860,8 @@
                         <span class="n">Confirm</span><span class="p">(</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to delete this person?&quot;</span><span class="p">),</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete person&quot;</span><span class="p">)</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete person&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">),</span>
                         <span class="n">Intercooler</span><span class="p">(</span>
                             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
@@ -965,6 +964,38 @@
             <span class="p">)),</span>
             <span class="n">Link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">number</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="p">)),</span>
             <span class="n">Link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="s1">&#39;#&#39;</span><span class="p">)</span>
+        <span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="TicketChatMessageLayout"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.layout.TicketChatMessageLayout">[docs]</a><span class="k">class</span> <span class="nc">TicketChatMessageLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">internal</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">internal</span> <span class="o">=</span> <span class="n">internal</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">breadcrumbs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal</span>\
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_breadcrumbs</span>\
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">public_breadcrumbs</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">internal_breadcrumbs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">homepage_url</span><span class="p">),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Tickets&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span>
+                <span class="n">TicketCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
+            <span class="p">)),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">number</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="p">)),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;New Message&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">public_breadcrumbs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">homepage_url</span><span class="p">),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Ticket Status&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">)),</span>
+            <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;New Message&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">)</span>
         <span class="p">]</span></div>
 
 
@@ -1103,7 +1134,8 @@
                         <span class="n">Confirm</span><span class="p">(</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to delete this resource?&quot;</span><span class="p">),</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete resource&quot;</span><span class="p">)</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete resource&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">),</span>
                         <span class="n">Intercooler</span><span class="p">(</span>
                             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
@@ -1122,7 +1154,8 @@
                             <span class="n">_</span><span class="p">(</span>
                                 <span class="s2">&quot;There are existing reservations associated &quot;</span>
                                 <span class="s2">&quot;with this resource&quot;</span>
-                            <span class="p">)</span>
+                            <span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
@@ -1227,7 +1260,8 @@
                         <span class="n">Confirm</span><span class="p">(</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to delete this allocation?&quot;</span><span class="p">),</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete allocation&quot;</span><span class="p">)</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete allocation&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">),</span>
                         <span class="n">Intercooler</span><span class="p">(</span>
                             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
@@ -1245,7 +1279,8 @@
                             <span class="n">_</span><span class="p">(</span>
                                 <span class="s2">&quot;There are existing reservations associated &quot;</span>
                                 <span class="s2">&quot;with this resource&quot;</span>
-                            <span class="p">)</span>
+                            <span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
                 <span class="p">)</span></div>
@@ -1332,7 +1367,8 @@
                         <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
                             <span class="n">Block</span><span class="p">(</span>
                                 <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This event can&#39;t be editet.&quot;</span><span class="p">),</span>
-                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Imported events can not be editet.&quot;</span><span class="p">)</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Imported events can not be editet.&quot;</span><span class="p">),</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                             <span class="p">)</span>
                         <span class="p">)</span>
                     <span class="p">),</span>
@@ -1346,7 +1382,8 @@
                             <span class="n">Confirm</span><span class="p">(</span>
                                 <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to delete this event?&quot;</span><span class="p">),</span>
                                 <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete event&quot;</span><span class="p">)</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete event&quot;</span><span class="p">),</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                             <span class="p">),</span>
                             <span class="n">Intercooler</span><span class="p">(</span>
                                 <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
@@ -1375,7 +1412,8 @@
                         <span class="n">Confirm</span><span class="p">(</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to delete this event?&quot;</span><span class="p">),</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete event&quot;</span><span class="p">)</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete event&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">),</span>
                         <span class="n">Intercooler</span><span class="p">(</span>
                             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
@@ -1393,7 +1431,8 @@
                             <span class="n">_</span><span class="p">(</span>
                                 <span class="s2">&quot;To remove this event, go to the ticket &quot;</span>
                                 <span class="s2">&quot;and reject it.&quot;</span>
-                            <span class="p">)</span>
+                            <span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
@@ -1422,7 +1461,8 @@
                         <span class="n">traits</span><span class="o">=</span><span class="p">(</span>
                             <span class="n">Block</span><span class="p">(</span>
                                 <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This event can&#39;t be editet.&quot;</span><span class="p">),</span>
-                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Imported events can not be editet.&quot;</span><span class="p">)</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Imported events can not be editet.&quot;</span><span class="p">),</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                             <span class="p">)</span>
                         <span class="p">)</span>
                     <span class="p">),</span>
@@ -1436,7 +1476,8 @@
                             <span class="n">Confirm</span><span class="p">(</span>
                                 <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to delete this event?&quot;</span><span class="p">),</span>
                                 <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete event&quot;</span><span class="p">)</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete event&quot;</span><span class="p">),</span>
+                                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                             <span class="p">),</span>
                             <span class="n">Intercooler</span><span class="p">(</span>
                                 <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span>
@@ -1462,7 +1503,8 @@
                         <span class="n">Confirm</span><span class="p">(</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to delete this event?&quot;</span><span class="p">),</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete event&quot;</span><span class="p">)</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete event&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">),</span>
                         <span class="n">Intercooler</span><span class="p">(</span>
                             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
@@ -1480,7 +1522,8 @@
                             <span class="n">_</span><span class="p">(</span>
                                 <span class="s2">&quot;To remove this event, go to the ticket &quot;</span>
                                 <span class="s2">&quot;and reject it.&quot;</span>
-                            <span class="p">)</span>
+                            <span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
@@ -1579,6 +1622,7 @@
                             <span class="p">)),</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete newsletter&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">),</span>
                         <span class="n">Intercooler</span><span class="p">(</span>
                             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
@@ -1683,7 +1727,8 @@
                                 <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">title</span>
                             <span class="p">)),</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete photo album&quot;</span><span class="p">)</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete photo album&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">),</span>
                         <span class="n">Intercooler</span><span class="p">(</span>
                             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
@@ -1983,7 +2028,8 @@
                                 <span class="p">}</span>
                             <span class="p">),</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;All entries will be deleted as well!&quot;</span><span class="p">),</span>
-                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete directory&quot;</span><span class="p">)</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete directory&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">),</span>
                         <span class="n">Intercooler</span><span class="p">(</span>
                             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>
@@ -2053,7 +2099,8 @@
                                 <span class="p">}</span>
                             <span class="p">),</span>
                             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;This cannot be undone.&quot;</span><span class="p">),</span>
-                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete entry&quot;</span><span class="p">)</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Delete entry&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
                         <span class="p">),</span>
                         <span class="n">Intercooler</span><span class="p">(</span>
                             <span class="n">request_method</span><span class="o">=</span><span class="s1">&#39;DELETE&#39;</span><span class="p">,</span>

@@ -41,6 +41,7 @@
 <span class="kn">import</span> <span class="nn">sedate</span>
 
 <span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
+<span class="kn">from</span> <span class="nn">chameleon</span> <span class="k">import</span> <span class="n">PageTemplate</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">utils</span>
@@ -250,8 +251,27 @@
 <span class="sd">        See ``templates/macros.pt``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_loader</span><span class="o">.</span><span class="n">macros</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_loader</span><span class="o">.</span><span class="n">macros</span></div>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">elements</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The templates used by the elements. Overwrite this with your</span>
+<span class="sd">        own ``templates/elements.pt`` if neccessary.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_loader</span><span class="p">[</span><span class="s1">&#39;elements.pt&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">PageTemplate</span><span class="p">(</span>
+                <span class="sd">&quot;&quot;&quot;&lt;xml xmlns=&quot;http://www.w3.org/1999/xhtml&quot;&gt;</span>
+<span class="sd">                    &lt;metal:b define-macro=&quot;link&quot;&gt;</span>
+<span class="sd">                        &lt;a tal:attributes=&quot;e.attrs&quot;&gt;${e.text or &#39;&#39;}&lt;/a&gt;</span>
+<span class="sd">                    &lt;/metal:b&gt;</span>
+<span class="sd">                    &lt;metal:b define-macro=&quot;img&quot;&gt;</span>
+<span class="sd">                        &lt;img tal:attributes=&quot;e.attrs&quot; /&gt;</span>
+<span class="sd">                    &lt;/metal:b&gt;</span>
+<span class="sd">                &lt;/xml&gt;&quot;&quot;&quot;</span>
+            <span class="p">)</span></div>
 </pre></div>
 
           </div>
