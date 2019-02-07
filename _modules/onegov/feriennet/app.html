@@ -48,7 +48,7 @@
 <span class="kn">from</span> <span class="nn">onegov.org.app</span> <span class="k">import</span> <span class="n">get_i18n_localedirs</span> <span class="k">as</span> <span class="n">default_i18n_localedirs</span>
 <span class="kn">from</span> <span class="nn">onegov.org.app</span> <span class="k">import</span> <span class="n">get_public_ticket_messages</span> \
     <span class="k">as</span> <span class="n">default_public_ticket_messages</span>
-<span class="kn">from</span> <span class="nn">onegov.user</span> <span class="k">import</span> <span class="n">UserCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.user</span> <span class="k">import</span> <span class="n">User</span><span class="p">,</span> <span class="n">UserCollection</span>
 
 
 <span class="n">BANNER_TEMPLATE</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
@@ -99,10 +99,14 @@
         <span class="p">}</span>
 
     <span class="nd">@orm_cached</span><span class="p">(</span><span class="n">policy</span><span class="o">=</span><span class="s1">&#39;on-table-change:users&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">users_by_username</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="n">u</span><span class="o">.</span><span class="n">username</span><span class="p">:</span> <span class="n">u</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">UserCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
-        <span class="p">}</span>
+    <span class="k">def</span> <span class="nf">user_titles_by_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">UserCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">query</span><span class="p">()</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+            <span class="n">User</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="n">User</span><span class="o">.</span><span class="n">title</span><span class="p">))</span>
+
+    <span class="nd">@orm_cached</span><span class="p">(</span><span class="n">policy</span><span class="o">=</span><span class="s1">&#39;on-table-change:users&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">user_ids_by_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">UserCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">query</span><span class="p">()</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span>
+            <span class="n">User</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="n">User</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">sponsors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

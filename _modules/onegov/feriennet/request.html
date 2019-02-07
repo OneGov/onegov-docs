@@ -35,7 +35,7 @@
   <h1>Source code for onegov.feriennet.request</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">onegov.org.request</span> <span class="k">import</span> <span class="n">OrgRequest</span>
-<span class="kn">from</span> <span class="nn">onegov.user</span> <span class="k">import</span> <span class="n">UserCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.user</span> <span class="k">import</span> <span class="n">User</span>
 
 
 <span class="k">class</span> <span class="nc">FeriennetRequest</span><span class="p">(</span><span class="n">OrgRequest</span><span class="p">):</span>
@@ -74,8 +74,8 @@
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">current_user</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">identity</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">UserCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">session</span><span class="p">())</span><span class="o">.</span><span class="n">by_username</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">userid</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">)</span>\
+                <span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">userid</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
 </pre></div>
 
           </div>

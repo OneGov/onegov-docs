@@ -35,6 +35,7 @@
   <h1>Source code for onegov.activity.utils</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">lxml</span>
+<span class="kn">import</span> <span class="nn">secrets</span>
 <span class="kn">import</span> <span class="nn">sedate</span>
 <span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">import</span> <span class="nn">re</span>
@@ -182,6 +183,15 @@
 
     <span class="n">number</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">number</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">number</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">str</span><span class="p">(</span><span class="n">generate_checksum</span><span class="p">(</span><span class="n">number</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="random_invoice_code"><a class="viewcode-back" href="../../../onegov_activity.html#onegov.activity.utils.random_invoice_code">[docs]</a><span class="k">def</span> <span class="nf">random_invoice_code</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Generates a random invoice code. Should be short-lived during</span>
+<span class="sd">    refactoring.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;q{secrets.token_hex(5)}&#39;</span></div>
 
 
 <div class="viewcode-block" id="as_invoice_code"><a class="viewcode-back" href="../../../onegov_activity.html#onegov.activity.utils.as_invoice_code">[docs]</a><span class="k">def</span> <span class="nf">as_invoice_code</span><span class="p">(</span><span class="n">invoice</span><span class="p">,</span> <span class="n">username</span><span class="p">):</span>
