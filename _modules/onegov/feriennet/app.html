@@ -36,7 +36,8 @@
 <span></span><span class="kn">import</span> <span class="nn">random</span>
 
 <span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
-<span class="kn">from</span> <span class="nn">onegov.activity</span> <span class="k">import</span> <span class="n">Period</span><span class="p">,</span> <span class="n">PeriodCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.activity</span> <span class="k">import</span> <span class="n">Period</span><span class="p">,</span> <span class="n">PeriodCollection</span><span class="p">,</span> <span class="n">InvoiceCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.activity.models.invoice_reference</span> <span class="k">import</span> <span class="n">Schema</span>
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">utils</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">orm_cached</span>
 <span class="kn">from</span> <span class="nn">onegov.feriennet.initial_content</span> <span class="k">import</span> <span class="n">create_new_organisation</span>
@@ -74,7 +75,7 @@
 <div class="viewcode-block" id="FeriennetApp"><a class="viewcode-back" href="../../../onegov_feriennet.html#onegov.feriennet.app.FeriennetApp">[docs]</a><span class="k">class</span> <span class="nc">FeriennetApp</span><span class="p">(</span><span class="n">OrgApp</span><span class="p">):</span>
 
     <span class="c1">#: the version of this application (do not change manually!)</span>
-    <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;1.4.16&#39;</span>
+    <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;1.5.0&#39;</span>
 
     <span class="n">request_class</span> <span class="o">=</span> <span class="n">FeriennetRequest</span>
 
@@ -145,7 +146,43 @@
     <span class="k">def</span> <span class="nf">configure_organisation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
         <span class="n">cfg</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;enable_user_registration&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="n">cfg</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;enable_yubikey&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">configure_organisation</span><span class="p">(</span><span class="o">**</span><span class="n">cfg</span><span class="p">)</span></div>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">configure_organisation</span><span class="p">(</span><span class="o">**</span><span class="n">cfg</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FeriennetApp.invoice_schema_config"><a class="viewcode-back" href="../../../onegov_feriennet.html#onegov.feriennet.app.FeriennetApp.invoice_schema_config">[docs]</a>    <span class="k">def</span> <span class="nf">invoice_schema_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the currently active schema_name and it&#39;s config. &quot;&quot;&quot;</span>
+        <span class="n">schema_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;bank_reference_schema&#39;</span><span class="p">,</span> <span class="s1">&#39;feriennet-v1&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">schema_name</span> <span class="o">==</span> <span class="s1">&#39;raiffeisen-v1&#39;</span><span class="p">:</span>
+            <span class="n">schema_config</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;esr_identification_number&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="s1">&#39;bank_esr_identification_number&#39;</span>
+                <span class="p">)</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">schema_config</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">schema_name</span><span class="p">,</span> <span class="n">schema_config</span></div>
+
+<div class="viewcode-block" id="FeriennetApp.invoice_collection"><a class="viewcode-back" href="../../../onegov_feriennet.html#onegov.feriennet.app.FeriennetApp.invoice_collection">[docs]</a>    <span class="k">def</span> <span class="nf">invoice_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">period_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the invoice collection guaranteed to be configured</span>
+<span class="sd">        according to the organisation&#39;s settings.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">schema_name</span><span class="p">,</span> <span class="n">schema_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invoice_schema_config</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">InvoiceCollection</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span>
+            <span class="n">period_id</span><span class="o">=</span><span class="n">period_id</span><span class="p">,</span>
+            <span class="n">user_id</span><span class="o">=</span><span class="n">user_id</span><span class="p">,</span>
+            <span class="n">schema</span><span class="o">=</span><span class="n">schema_name</span><span class="p">,</span>
+            <span class="n">schema_config</span><span class="o">=</span><span class="n">schema_config</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="FeriennetApp.invoice_bucket"><a class="viewcode-back" href="../../../onegov_feriennet.html#onegov.feriennet.app.FeriennetApp.invoice_bucket">[docs]</a>    <span class="k">def</span> <span class="nf">invoice_bucket</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the active invoice reference bucket. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">Schema</span><span class="o">.</span><span class="n">render_bucket</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">invoice_schema_config</span><span class="p">())</span></div></div>
 
 
 <span class="nd">@FeriennetApp</span><span class="o">.</span><span class="n">template_directory</span><span class="p">()</span>
