@@ -161,6 +161,19 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">observe_dates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="p">)</span></div>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">anti_affinity_group</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Uses the activity_id/period_id as an anti-affinity group to ensure</span>
+<span class="sd">        that an attendee is never given two occasions of the same activity</span>
+<span class="sd">        in a single period.</span>
+
+<span class="sd">        If that is wanted, the attendee is meant to do this after the</span>
+<span class="sd">        matching has been done, with a direct booking.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">activity_id</span><span class="o">.</span><span class="n">hex</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">period_id</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">compute_duration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">dates</span><span class="p">:</span>
             <span class="k">return</span> <span class="mi">0</span>
@@ -235,6 +248,10 @@
     <span class="k">def</span> <span class="nf">is_past_deadline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">date</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">date</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadline</span>
 
+    <span class="k">def</span> <span class="nf">is_past_cancellation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">date</span><span class="p">):</span>
+        <span class="n">cancellation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cancellation_deadline</span>
+        <span class="k">return</span> <span class="n">cancellation</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">date</span> <span class="o">&gt;</span> <span class="n">cancellation</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">deadline</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; The date until which this occasion may be booked (inclusive). &quot;&quot;&quot;</span>
@@ -249,6 +266,25 @@
             <span class="k">return</span> <span class="p">(</span><span class="n">min_date</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">period</span><span class="o">.</span><span class="n">deadline_days</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
 
         <span class="k">return</span> <span class="n">min_date</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cancellation_deadline</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The date until which bookings of this occasion may be cancelled</span>
+<span class="sd">        by a mere member (inclusive).</span>
+
+<span class="sd">        If mere members are not allowed to do that, the deadline returns None.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">period</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">period</span>
+
+        <span class="k">if</span> <span class="n">period</span><span class="o">.</span><span class="n">cancellation_date</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">period</span><span class="o">.</span><span class="n">cancellation_date</span>
+
+        <span class="k">if</span> <span class="n">period</span><span class="o">.</span><span class="n">cancellation_days</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">min_date</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">start</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">min_date</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">period</span><span class="o">.</span><span class="n">cancellation_days</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="kn">from</span> <span class="nn">onegov.activity.collections</span> <span class="k">import</span> <span class="n">BookingCollection</span>

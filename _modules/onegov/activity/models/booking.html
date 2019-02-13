@@ -34,7 +34,7 @@
             
   <h1>Source code for onegov.activity.models.booking</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">onegov.activity.models.occasion</span> <span class="k">import</span> <span class="n">Occasion</span>
-<span class="kn">from</span> <span class="nn">onegov.activity.utils</span> <span class="k">import</span> <span class="n">random_group_code</span><span class="p">,</span> <span class="n">dates_overlap</span>
+<span class="kn">from</span> <span class="nn">onegov.activity.utils</span> <span class="k">import</span> <span class="n">dates_overlap</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
@@ -83,8 +83,8 @@
     <span class="c1">#: the priority of the booking, a higher number = a higher priority</span>
     <span class="n">priority</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-    <span class="c1">#: the group code of the booking</span>
-    <span class="n">group_code</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">random_group_code</span><span class="p">)</span>
+    <span class="c1">#: the group code of the booking, if missing the booking is not in a group</span>
+    <span class="n">group_code</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1">#: the attendee behind this booking</span>
     <span class="n">attendee_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s2">&quot;attendees.id&quot;</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
