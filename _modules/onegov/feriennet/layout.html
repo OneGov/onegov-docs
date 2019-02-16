@@ -35,6 +35,7 @@
   <h1>Source code for onegov.feriennet.layout</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">onegov.activity</span> <span class="k">import</span> <span class="n">Activity</span><span class="p">,</span> <span class="n">PeriodCollection</span><span class="p">,</span> <span class="n">Occasion</span>
+<span class="kn">from</span> <span class="nn">onegov.activity</span> <span class="k">import</span> <span class="n">BookingCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.feriennet</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.feriennet</span> <span class="k">import</span> <span class="n">security</span>
 <span class="kn">from</span> <span class="nn">onegov.feriennet.collections</span> <span class="k">import</span> <span class="n">BillingCollection</span>
@@ -184,6 +185,29 @@
             <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">homepage_url</span><span class="p">),</span>
             <span class="n">Link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">))</span>
         <span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="GroupInviteLayout"><a class="viewcode-back" href="../../../onegov_feriennet.html#onegov.feriennet.layout.GroupInviteLayout">[docs]</a><span class="k">class</span> <span class="nc">GroupInviteLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">breadcrumbs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">wishlist_phase</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">active_period</span> \
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">active_period</span><span class="o">.</span><span class="n">wishlist_phase</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">is_logged_in</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">homepage_url</span><span class="p">),</span>
+                <span class="n">Link</span><span class="p">(</span>
+                    <span class="n">wishlist_phase</span> <span class="ow">and</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Wishlist&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Bookings&quot;</span><span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">class_link</span><span class="p">(</span><span class="n">BookingCollection</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Group&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Homepage&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">homepage_url</span><span class="p">),</span>
+                <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Group&quot;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">)</span>
+            <span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="VacationActivityFormLayout"><a class="viewcode-back" href="../../../onegov_feriennet.html#onegov.feriennet.layout.VacationActivityFormLayout">[docs]</a><span class="k">class</span> <span class="nc">VacationActivityFormLayout</span><span class="p">(</span><span class="n">DefaultLayout</span><span class="p">):</span>

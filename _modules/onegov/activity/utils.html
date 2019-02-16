@@ -34,8 +34,10 @@
             
   <h1>Source code for onegov.activity.utils</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">lxml</span>
-<span class="kn">import</span> <span class="nn">sedate</span>
+<span class="kn">import</span> <span class="nn">random</span>
 <span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">sedate</span>
+<span class="kn">import</span> <span class="nn">string</span>
 
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
@@ -51,6 +53,21 @@
 <span class="s2">    \s+</span>
 <span class="s2">    (?P&lt;municipality&gt;[\w\s\(\)\.\-]+)</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+
+
+<span class="n">GROUP_CODE_EX</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[A-Z]</span><span class="si">{3}</span><span class="s1">-?[A-Z]</span><span class="si">{3}</span><span class="s1">-?[A-Z]</span><span class="si">{3}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">random_group_code</span><span class="p">():</span>
+    <span class="c1"># 26^9 should be a decent amount of codes to randomly chose, without</span>
+    <span class="c1"># having to check their uniqueness</span>
+    <span class="n">raw</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_uppercase</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">raw</span><span class="p">[:</span><span class="mi">3</span><span class="p">],</span> <span class="n">raw</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="n">raw</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]))</span>
+
+
+<span class="k">def</span> <span class="nf">is_valid_group_code</span><span class="p">(</span><span class="n">code</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">GROUP_CODE_EX</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">code</span><span class="p">)</span> <span class="ow">and</span> <span class="kc">True</span> <span class="ow">or</span> <span class="kc">False</span>
 
 
 <span class="k">def</span> <span class="nf">overlaps</span><span class="p">(</span><span class="n">range_a</span><span class="p">,</span> <span class="n">range_b</span><span class="p">):</span>
