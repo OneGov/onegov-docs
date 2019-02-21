@@ -43,6 +43,7 @@
 <span class="kn">from</span> <span class="nn">onegov.pay</span> <span class="k">import</span> <span class="n">Price</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">itemgetter</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">Form</span> <span class="k">as</span> <span class="n">BaseForm</span>
+<span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">TextAreaField</span>
 <span class="kn">from</span> <span class="nn">wtforms.fields.html5</span> <span class="k">import</span> <span class="n">EmailField</span>
 <span class="kn">from</span> <span class="nn">wtforms.validators</span> <span class="k">import</span> <span class="n">InputRequired</span><span class="p">,</span> <span class="n">DataRequired</span>
 <span class="kn">from</span> <span class="nn">wtforms_components</span> <span class="k">import</span> <span class="n">If</span><span class="p">,</span> <span class="n">Chain</span>
@@ -386,6 +387,17 @@
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">matches</span> <span class="ow">and</span> <span class="kc">True</span> <span class="ow">or</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">title_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Fields used to generate a title. &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_fields</span><span class="p">(</span>
+            <span class="n">include_classes</span><span class="o">=</span><span class="p">(</span><span class="n">StringField</span><span class="p">,</span> <span class="p">),</span>
+            <span class="n">exclude_classes</span><span class="o">=</span><span class="p">(</span><span class="n">TextAreaField</span><span class="p">,</span> <span class="p">),</span>
+            <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">limit</span><span class="o">=</span><span class="mi">3</span>
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="Form.match_fields"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.core.Form.match_fields">[docs]</a>    <span class="k">def</span> <span class="nf">match_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exclude_classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">required</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>

@@ -153,10 +153,15 @@
     <span class="n">syntax</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The syntax on line </span><span class="si">{line}</span><span class="s2"> is not valid.&quot;</span><span class="p">)</span>
     <span class="n">duplicate</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;The field &#39;</span><span class="si">{label}</span><span class="s2">&#39; exists more than once.&quot;</span><span class="p">)</span>
     <span class="n">reserved</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">{label}</span><span class="s2">&#39; is a reserved name. Please use a different name.&quot;</span><span class="p">)</span>
+    <span class="n">required</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Define at least one required field&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">require_email_field</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reserved_fields</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">require_email_field</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">reserved_fields</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">require_title_fields</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">require_email_field</span> <span class="o">=</span> <span class="n">require_email_field</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reserved_fields</span> <span class="o">=</span> <span class="n">reserved_fields</span> <span class="ow">or</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">require_title_fields</span> <span class="o">=</span> <span class="n">require_title_fields</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
@@ -182,6 +187,9 @@
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">require_email_field</span><span class="p">:</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="n">form</span><span class="o">.</span><span class="n">has_required_email_field</span><span class="p">:</span>
                         <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">require_title_fields</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">form</span><span class="o">.</span><span class="n">title_fields</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">required</span><span class="p">))</span>
 
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reserved_fields</span><span class="p">:</span>
                     <span class="k">for</span> <span class="n">formfield_id</span><span class="p">,</span> <span class="n">formfield</span> <span class="ow">in</span> <span class="n">form</span><span class="o">.</span><span class="n">_fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>

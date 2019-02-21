@@ -95,6 +95,9 @@
     <span class="c1">#: the cost of the booking</span>
     <span class="n">cost</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Numeric</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="c1">#: the calculated score of the booking</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Numeric</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">9</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
     <span class="c1">#: the period this booking belongs to</span>
     <span class="nd">@aggregated</span><span class="p">(</span><span class="s1">&#39;occasion&#39;</span><span class="p">,</span> <span class="n">Column</span><span class="p">(</span>
         <span class="n">UUID</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s2">&quot;periods.id&quot;</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -133,12 +136,15 @@
 
 <div class="viewcode-block" id="Booking.group_code_count"><a class="viewcode-back" href="../../../../onegov_activity.html#onegov.activity.models.booking.Booking.group_code_count">[docs]</a>    <span class="k">def</span> <span class="nf">group_code_count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;open&#39;</span><span class="p">,</span> <span class="s1">&#39;accepted&#39;</span><span class="p">)):</span>
         <span class="sd">&quot;&quot;&quot; Returns the number of bookings with the same group code. &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>\
+        <span class="n">query</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>\
             <span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Booking</span><span class="p">)</span>\
             <span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">Booking</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>\
-            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Booking</span><span class="o">.</span><span class="n">group_code</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_code</span><span class="p">)</span>\
-            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Booking</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">states</span><span class="p">))</span>\
-            <span class="o">.</span><span class="n">scalar</span><span class="p">()</span></div>
+            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Booking</span><span class="o">.</span><span class="n">group_code</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_code</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">states</span> <span class="o">!=</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Booking</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">states</span><span class="p">))</span>\
+
+        <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="Booking.period_bound_booking_state"><a class="viewcode-back" href="../../../../onegov_activity.html#onegov.activity.models.booking.Booking.period_bound_booking_state">[docs]</a>    <span class="k">def</span> <span class="nf">period_bound_booking_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">period</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; During pre-booking we don&#39;t show the actual state of the booking,</span>

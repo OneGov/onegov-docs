@@ -57,7 +57,6 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy.ext.hybrid</span> <span class="k">import</span> <span class="n">hybrid_property</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
-<span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">TextAreaField</span>
 <span class="kn">from</span> <span class="nn">wtforms.fields.html5</span> <span class="k">import</span> <span class="n">EmailField</span>
 
 
@@ -204,13 +203,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;complete&#39;</span><span class="p">:</span>
             <span class="n">form</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">form_class</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
 
-            <span class="n">title_fields</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">match_fields</span><span class="p">(</span>
-                <span class="n">include_classes</span><span class="o">=</span><span class="p">(</span><span class="n">StringField</span><span class="p">,</span> <span class="p">),</span>
-                <span class="n">exclude_classes</span><span class="o">=</span><span class="p">(</span><span class="n">TextAreaField</span><span class="p">,</span> <span class="p">),</span>
-                <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">limit</span><span class="o">=</span><span class="mi">3</span>
-            <span class="p">)</span>
-
+            <span class="n">title_fields</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">title_fields</span>
             <span class="k">if</span> <span class="n">title_fields</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">extract_text_from_html</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                     <span class="n">html</span><span class="o">.</span><span class="n">unescape</span><span class="p">(</span><span class="n">render_field</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">_fields</span><span class="p">[</span><span class="nb">id</span><span class="p">]))</span>
