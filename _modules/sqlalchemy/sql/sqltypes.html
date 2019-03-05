@@ -58,7 +58,7 @@
 <span class="kn">from</span> <span class="nn">.elements</span> <span class="k">import</span> <span class="n">_literal_as_binds</span>
 <span class="kn">from</span> <span class="nn">.elements</span> <span class="k">import</span> <span class="n">quoted_name</span>
 <span class="kn">from</span> <span class="nn">.elements</span> <span class="k">import</span> <span class="n">Slice</span>
-<span class="kn">from</span> <span class="nn">.elements</span> <span class="k">import</span> <span class="n">TypeCoerce</span> <span class="k">as</span> <span class="n">type_coerce</span>
+<span class="kn">from</span> <span class="nn">.elements</span> <span class="k">import</span> <span class="n">TypeCoerce</span> <span class="k">as</span> <span class="n">type_coerce</span>  <span class="c1"># noqa</span>
 <span class="kn">from</span> <span class="nn">.type_api</span> <span class="k">import</span> <span class="n">Emulated</span>
 <span class="kn">from</span> <span class="nn">.type_api</span> <span class="k">import</span> <span class="n">NativeForEmulated</span>  <span class="c1"># noqa</span>
 <span class="kn">from</span> <span class="nn">.type_api</span> <span class="k">import</span> <span class="n">to_instance</span>
@@ -72,6 +72,7 @@
 <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">util</span>
 <span class="kn">from</span> <span class="nn">..util</span> <span class="k">import</span> <span class="n">compat</span>
 <span class="kn">from</span> <span class="nn">..util</span> <span class="k">import</span> <span class="n">pickle</span>
+
 
 <span class="k">if</span> <span class="n">util</span><span class="o">.</span><span class="n">jython</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">array</span>
@@ -171,6 +172,22 @@
 
     <span class="n">__visit_name__</span> <span class="o">=</span> <span class="s2">&quot;string&quot;</span>
 
+    <span class="nd">@util</span><span class="o">.</span><span class="n">deprecated_params</span><span class="p">(</span>
+        <span class="n">convert_unicode</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;1.3&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;The :paramref:`.String.convert_unicode` parameter is deprecated &quot;</span>
+            <span class="s2">&quot;and will be removed in a future release.  All modern DBAPIs &quot;</span>
+            <span class="s2">&quot;now support Python Unicode directly and this parameter is &quot;</span>
+            <span class="s2">&quot;unnecessary.&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">unicode_error</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;1.3&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;The :paramref:`.String.unicode_errors` parameter is deprecated &quot;</span>
+            <span class="s2">&quot;and will be removed in a future release.  This parameter is &quot;</span>
+            <span class="s2">&quot;unnecessary for modern Python DBAPIs and degrades performance &quot;</span>
+            <span class="s2">&quot;significantly.&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -178,6 +195,7 @@
         <span class="n">convert_unicode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">unicode_error</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">_warn_on_bytestring</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">_expect_unicode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create a string-holding type.</span>
@@ -241,15 +259,9 @@
 
 <span class="sd">        :param unicode_error: Optional, a method to use to handle Unicode</span>
 <span class="sd">          conversion errors. Behaves like the ``errors`` keyword argument to</span>
-<span class="sd">          the standard library&#39;s ``string.decode()`` functions.   This flag</span>
-<span class="sd">          requires that :paramref:`.String.convert_unicode` is set to</span>
-<span class="sd">          ``&quot;force&quot;`` - otherwise,</span>
-<span class="sd">          SQLAlchemy is not guaranteed to handle the task of unicode</span>
-<span class="sd">          conversion.   Note that this flag adds significant performance</span>
-<span class="sd">          overhead to row-fetching operations for backends that already</span>
-<span class="sd">          return unicode objects natively (which most DBAPIs do).  This</span>
-<span class="sd">          flag should only be used as a last resort for reading</span>
-<span class="sd">          strings from a column with varied or corrupted encodings.</span>
+<span class="sd">          the standard library&#39;s ``string.decode()`` functions, requires</span>
+<span class="sd">          that :paramref:`.String.convert_unicode` is set to</span>
+<span class="sd">          ``&quot;force&quot;``</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">unicode_error</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">convert_unicode</span> <span class="o">!=</span> <span class="s2">&quot;force&quot;</span><span class="p">:</span>
@@ -259,8 +271,9 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">length</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">collation</span> <span class="o">=</span> <span class="n">collation</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">convert_unicode</span> <span class="o">=</span> <span class="n">convert_unicode</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">unicode_error</span> <span class="o">=</span> <span class="n">unicode_error</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_expect_unicode</span> <span class="o">=</span> <span class="n">convert_unicode</span> <span class="ow">or</span> <span class="n">_expect_unicode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_expect_unicode_error</span> <span class="o">=</span> <span class="n">unicode_error</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_warn_on_bytestring</span> <span class="o">=</span> <span class="n">_warn_on_bytestring</span>
 
     <span class="k">def</span> <span class="nf">literal_processor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dialect</span><span class="p">):</span>
@@ -275,10 +288,10 @@
         <span class="k">return</span> <span class="n">process</span>
 
     <span class="k">def</span> <span class="nf">bind_processor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dialect</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_unicode</span> <span class="ow">or</span> <span class="n">dialect</span><span class="o">.</span><span class="n">convert_unicode</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expect_unicode</span> <span class="ow">or</span> <span class="n">dialect</span><span class="o">.</span><span class="n">convert_unicode</span><span class="p">:</span>
             <span class="k">if</span> <span class="p">(</span>
                 <span class="n">dialect</span><span class="o">.</span><span class="n">supports_unicode_binds</span>
-                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_unicode</span> <span class="o">!=</span> <span class="s2">&quot;force&quot;</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expect_unicode</span> <span class="o">!=</span> <span class="s2">&quot;force&quot;</span>
             <span class="p">):</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_warn_on_bytestring</span><span class="p">:</span>
 
@@ -300,7 +313,7 @@
 
                 <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
                     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">util</span><span class="o">.</span><span class="n">text_type</span><span class="p">):</span>
-                        <span class="k">return</span> <span class="n">encoder</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unicode_error</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="k">return</span> <span class="n">encoder</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expect_unicode_error</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
                     <span class="k">elif</span> <span class="n">warn_on_bytestring</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                         <span class="n">util</span><span class="o">.</span><span class="n">warn_limited</span><span class="p">(</span>
                             <span class="s2">&quot;Unicode type received non-unicode bind &quot;</span>
@@ -314,37 +327,47 @@
             <span class="k">return</span> <span class="kc">None</span>
 
     <span class="k">def</span> <span class="nf">result_processor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dialect</span><span class="p">,</span> <span class="n">coltype</span><span class="p">):</span>
-        <span class="n">wants_unicode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_unicode</span> <span class="ow">or</span> <span class="n">dialect</span><span class="o">.</span><span class="n">convert_unicode</span>
+        <span class="n">wants_unicode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expect_unicode</span> <span class="ow">or</span> <span class="n">dialect</span><span class="o">.</span><span class="n">convert_unicode</span>
         <span class="n">needs_convert</span> <span class="o">=</span> <span class="n">wants_unicode</span> <span class="ow">and</span> <span class="p">(</span>
             <span class="n">dialect</span><span class="o">.</span><span class="n">returns_unicode_strings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span>
-            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_unicode</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;force&quot;</span><span class="p">,</span> <span class="s2">&quot;force_nocheck&quot;</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expect_unicode</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;force&quot;</span><span class="p">,</span> <span class="s2">&quot;force_nocheck&quot;</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="n">needs_isinstance</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">needs_convert</span>
             <span class="ow">and</span> <span class="n">dialect</span><span class="o">.</span><span class="n">returns_unicode_strings</span>
-            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_unicode</span> <span class="o">!=</span> <span class="s2">&quot;force_nocheck&quot;</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expect_unicode</span> <span class="o">!=</span> <span class="s2">&quot;force_nocheck&quot;</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">needs_convert</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">needs_isinstance</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">processors</span><span class="o">.</span><span class="n">to_conditional_unicode_processor_factory</span><span class="p">(</span>
-                    <span class="n">dialect</span><span class="o">.</span><span class="n">encoding</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unicode_error</span>
+                    <span class="n">dialect</span><span class="o">.</span><span class="n">encoding</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expect_unicode_error</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">processors</span><span class="o">.</span><span class="n">to_unicode_processor_factory</span><span class="p">(</span>
-                    <span class="n">dialect</span><span class="o">.</span><span class="n">encoding</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unicode_error</span>
+                    <span class="n">dialect</span><span class="o">.</span><span class="n">encoding</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expect_unicode_error</span>
                 <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">python_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_unicode</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expect_unicode</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">util</span><span class="o">.</span><span class="n">text_type</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">str</span>
 
     <span class="k">def</span> <span class="nf">get_dbapi_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dbapi</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">dbapi</span><span class="o">.</span><span class="n">STRING</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_warn_deprecated_unicode</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">util</span><span class="o">.</span><span class="n">warn_deprecated</span><span class="p">(</span>
+            <span class="s2">&quot;The convert_unicode on Engine and String as well as the &quot;</span>
+            <span class="s2">&quot;unicode_error flag on String are deprecated.  All modern &quot;</span>
+            <span class="s2">&quot;DBAPIs now support Python Unicode natively under Python 2, and &quot;</span>
+            <span class="s2">&quot;under Python 3 all strings are inherently Unicode.  These flags &quot;</span>
+            <span class="s2">&quot;will be removed in a future release.&quot;</span>
+        <span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">Text</span><span class="p">(</span><span class="n">String</span><span class="p">):</span>
@@ -429,7 +452,7 @@
 <span class="sd">        defaults to ``True``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;convert_unicode&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;_expect_unicode&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;_warn_on_bytestring&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Unicode</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="n">length</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
@@ -458,9 +481,12 @@
 <span class="sd">        defaults to ``True``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;convert_unicode&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;_expect_unicode&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;_warn_on_bytestring&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">UnicodeText</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="n">length</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_warn_deprecated_unicode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
 
 
 <span class="k">class</span> <span class="nc">Integer</span><span class="p">(</span><span class="n">_LookupExpressionAdapter</span><span class="p">,</span> <span class="n">TypeEngine</span><span class="p">):</span>
@@ -731,11 +757,7 @@
     <span class="n">scale</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">precision</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">asdecimal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">decimal_return_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">asdecimal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">decimal_return_scale</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Construct a Float.</span>
@@ -758,25 +780,10 @@
 
 <span class="sd">         .. versionadded:: 0.9.0</span>
 
-<span class="sd">        :param \**kwargs:</span>
-
-<span class="sd">            .. deprecated:: 0.9</span>
-
-<span class="sd">                Additional keyword arguments are ignored by the base</span>
-<span class="sd">                :class:`.Float` type, and keyword arguments will no longer</span>
-<span class="sd">                be accepted in a future release.  For database specific floats</span>
-<span class="sd">                that support additional arguments, see that dialect&#39;s</span>
-<span class="sd">                documentation for details, such as</span>
-<span class="sd">                :class:`sqlalchemy.dialects.mysql.FLOAT`.</span>
-
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">precision</span> <span class="o">=</span> <span class="n">precision</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">asdecimal</span> <span class="o">=</span> <span class="n">asdecimal</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decimal_return_scale</span> <span class="o">=</span> <span class="n">decimal_return_scale</span>
-        <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="n">util</span><span class="o">.</span><span class="n">warn_deprecated</span><span class="p">(</span>
-                <span class="s2">&quot;Additional keyword arguments &quot;</span> <span class="s2">&quot;passed to Float ignored.&quot;</span>
-            <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">result_processor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dialect</span><span class="p">,</span> <span class="n">coltype</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">asdecimal</span><span class="p">:</span>
@@ -1009,19 +1016,13 @@
         <span class="n">_Binary</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="n">length</span><span class="p">)</span>
 
 
+<span class="nd">@util</span><span class="o">.</span><span class="n">deprecated_cls</span><span class="p">(</span>
+    <span class="s2">&quot;0.6&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;The :class:`.Binary` class is deprecated and will be removed &quot;</span>
+    <span class="s2">&quot;in a future relase.  Please use :class:`.LargeBinary`.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="k">class</span> <span class="nc">Binary</span><span class="p">(</span><span class="n">LargeBinary</span><span class="p">):</span>
-
-    <span class="sd">&quot;&quot;&quot;.. deprecated:: 0.6</span>
-
-<span class="sd">            The :class:`.Binary` class is deprecated and will be removed</span>
-<span class="sd">            in a future relase.  Please use :class:`.LargeBinary`.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">arg</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
-        <span class="n">util</span><span class="o">.</span><span class="n">warn_deprecated</span><span class="p">(</span>
-            <span class="s2">&quot;The Binary type has been renamed to &quot;</span> <span class="s2">&quot;LargeBinary.&quot;</span>
-        <span class="p">)</span>
         <span class="n">LargeBinary</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">arg</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
 
 
@@ -1263,7 +1264,6 @@
 <span class="sd">            two = 2</span>
 <span class="sd">            three = 3</span>
 
-
 <span class="sd">        t = Table(</span>
 <span class="sd">            &#39;data&#39;, MetaData(),</span>
 <span class="sd">            Column(&#39;value&#39;, Enum(MyEnum))</span>
@@ -1299,6 +1299,15 @@
 
     <span class="n">__visit_name__</span> <span class="o">=</span> <span class="s2">&quot;enum&quot;</span>
 
+    <span class="nd">@util</span><span class="o">.</span><span class="n">deprecated_params</span><span class="p">(</span>
+        <span class="n">convert_unicode</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;1.3&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;The :paramref:`.Enum.convert_unicode` parameter is deprecated &quot;</span>
+            <span class="s2">&quot;and will be removed in a future release.  All modern DBAPIs &quot;</span>
+            <span class="s2">&quot;now support Python Unicode directly and this parameter is &quot;</span>
+            <span class="s2">&quot;unnecessary.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">enums</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Construct an enum.</span>
 
@@ -1411,11 +1420,15 @@
 
         <span class="k">if</span> <span class="n">convert_unicode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">enums</span><span class="p">:</span>
+                <span class="c1"># this is all py2k logic that can go away for py3k only,</span>
+                <span class="c1"># &quot;expect unicode&quot; will always be implicitly true</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">util</span><span class="o">.</span><span class="n">text_type</span><span class="p">):</span>
-                    <span class="n">convert_unicode</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">_expect_unicode</span> <span class="o">=</span> <span class="kc">True</span>
                     <span class="k">break</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">convert_unicode</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">_expect_unicode</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_expect_unicode</span> <span class="o">=</span> <span class="n">convert_unicode</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enums</span><span class="p">:</span>
             <span class="n">length</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">enums</span><span class="p">)</span>
@@ -1424,7 +1437,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_valid_lookup</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_object_lookup</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="nb">super</span><span class="p">(</span><span class="n">Enum</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="n">length</span><span class="o">=</span><span class="n">length</span><span class="p">,</span> <span class="n">convert_unicode</span><span class="o">=</span><span class="n">convert_unicode</span>
+            <span class="n">length</span><span class="o">=</span><span class="n">length</span><span class="p">,</span> <span class="n">_expect_unicode</span><span class="o">=</span><span class="n">_expect_unicode</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enum_class</span><span class="p">:</span>
@@ -1504,7 +1517,7 @@
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">op</span> <span class="ow">is</span> <span class="n">operators</span><span class="o">.</span><span class="n">concat_op</span><span class="p">:</span>
                 <span class="n">typ</span> <span class="o">=</span> <span class="n">String</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">length</span><span class="p">,</span> <span class="n">convert_unicode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">convert_unicode</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">length</span><span class="p">,</span> <span class="n">_expect_unicode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">_expect_unicode</span>
                 <span class="p">)</span>
             <span class="k">return</span> <span class="n">op</span><span class="p">,</span> <span class="n">typ</span>
 
@@ -1526,7 +1539,7 @@
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">adapt_to_emulated</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">impltype</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
-        <span class="n">kw</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;convert_unicode&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_unicode</span><span class="p">)</span>
+        <span class="n">kw</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;_expect_unicode&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expect_unicode</span><span class="p">)</span>
         <span class="n">kw</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;validate_strings&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_strings</span><span class="p">)</span>
         <span class="n">kw</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="n">kw</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;schema&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
@@ -1938,8 +1951,13 @@
 
 <span class="sd">    .. note::  :class:`.types.JSON` is provided as a facade for vendor-specific</span>
 <span class="sd">       JSON types.  Since it supports JSON SQL operations, it only</span>
-<span class="sd">       works on backends that have an actual JSON type, currently</span>
-<span class="sd">       PostgreSQL as well as certain versions of MySQL.</span>
+<span class="sd">       works on backends that have an actual JSON type, currently:</span>
+
+<span class="sd">       * PostgreSQL</span>
+
+<span class="sd">       * MySQL as of version 5.7 (MariaDB as of the 10.2 series does not)</span>
+
+<span class="sd">       * SQLite as of version 3.9</span>
 
 <span class="sd">    :class:`.types.JSON` is part of the Core in support of the growing</span>
 <span class="sd">    popularity of native JSON datatypes.</span>
@@ -2240,7 +2258,7 @@
 
     <span class="nd">@util</span><span class="o">.</span><span class="n">memoized_property</span>
     <span class="k">def</span> <span class="nf">_str_impl</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">String</span><span class="p">(</span><span class="n">convert_unicode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">String</span><span class="p">(</span><span class="n">_expect_unicode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">bind_processor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dialect</span><span class="p">):</span>
         <span class="n">string_process</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str_impl</span><span class="o">.</span><span class="n">bind_processor</span><span class="p">(</span><span class="n">dialect</span><span class="p">)</span>

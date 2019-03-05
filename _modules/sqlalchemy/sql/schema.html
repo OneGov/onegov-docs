@@ -77,6 +77,7 @@
 <span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">DialectKWArgs</span>
 <span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">SchemaEventTarget</span>
 <span class="kn">from</span> <span class="nn">.elements</span> <span class="k">import</span> <span class="n">_as_truncated</span>
+<span class="kn">from</span> <span class="nn">.elements</span> <span class="k">import</span> <span class="n">_document_text_coercion</span>
 <span class="kn">from</span> <span class="nn">.elements</span> <span class="k">import</span> <span class="n">_literal_as_text</span>
 <span class="kn">from</span> <span class="nn">.elements</span> <span class="k">import</span> <span class="n">ClauseElement</span>
 <span class="kn">from</span> <span class="nn">.elements</span> <span class="k">import</span> <span class="n">ColumnClause</span>
@@ -88,6 +89,7 @@
 <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">exc</span>
 <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">inspection</span>
 <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">util</span>
+
 
 <span class="n">RETAIN_SCHEMA</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">symbol</span><span class="p">(</span><span class="s2">&quot;retain_schema&quot;</span><span class="p">)</span>
 
@@ -152,7 +154,8 @@
         <span class="s2">&quot;The :attr:`.SchemaItem.quote` attribute is deprecated and will be &quot;</span>
         <span class="s2">&quot;removed in a future release.  Use the :attr:`.quoted_name.quote` &quot;</span>
         <span class="s2">&quot;attribute on the ``name`` field of the target schema item to retrieve&quot;</span>
-        <span class="s2">&quot;quoted status.&quot;</span><span class="p">)</span>
+        <span class="s2">&quot;quoted status.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="k">def</span> <span class="nf">quote</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the value of the ``quote`` flag passed</span>
 <span class="sd">        to this schema object, for those schema items which</span>
@@ -343,6 +346,24 @@
 <span class="sd">        ``Table`` object. Defaults to ``None`` which indicates all columns</span>
 <span class="sd">        should be reflected.</span>
 
+<span class="sd">    :param resolve_fks: Whether or not to reflect :class:`.Table` objects</span>
+<span class="sd">        related to this one via :class:`.ForeignKey` objects, when</span>
+<span class="sd">        :paramref:`.Table.autoload` or :paramref:`.Table.autoload_with` is</span>
+<span class="sd">        specified.   Defaults to True.  Set to False to disable reflection of</span>
+<span class="sd">        related tables as :class:`.ForeignKey` objects are encountered; may be</span>
+<span class="sd">        used either to save on SQL calls or to avoid issues with related tables</span>
+<span class="sd">        that can&#39;t be accessed. Note that if a related table is already present</span>
+<span class="sd">        in the :class:`.MetaData` collection, or becomes present later, a</span>
+<span class="sd">        :class:`.ForeignKey` object associated with this :class:`.Table` will</span>
+<span class="sd">        resolve to that table normally.</span>
+
+<span class="sd">        .. versionadded:: 1.3</span>
+
+<span class="sd">        .. seealso::</span>
+
+<span class="sd">            :paramref:`.MetaData.reflect.resolve_fks`</span>
+
+
 <span class="sd">    :param info: Optional data dictionary which will be populated into the</span>
 <span class="sd">        :attr:`.SchemaItem.info` attribute of this object.</span>
 
@@ -428,7 +449,7 @@
 <span class="sd">        name, specify the flag ``quote_schema=True`` to the constructor, or use</span>
 <span class="sd">        the :class:`.quoted_name` construct to specify the name.</span>
 
-<span class="sd">    :param useexisting: Deprecated.  Use :paramref:`.Table.extend_existing`.</span>
+<span class="sd">    :param useexisting: the same as :paramref:`.Table.extend_existing`.</span>
 
 <span class="sd">    :param comment: Optional string that will render an SQL comment on table</span>
 <span class="sd">         creation.</span>
@@ -445,6 +466,14 @@
 
     <span class="n">__visit_name__</span> <span class="o">=</span> <span class="s2">&quot;table&quot;</span>
 
+    <span class="nd">@util</span><span class="o">.</span><span class="n">deprecated_params</span><span class="p">(</span>
+        <span class="n">useexisting</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;0.7&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;The :paramref:`.Table.useexisting` parameter is deprecated and &quot;</span>
+            <span class="s2">&quot;will be removed in a future release.  Please use &quot;</span>
+            <span class="s2">&quot;:paramref:`.Table.extend_existing`.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
     <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="p">:</span>
             <span class="c1"># python3k pickle seems to call this</span>
@@ -463,8 +492,6 @@
         <span class="n">keep_existing</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;keep_existing&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
         <span class="n">extend_existing</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;extend_existing&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;useexisting&quot;</span> <span class="ow">in</span> <span class="n">kw</span><span class="p">:</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;useexisting is deprecated.  Use extend_existing.&quot;</span>
-            <span class="n">util</span><span class="o">.</span><span class="n">warn_deprecated</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">extend_existing</span><span class="p">:</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;useexisting is synonymous with extend_existing.&quot;</span>
                 <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">ArgumentError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
@@ -509,7 +536,8 @@
         <span class="s2">&quot;The :meth:`.SchemaItem.quote` method is deprecated and will be &quot;</span>
         <span class="s2">&quot;removed in a future release.  Use the :attr:`.quoted_name.quote` &quot;</span>
         <span class="s2">&quot;attribute on the ``schema`` field of the target schema item to &quot;</span>
-        <span class="s2">&quot;retrieve quoted status.&quot;</span><span class="p">)</span>
+        <span class="s2">&quot;retrieve quoted status.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="k">def</span> <span class="nf">quote_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the value of the ``quote_schema`` flag passed</span>
 <span class="sd">        to this :class:`.Table`.</span>
@@ -562,6 +590,7 @@
         <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;autoload_replace&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="n">_extend_on</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;_extend_on&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
+        <span class="n">resolve_fks</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;resolve_fks&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="n">include_columns</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;include_columns&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">implicit_returning</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;implicit_returning&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
@@ -584,7 +613,11 @@
         <span class="c1"># circular foreign keys</span>
         <span class="k">if</span> <span class="n">autoload</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_autoload</span><span class="p">(</span>
-                <span class="n">metadata</span><span class="p">,</span> <span class="n">autoload_with</span><span class="p">,</span> <span class="n">include_columns</span><span class="p">,</span> <span class="n">_extend_on</span><span class="o">=</span><span class="n">_extend_on</span>
+                <span class="n">metadata</span><span class="p">,</span>
+                <span class="n">autoload_with</span><span class="p">,</span>
+                <span class="n">include_columns</span><span class="p">,</span>
+                <span class="n">_extend_on</span><span class="o">=</span><span class="n">_extend_on</span><span class="p">,</span>
+                <span class="n">resolve_fks</span><span class="o">=</span><span class="n">resolve_fks</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="c1"># initialize all the column, etc. objects.  done after reflection to</span>
@@ -597,6 +630,7 @@
         <span class="n">autoload_with</span><span class="p">,</span>
         <span class="n">include_columns</span><span class="p">,</span>
         <span class="n">exclude_columns</span><span class="o">=</span><span class="p">(),</span>
+        <span class="n">resolve_fks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">_extend_on</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 
@@ -606,6 +640,7 @@
                 <span class="bp">self</span><span class="p">,</span>
                 <span class="n">include_columns</span><span class="p">,</span>
                 <span class="n">exclude_columns</span><span class="p">,</span>
+                <span class="n">resolve_fks</span><span class="p">,</span>
                 <span class="n">_extend_on</span><span class="o">=</span><span class="n">_extend_on</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -622,6 +657,7 @@
                 <span class="bp">self</span><span class="p">,</span>
                 <span class="n">include_columns</span><span class="p">,</span>
                 <span class="n">exclude_columns</span><span class="p">,</span>
+                <span class="n">resolve_fks</span><span class="p">,</span>
                 <span class="n">_extend_on</span><span class="o">=</span><span class="n">_extend_on</span><span class="p">,</span>
             <span class="p">)</span>
 
@@ -661,6 +697,8 @@
 
         <span class="n">include_columns</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;include_columns&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
+        <span class="n">resolve_fks</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;resolve_fks&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="n">include_columns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">include_columns</span><span class="p">:</span>
@@ -691,6 +729,7 @@
                 <span class="n">autoload_with</span><span class="p">,</span>
                 <span class="n">include_columns</span><span class="p">,</span>
                 <span class="n">exclude_columns</span><span class="p">,</span>
+                <span class="n">resolve_fks</span><span class="p">,</span>
                 <span class="n">_extend_on</span><span class="o">=</span><span class="n">_extend_on</span><span class="p">,</span>
             <span class="p">)</span>
 
@@ -797,11 +836,14 @@
 
         <span class="n">constraint</span><span class="o">.</span><span class="n">_set_parent_with_dispatch</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
+    <span class="nd">@util</span><span class="o">.</span><span class="n">deprecated</span><span class="p">(</span>
+        <span class="s2">&quot;0.7&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;the :meth:`.Table.append_ddl_listener` method is deprecated and &quot;</span>
+        <span class="s2">&quot;will be removed in a future release.  Please refer to &quot;</span>
+        <span class="s2">&quot;:class:`.DDLEvents`.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="k">def</span> <span class="nf">append_ddl_listener</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_name</span><span class="p">,</span> <span class="n">listener</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Append a DDL event listener to this ``Table``.</span>
-
-<span class="sd">        .. deprecated:: 0.7</span>
-<span class="sd">            See :class:`.DDLEvents`.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -1003,7 +1045,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema_item_copy</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">Column</span><span class="p">(</span><span class="n">SchemaItem</span><span class="p">,</span> <span class="n">ColumnClause</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">Column</span><span class="p">(</span><span class="n">DialectKWArgs</span><span class="p">,</span> <span class="n">SchemaItem</span><span class="p">,</span> <span class="n">ColumnClause</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Represents a column in a database table.&quot;&quot;&quot;</span>
 
     <span class="n">__visit_name__</span> <span class="o">=</span> <span class="s2">&quot;column&quot;</span>
@@ -1374,10 +1416,10 @@
         <span class="k">if</span> <span class="s2">&quot;info&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;info&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">ArgumentError</span><span class="p">(</span>
-                <span class="s2">&quot;Unknown arguments passed to Column: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="p">))</span>
-            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_extra_kwargs</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_extra_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_dialect_kwargs</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="c1">#    @property</span>
     <span class="c1">#    def quote(self):</span>
@@ -2613,22 +2655,15 @@
         <span class="k">return</span> <span class="s2">&quot;DefaultClause(</span><span class="si">%r</span><span class="s2">, for_update=</span><span class="si">%r</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">arg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">for_update</span><span class="p">)</span>
 
 
+<span class="nd">@util</span><span class="o">.</span><span class="n">deprecated_cls</span><span class="p">(</span>
+    <span class="s2">&quot;0.6&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;:class:`.PassiveDefault` is deprecated and will be removed in a &quot;</span>
+    <span class="s2">&quot;future release.  Please refer to :class:`.DefaultClause`.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="k">class</span> <span class="nc">PassiveDefault</span><span class="p">(</span><span class="n">DefaultClause</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A DDL-specified DEFAULT column value.</span>
-
-<span class="sd">    .. deprecated:: 0.6</span>
-
-<span class="sd">        The :class:`.PassiveDefault` class is deprecated and will be removed</span>
-<span class="sd">        in a future release.  Please use :class:`.DefaultClause`.</span>
-
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="nd">@util</span><span class="o">.</span><span class="n">deprecated</span><span class="p">(</span>
-        <span class="s2">&quot;0.6&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;:class:`.PassiveDefault` is deprecated and will be removed in a &quot;</span>
-        <span class="s2">&quot;future release. Use :class:`.DefaultClause`.&quot;</span><span class="p">,</span>
-        <span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">arg</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
         <span class="n">DefaultClause</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">arg</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
 
@@ -2914,6 +2949,11 @@
 
     <span class="n">_allow_multiple_tables</span> <span class="o">=</span> <span class="kc">True</span>
 
+    <span class="nd">@_document_text_coercion</span><span class="p">(</span>
+        <span class="s2">&quot;sqltext&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;:class:`.CheckConstraint`&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;:paramref:`.CheckConstraint.sqltext`&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">sqltext</span><span class="p">,</span>
@@ -2925,6 +2965,7 @@
         <span class="n">_create_rule</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">_autoattach</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">_type_bound</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kw</span>
     <span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Construct a CHECK constraint.</span>
 
@@ -2954,7 +2995,7 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">sqltext</span> <span class="o">=</span> <span class="n">_literal_as_text</span><span class="p">(</span><span class="n">sqltext</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sqltext</span> <span class="o">=</span> <span class="n">_literal_as_text</span><span class="p">(</span><span class="n">sqltext</span><span class="p">,</span> <span class="n">allow_coercion_to_text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="n">columns</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">visitors</span><span class="o">.</span><span class="n">traverse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sqltext</span><span class="p">,</span> <span class="p">{},</span> <span class="p">{</span><span class="s2">&quot;column&quot;</span><span class="p">:</span> <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">})</span>
@@ -2967,7 +3008,8 @@
             <span class="n">info</span><span class="o">=</span><span class="n">info</span><span class="p">,</span>
             <span class="n">_type_bound</span><span class="o">=</span><span class="n">_type_bound</span><span class="p">,</span>
             <span class="n">_autoattach</span><span class="o">=</span><span class="n">_autoattach</span><span class="p">,</span>
-            <span class="o">*</span><span class="n">columns</span>
+            <span class="o">*</span><span class="n">columns</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kw</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">table</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_set_parent_with_dispatch</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
@@ -3743,13 +3785,21 @@
 
     <span class="n">__visit_name__</span> <span class="o">=</span> <span class="s2">&quot;metadata&quot;</span>
 
+    <span class="nd">@util</span><span class="o">.</span><span class="n">deprecated_params</span><span class="p">(</span>
+        <span class="n">reflect</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;0.8&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;The :paramref:`.MetaData.reflect` flag is deprecated and will &quot;</span>
+            <span class="s2">&quot;be removed in a future release.   Please use the &quot;</span>
+            <span class="s2">&quot;:meth:`.MetaData.reflect` method.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">bind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">reflect</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">schema</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">quote_schema</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">naming_convention</span><span class="o">=</span><span class="n">DEFAULT_NAMING_CONVENTION</span><span class="p">,</span>
+        <span class="n">naming_convention</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">info</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Create a new MetaData object.</span>
@@ -3762,12 +3812,6 @@
 <span class="sd">        :param reflect:</span>
 <span class="sd">          Optional, automatically load all tables from the bound database.</span>
 <span class="sd">          Defaults to False. ``bind`` is required when this option is set.</span>
-
-<span class="sd">          .. deprecated:: 0.8</span>
-
-<span class="sd">                The :paramref:`.MetaData.reflect` flag is deprecated and will</span>
-<span class="sd">                be removed in a future release.   Please use the</span>
-<span class="sd">                :meth:`.MetaData.reflect` method.</span>
 
 <span class="sd">        :param schema:</span>
 <span class="sd">           The default schema to use for the :class:`.Table`,</span>
@@ -3861,15 +3905,29 @@
 <span class="sd">            * ``%(column_0_name)s`` - the name of the :class:`.Column` at</span>
 <span class="sd">              index position &quot;0&quot; within the constraint.</span>
 
-<span class="sd">            * ``%(column_0_label)s`` - the label of the :class:`.Column` at</span>
-<span class="sd">              index position &quot;0&quot;, e.g. :attr:`.Column.label`</span>
+<span class="sd">            * ``%(column_0N_name)s`` - the name of all :class:`.Column`</span>
+<span class="sd">              objects in order within the constraint, joined without a</span>
+<span class="sd">              separator.</span>
 
-<span class="sd">            * ``%(column_0_key)s`` - the key of the :class:`.Column` at</span>
-<span class="sd">              index position &quot;0&quot;, e.g. :attr:`.Column.key`</span>
+<span class="sd">            * ``%(column_0_N_name)s`` - the name of all :class:`.Column`</span>
+<span class="sd">              objects in order within the constraint, joined with an</span>
+<span class="sd">              underscore as a separator.</span>
 
-<span class="sd">            * ``%(referred_column_0_name)s`` - the name of a :class:`.Column`</span>
-<span class="sd">              at index position &quot;0&quot; referenced by a</span>
-<span class="sd">              :class:`.ForeignKeyConstraint`.</span>
+<span class="sd">            * ``%(column_0_label)s``, ``%(column_0N_label)s``,</span>
+<span class="sd">              ``%(column_0_N_label)s`` - the label of either the zeroth</span>
+<span class="sd">              :class:`.Column` or all :class:`.Columns`, separated with</span>
+<span class="sd">              or without an underscore</span>
+
+<span class="sd">            * ``%(column_0_key)s``, ``%(column_0N_key)s``,</span>
+<span class="sd">              ``%(column_0_N_key)s`` - the key of either the zeroth</span>
+<span class="sd">              :class:`.Column` or all :class:`.Columns`, separated with</span>
+<span class="sd">              or without an underscore</span>
+
+<span class="sd">            * ``%(referred_column_0_name)s``, ``%(referred_column_0N_name)s``</span>
+<span class="sd">              ``%(referred_column_0_N_name)s``,  ``%(referred_column_0_key)s``,</span>
+<span class="sd">              ``%(referred_column_0N_key)s``, ...  column tokens which</span>
+<span class="sd">              render the names/keys/labels of columns that are referenced</span>
+<span class="sd">              by a  :class:`.ForeignKeyConstraint`.</span>
 
 <span class="sd">            * ``%(constraint_name)s`` - a special key that refers to the</span>
 <span class="sd">              existing name given to the constraint.  When this key is</span>
@@ -3882,7 +3940,10 @@
 <span class="sd">              it along with a ``fn(constraint, table)`` callable to the</span>
 <span class="sd">              naming_convention dictionary.</span>
 
-<span class="sd">          .. versionadded:: 0.9.2</span>
+<span class="sd">          .. versionadded:: 1.3.0 - added new ``%(column_0N_name)s``,</span>
+<span class="sd">             ``%(column_0_N_name)s``, and related tokens that produce</span>
+<span class="sd">             concatenations of names, keys, or labels for all columns referred</span>
+<span class="sd">             to by a given constraint.</span>
 
 <span class="sd">          .. seealso::</span>
 
@@ -3892,7 +3953,11 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tables</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">immutabledict</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">quoted_name</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">quote_schema</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">naming_convention</span> <span class="o">=</span> <span class="n">naming_convention</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">naming_convention</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">naming_convention</span>
+            <span class="k">if</span> <span class="n">naming_convention</span>
+            <span class="k">else</span> <span class="n">DEFAULT_NAMING_CONVENTION</span>
+        <span class="p">)</span>
         <span class="k">if</span> <span class="n">info</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">info</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_schemas</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
@@ -3901,10 +3966,6 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">bind</span> <span class="o">=</span> <span class="n">bind</span>
         <span class="k">if</span> <span class="n">reflect</span><span class="p">:</span>
-            <span class="n">util</span><span class="o">.</span><span class="n">warn_deprecated</span><span class="p">(</span>
-                <span class="s2">&quot;reflect=True is deprecate; please &quot;</span>
-                <span class="s2">&quot;use the reflect() method.&quot;</span>
-            <span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">bind</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">exc</span><span class="o">.</span><span class="n">ArgumentError</span><span class="p">(</span>
                     <span class="s2">&quot;A bind must be supplied in conjunction &quot;</span>
@@ -4068,6 +4129,7 @@
         <span class="n">only</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">extend_existing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">autoload_replace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">resolve_fks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="o">**</span><span class="n">dialect_kwargs</span>
     <span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Load all available table definitions from the database.</span>
@@ -4114,6 +4176,26 @@
 
 <span class="sd">          .. versionadded:: 0.9.1</span>
 
+<span class="sd">        :param resolve_fks: if True, reflect :class:`.Table` objects linked</span>
+<span class="sd">         to :class:`.ForeignKey` objects located in each :class:`.Table`.</span>
+<span class="sd">         For :meth:`.MetaData.reflect`, this has the effect of reflecting</span>
+<span class="sd">         related tables that might otherwise not be in the list of tables</span>
+<span class="sd">         being reflected, for example if the referenced table is in a</span>
+<span class="sd">         different schema or is omitted via the</span>
+<span class="sd">         :paramref:`.MetaData.reflect.only` parameter.  When False,</span>
+<span class="sd">         :class:`.ForeignKey` objects are not followed to the :class:`.Table`</span>
+<span class="sd">         in which they link, however if the related table is also part of the</span>
+<span class="sd">         list of tables that would be reflected in any case, the</span>
+<span class="sd">         :class:`.ForeignKey` object will still resolve to its related</span>
+<span class="sd">         :class:`.Table` after the :meth:`.MetaData.reflect` operation is</span>
+<span class="sd">         complete.   Defaults to True.</span>
+
+<span class="sd">         .. versionadded:: 1.3.0</span>
+
+<span class="sd">         .. seealso::</span>
+
+<span class="sd">            :paramref:`.Table.resolve_fks`</span>
+
 <span class="sd">        :param \**dialect_kwargs: Additional keyword arguments not mentioned</span>
 <span class="sd">         above are dialect specific, and passed in the form</span>
 <span class="sd">         ``&lt;dialectname&gt;_&lt;argname&gt;``.  See the documentation regarding an</span>
@@ -4136,6 +4218,7 @@
                 <span class="s2">&quot;autoload_with&quot;</span><span class="p">:</span> <span class="n">conn</span><span class="p">,</span>
                 <span class="s2">&quot;extend_existing&quot;</span><span class="p">:</span> <span class="n">extend_existing</span><span class="p">,</span>
                 <span class="s2">&quot;autoload_replace&quot;</span><span class="p">:</span> <span class="n">autoload_replace</span><span class="p">,</span>
+                <span class="s2">&quot;resolve_fks&quot;</span><span class="p">:</span> <span class="n">resolve_fks</span><span class="p">,</span>
                 <span class="s2">&quot;_extend_on&quot;</span><span class="p">:</span> <span class="nb">set</span><span class="p">(),</span>
             <span class="p">}</span>
 
@@ -4195,11 +4278,15 @@
                 <span class="k">except</span> <span class="n">exc</span><span class="o">.</span><span class="n">UnreflectableTableError</span> <span class="k">as</span> <span class="n">uerr</span><span class="p">:</span>
                     <span class="n">util</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Skipping table </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">uerr</span><span class="p">))</span>
 
+    <span class="nd">@util</span><span class="o">.</span><span class="n">deprecated</span><span class="p">(</span>
+        <span class="s2">&quot;0.7&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;the :meth:`.MetaData.append_ddl_listener` method is deprecated and &quot;</span>
+        <span class="s2">&quot;will be removed in a future release.  Please refer to &quot;</span>
+        <span class="s2">&quot;:class:`.DDLEvents`.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="k">def</span> <span class="nf">append_ddl_listener</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_name</span><span class="p">,</span> <span class="n">listener</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Append a DDL event listener to this ``MetaData``.</span>
 
-<span class="sd">        .. deprecated:: 0.7</span>
-<span class="sd">            See :class:`.DDLEvents`.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
