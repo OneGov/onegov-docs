@@ -43,6 +43,7 @@
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Integer</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">select</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Text</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.ext.hybrid</span> <span class="k">import</span> <span class="n">hybrid_property</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">backref</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span>
@@ -111,7 +112,7 @@
         <span class="c1"># A bit of a hack :|</span>
         <span class="n">number_of_mandates</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span>
             <span class="p">[</span><span class="n">Election</span><span class="o">.</span><span class="n">number_of_mandates</span><span class="p">],</span>
-            <span class="n">whereclause</span><span class="o">=</span><span class="s1">&#39;elections.id = election_results.election_id&#39;</span>
+            <span class="n">whereclause</span><span class="o">=</span><span class="n">text</span><span class="p">(</span><span class="s1">&#39;elections.id = election_results.election_id&#39;</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">number_of_mandates</span> <span class="o">*</span> <span class="p">(</span>
