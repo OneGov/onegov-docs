@@ -330,11 +330,13 @@
             <span class="n">o</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span>
                 <span class="o">*</span><span class="p">(</span>
                     <span class="n">and_</span><span class="p">(</span>
-                        <span class="n">min_price</span> <span class="o">&lt;=</span> <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
-                            <span class="n">Occasion</span><span class="o">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">Period</span><span class="o">.</span><span class="n">occasion_extra_cost</span>
+                        <span class="n">min_price</span> <span class="o">&lt;=</span> <span class="p">(</span>
+                            <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">cost</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                            <span class="o">+</span> <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">Period</span><span class="o">.</span><span class="n">occasion_extra_cost</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
                         <span class="p">),</span>
-                        <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
-                            <span class="n">Occasion</span><span class="o">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">Period</span><span class="o">.</span><span class="n">occasion_extra_cost</span>
+                        <span class="p">(</span>
+                            <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">Occasion</span><span class="o">.</span><span class="n">cost</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                            <span class="o">+</span> <span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">Period</span><span class="o">.</span><span class="n">occasion_extra_cost</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
                         <span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_price</span>
                     <span class="p">)</span> <span class="k">for</span> <span class="n">min_price</span><span class="p">,</span> <span class="n">max_price</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">price_ranges</span>
                 <span class="p">)</span>
