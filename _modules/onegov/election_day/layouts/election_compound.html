@@ -52,6 +52,7 @@
         <span class="k">return</span> <span class="p">(</span>
             <span class="s1">&#39;districts&#39;</span><span class="p">,</span>
             <span class="s1">&#39;candidates&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;mandate-allocation&#39;</span><span class="p">,</span>
             <span class="s1">&#39;party-strengths&#39;</span><span class="p">,</span>
             <span class="s1">&#39;parties-panachage&#39;</span><span class="p">,</span>
             <span class="s1">&#39;data&#39;</span>
@@ -64,6 +65,8 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;districts&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">tab</span> <span class="o">==</span> <span class="s1">&#39;candidates&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Elected candidates&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tab</span> <span class="o">==</span> <span class="s1">&#39;mandate-allocation&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Mandate allocation&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">tab</span> <span class="o">==</span> <span class="s1">&#39;party-strengths&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Party strengths&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">tab</span> <span class="o">==</span> <span class="s1">&#39;parties-panachage&#39;</span><span class="p">:</span>
@@ -76,15 +79,24 @@
     <span class="k">def</span> <span class="nf">tab_visible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tab</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_results</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">tab</span> <span class="o">==</span> <span class="s1">&#39;mandate-allocation&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">show_mandate_allocation</span> <span class="ow">is</span> <span class="kc">True</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">party_results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">)</span>
         <span class="k">if</span> <span class="n">tab</span> <span class="o">==</span> <span class="s1">&#39;party-strengths&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">party_strengths</span> <span class="ow">is</span> <span class="kc">True</span>
-                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">party_results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">show_party_strengths</span> <span class="ow">is</span> <span class="kc">True</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_party_results</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">tab</span> <span class="o">==</span> <span class="s1">&#39;parties-panachage&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">panachage_results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
         <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">has_party_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">party_results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">visible</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
