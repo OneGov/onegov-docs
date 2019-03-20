@@ -34,7 +34,6 @@
             
   <h1>Source code for onegov.activity.models.booking</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">onegov.activity.models.occasion</span> <span class="k">import</span> <span class="n">Occasion</span>
-<span class="kn">from</span> <span class="nn">onegov.activity.utils</span> <span class="k">import</span> <span class="n">dates_overlap</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">UUID</span>
@@ -263,25 +262,11 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">occasion</span><span class="o">.</span><span class="n">order</span>
 
     <span class="k">def</span> <span class="nf">overlaps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="c1"># XXX circular import</span>
+        <span class="kn">from</span> <span class="nn">onegov.activity.matching</span> <span class="k">import</span> <span class="n">utils</span>
 
-        <span class="c1"># even if exclude_from_overlap_check is active we consider a booking</span>
-        <span class="c1"># to overlap itself (this protects against double bookings)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">True</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">occasion</span><span class="o">.</span><span class="n">exclude_from_overlap_check</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">False</span>
-
-        <span class="c1"># in some places &#39;other&#39; only contains a start/end, so we can&#39;t</span>
-        <span class="c1"># check for the overlap exclusion (those places are supposed to</span>
-        <span class="c1"># do this on their own)</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s1">&#39;occasion&#39;</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">occasion</span><span class="o">.</span><span class="n">exclude_from_overlap_check</span><span class="p">:</span>
-                <span class="k">return</span> <span class="kc">False</span>
-
-        <span class="k">return</span> <span class="n">dates_overlap</span><span class="p">(</span>
-            <span class="nb">tuple</span><span class="p">((</span><span class="n">d</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">end</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="p">),</span>
-            <span class="nb">tuple</span><span class="p">((</span><span class="n">o</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">o</span><span class="o">.</span><span class="n">end</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">dates</span><span class="p">),</span>
+        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">overlaps</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span>
             <span class="n">minutes_between</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">period</span><span class="o">.</span><span class="n">minutes_between</span><span class="p">,</span>
             <span class="n">alignment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">period</span><span class="o">.</span><span class="n">alignment</span>
         <span class="p">)</span></div>
