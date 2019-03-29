@@ -1,11 +1,9 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
     <title>Onegov Core API &#8212; OneGov Docs 0.0.1 documentation</title>
     <link rel="stylesheet" href="_static/custom.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -40,11 +38,11 @@
 features for applications deriving from it:</p>
 <blockquote>
 <div><ul class="simple">
-<li>Virtual hosting in conjunction with <code class="xref py py-mod docutils literal notranslate"><span class="pre">onegov.server</span></code>.</li>
-<li>Access to an SQLAlchemy session bound to a specific Postgres schema.</li>
-<li>A cache backed by redis, shared by multiple processes.</li>
-<li>An identity policy with basic rules, permissions and role.</li>
-<li>The ability to serve static files and css/js assets.</li>
+<li><p>Virtual hosting in conjunction with <code class="xref py py-mod docutils literal notranslate"><span class="pre">onegov.server</span></code>.</p></li>
+<li><p>Access to an SQLAlchemy session bound to a specific Postgres schema.</p></li>
+<li><p>A cache backed by redis, shared by multiple processes.</p></li>
+<li><p>An identity policy with basic rules, permissions and role.</p></li>
+<li><p>The ability to serve static files and css/js assets.</p></li>
 </ul>
 </div></blockquote>
 <p>Using the framework does not really differ from using Morepath:</p>
@@ -157,59 +155,52 @@ the current class which start with <code class="docutils literal notranslate"><s
 configuration as keyword arguments.</p>
 <p>The core itself supports the following parameters. Additional
 parameters are made available by extra <code class="docutils literal notranslate"><span class="pre">configure_</span></code> methods.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Dsn:</th><td class="field-body"><p class="first">The database connection to use. May be None.</p>
+<dl class="field-list">
+<dt class="field-odd">Dsn</dt>
+<dd class="field-odd"><p>The database connection to use. May be None.</p>
 <p>See <code class="xref py py-meth docutils literal notranslate"><span class="pre">onegov.core.orm.session_manager.setup()</span></code></p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Base:</th><td class="field-body"><p class="first">The declarative base class used. By default,
+</dd>
+<dt class="field-even">Base</dt>
+<dd class="field-even"><p>The declarative base class used. By default,
 <code class="xref py py-attr docutils literal notranslate"><span class="pre">onegov.core.orm.Base</span></code> is used.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name" colspan="2">Identity_secure:</th></tr>
-<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">True if the identity cookie is only transmitted over https. Only
+</dd>
+<dt class="field-odd">Identity_secure</dt>
+<dd class="field-odd"><p>True if the identity cookie is only transmitted over https. Only
 set this to False during development!</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Identity_secret:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">A random string used to sign the identity. By default a random
+</dd>
+<dt class="field-even">Identity_secret</dt>
+<dd class="field-even"><p>A random string used to sign the identity. By default a random
 string is generated. The drawback of this is the fact that
 users will be logged out every time the application restarts.</p>
 <p>So provide your own if you don’t want that, but be sure to have
 a really long, really random key that you will never share
 with anyone!</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Redis_url:</th><td class="field-body"><p class="first">The redis url used (default is ‘redis://localhost:6379/0’).</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">File_storage:</th><td class="field-body"><p class="first">The file_storage module to use. See
+</dd>
+<dt class="field-odd">Redis_url</dt>
+<dd class="field-odd"><p>The redis url used (default is ‘redis://localhost:6379/0’).</p>
+</dd>
+<dt class="field-even">File_storage</dt>
+<dd class="field-even"><p>The file_storage module to use. See
 <a class="reference external" href="http://docs.pyfilesystem.org/en/latest/filesystems.html">http://docs.pyfilesystem.org/en/latest/filesystems.html</a></p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name" colspan="2">File_storage_options:</th></tr>
-<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">A dictionary of options passed to the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method of the
+</dd>
+<dt class="field-odd">File_storage_options</dt>
+<dd class="field-odd"><p>A dictionary of options passed to the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method of the
 file_storage class.</p>
 <p>The file storage is expected to work as is. For example, if
 <code class="docutils literal notranslate"><span class="pre">fs.osfs.OSFS</span></code> is used, the root_path is expected exist.</p>
 <p>The file storage can be shared between different onegov.core
 applications. Each application automatically gets its own
 namespace inside this space.</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Always_compile_theme:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">If true, the theme is always compiled - no caching is employed.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name" colspan="2">Allow_shift_f5_comple:</th></tr>
-<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">If true, the theme is recompiled if shift+f5 is done on the
+</dd>
+<dt class="field-even">Always_compile_theme</dt>
+<dd class="field-even"><p>If true, the theme is always compiled - no caching is employed.</p>
+</dd>
+<dt class="field-odd">Allow_shift_f5_comple</dt>
+<dd class="field-odd"><p>If true, the theme is recompiled if shift+f5 is done on the
 browser (or shift + reload button click).</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Csrf_secret:</th><td class="field-body"><p class="first">A random string used to sign the csrf token. Make sure this differs
+</dd>
+<dt class="field-even">Csrf_secret</dt>
+<dd class="field-even"><p>A random string used to sign the csrf token. Make sure this differs
 from <code class="docutils literal notranslate"><span class="pre">identity_secret</span></code>! The algorithms behind identity_secret and
 the csrf protection differ. If the same secret is used we might
 leak information about said secret.</p>
@@ -218,64 +209,58 @@ the fact that users won’t be able to submit their forms if the
 app is restarted in the background.</p>
 <p>So provide your own, but be sure to have a really long, really
 random string that you will never share with anyone!</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name" colspan="2">Csrf_time_limit:</th></tr>
-<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">The csrf time limit in seconds. Basically the amount of time a
+</dd>
+<dt class="field-odd">Csrf_time_limit</dt>
+<dd class="field-odd"><p>The csrf time limit in seconds. Basically the amount of time a
 user has to submit a form, from the time it’s rendered.</p>
 <p>Defaults to 1‘200s (20 minutes).</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Mail:</th><td class="field-body"><p class="first">A dictionary keyed by e-mail category (i.e. ‘marketing’,
+</dd>
+<dt class="field-even">Mail</dt>
+<dd class="field-even"><p>A dictionary keyed by e-mail category (i.e. ‘marketing’,
 ‘transactional’) with the following subkeys:</p>
 <blockquote>
 <div><ul class="simple">
-<li>host: The mail server to send e-mails from.</li>
-<li>port: The port used for the mail server.</li>
-<li>force_tls: True if TLS should be forced.</li>
-<li>username: The mail username</li>
-<li>password: The mail password</li>
-<li>sender: The mail sender</li>
-<li>use_directory: True if a mail directory should be used</li>
-<li>directory: Path to the directory that should be used</li>
+<li><p>host: The mail server to send e-mails from.</p></li>
+<li><p>port: The port used for the mail server.</p></li>
+<li><p>force_tls: True if TLS should be forced.</p></li>
+<li><p>username: The mail username</p></li>
+<li><p>password: The mail password</p></li>
+<li><p>sender: The mail sender</p></li>
+<li><p>use_directory: True if a mail directory should be used</p></li>
+<li><p>directory: Path to the directory that should be used</p></li>
 </ul>
 </div></blockquote>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name" colspan="2">Mail_use_directory:</th></tr>
-<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">If true, mails are stored in the maildir defined through
+</dd>
+<dt class="field-odd">Mail_use_directory</dt>
+<dd class="field-odd"><p>If true, mails are stored in the maildir defined through
 <code class="docutils literal notranslate"><span class="pre">mail_directory</span></code>. There, some other process is supposed to
 pick up the e-mails and send them.</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Mail_directory:</th><td class="field-body"><p class="first">The directory (maildir) where mails are stored if if
+</dd>
+<dt class="field-even">Mail_directory</dt>
+<dd class="field-even"><p>The directory (maildir) where mails are stored if if
 <code class="docutils literal notranslate"><span class="pre">mail_use_directory</span></code> is set to True.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name" colspan="2">Sql_query_report:</th></tr>
-<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">Prints out a report sql queries for each request, unless False.
+</dd>
+<dt class="field-odd">Sql_query_report</dt>
+<dd class="field-odd"><p>Prints out a report sql queries for each request, unless False.
 Valid values are:</p>
 <ul class="simple">
-<li>‘summary’ (only show the number of queries)</li>
-<li>‘redundant’ (show summary and the actual redundant queries)</li>
-<li>‘all’ (show summary and all executed queries)</li>
+<li><p>‘summary’ (only show the number of queries)</p></li>
+<li><p>‘redundant’ (show summary and the actual redundant queries)</p></li>
+<li><p>‘all’ (show summary and all executed queries)</p></li>
 </ul>
 <p>Do not use in production!</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Profile:</th><td class="field-body"><p class="first">If true, profiles the request and stores the result in the profiles
+</dd>
+<dt class="field-even">Profile</dt>
+<dd class="field-even"><p>If true, profiles the request and stores the result in the profiles
 folder with the following format: <code class="docutils literal notranslate"><span class="pre">YYYY-MM-DD</span> <span class="pre">hh:mm:ss.profile</span></code></p>
 <p>Do not use in production!</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name" colspan="2">Print_exceptions:</th></tr>
-<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first last">If true, exceptions are printed to stderr. Note that you should
+</dd>
+<dt class="field-odd">Print_exceptions</dt>
+<dd class="field-odd"><p>If true, exceptions are printed to stderr. Note that you should
 usually configure logging through onegov.server. This is mainly
 used for certain unit tests where we use WSGI more directly.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -360,9 +345,9 @@ more information.</p>
 limited to:</p>
 <blockquote>
 <div><ul class="simple">
-<li>Announcements</li>
-<li>Newsletters</li>
-<li>Promotional E-Mails</li>
+<li><p>Announcements</p></li>
+<li><p>Newsletters</p></li>
+<li><p>Promotional E-Mails</p></li>
 </ul>
 </div></blockquote>
 <p>When in doubt, send a marketing e-mail. Transactional e-mails are
@@ -375,11 +360,11 @@ important stuff is reaching our customers!</p>
 <code class="descname">send_transactional_email</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/framework.html#Framework.send_transactional_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.framework.Framework.send_transactional_email" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sends an e-mail categorised as transactional. This is limited to:</p>
 <ul class="simple">
-<li>Welcome emails</li>
-<li>Reset passwords emails</li>
-<li>Notifications</li>
-<li>Weekly digests</li>
-<li>Receipts and invoices</li>
+<li><p>Welcome emails</p></li>
+<li><p>Reset passwords emails</p></li>
+<li><p>Notifications</p></li>
+<li><p>Weekly digests</p></li>
+<li><p>Receipts and invoices</p></li>
 </ul>
 </dd></dl>
 
@@ -625,20 +610,16 @@ Generally you don’t want that though.</p>
 <p>Needs to be implemented by the <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code> subclass.</p>
 <p>Raise a <code class="xref py py-exc docutils literal notranslate"><span class="pre">DirectiveError</span></code> to indicate that the action
 cannot be performed due to incorrect configuration.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>obj</strong> – the object that the action should be performed
-for. Typically a function or a class object.</li>
-<li><strong>**kw</strong> – a dictionary of configuration objects as specified
-by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – the object that the action should be performed
+for. Typically a function or a class object.</p></li>
+<li><p><strong>**kw</strong> – a dictionary of configuration objects as specified
+by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -661,7 +642,8 @@ the given model and name. Take this configuration for example:</p>
 </div>
 <p>The form class defined here can be retrieved as follows:</p>
 <blockquote>
-<div>query_form_class(request, model=Model, name=’foobar’)</div></blockquote>
+<div><p>query_form_class(request, model=Model, name=’foobar’)</p>
+</div></blockquote>
 </dd></dl>
 
 <dl class="function">
@@ -688,17 +670,15 @@ the same configurable, those two actions are in conflict and a
 <p>If an action in an extending configurable has the same
 identifier as the configurable being extended, that action
 overrides the original one in the extending configurable.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>**kw</strong> – a dictionary of configuration objects as specified
-by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">an immutable value uniquely identifying this action.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>**kw</strong> – a dictionary of configuration objects as specified
+by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>an immutable value uniquely identifying this action.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -707,17 +687,15 @@ by the <code class="docutils literal notranslate"><span class="pre">config</span
 <dd><p>Returns an iterable of immutables to detect conflicts.</p>
 <p>Can be implemented by the <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code> subclass.</p>
 <p>Used for additional configuration conflict detection.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>**kw</strong> – a dictionary of configuration objects as specified
-by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">an iterable of immutable values.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>**kw</strong> – a dictionary of configuration objects as specified
+by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>an iterable of immutable values.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -727,20 +705,16 @@ by the <code class="docutils literal notranslate"><span class="pre">config</span
 <p>Needs to be implemented by the <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code> subclass.</p>
 <p>Raise a <code class="xref py py-exc docutils literal notranslate"><span class="pre">DirectiveError</span></code> to indicate that the action
 cannot be performed due to incorrect configuration.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>obj</strong> – the object that the action should be performed
-for. Typically a function or a class object.</li>
-<li><strong>**kw</strong> – a dictionary of configuration objects as specified
-by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – the object that the action should be performed
+for. Typically a function or a class object.</p></li>
+<li><p><strong>**kw</strong> – a dictionary of configuration objects as specified
+by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -761,17 +735,15 @@ the same configurable, those two actions are in conflict and a
 <p>If an action in an extending configurable has the same
 identifier as the configurable being extended, that action
 overrides the original one in the extending configurable.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>**kw</strong> – a dictionary of configuration objects as specified
-by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">an immutable value uniquely identifying this action.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>**kw</strong> – a dictionary of configuration objects as specified
+by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>an immutable value uniquely identifying this action.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -781,20 +753,16 @@ by the <code class="docutils literal notranslate"><span class="pre">config</span
 <p>Needs to be implemented by the <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code> subclass.</p>
 <p>Raise a <code class="xref py py-exc docutils literal notranslate"><span class="pre">DirectiveError</span></code> to indicate that the action
 cannot be performed due to incorrect configuration.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>obj</strong> – the object that the action should be performed
-for. Typically a function or a class object.</li>
-<li><strong>**kw</strong> – a dictionary of configuration objects as specified
-by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – the object that the action should be performed
+for. Typically a function or a class object.</p></li>
+<li><p><strong>**kw</strong> – a dictionary of configuration objects as specified
+by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -826,17 +794,15 @@ the same configurable, those two actions are in conflict and a
 <p>If an action in an extending configurable has the same
 identifier as the configurable being extended, that action
 overrides the original one in the extending configurable.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>**kw</strong> – a dictionary of configuration objects as specified
-by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">an immutable value uniquely identifying this action.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>**kw</strong> – a dictionary of configuration objects as specified
+by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>an immutable value uniquely identifying this action.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -846,20 +812,16 @@ by the <code class="docutils literal notranslate"><span class="pre">config</span
 <p>Needs to be implemented by the <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code> subclass.</p>
 <p>Raise a <code class="xref py py-exc docutils literal notranslate"><span class="pre">DirectiveError</span></code> to indicate that the action
 cannot be performed due to incorrect configuration.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>obj</strong> – the object that the action should be performed
-for. Typically a function or a class object.</li>
-<li><strong>**kw</strong> – a dictionary of configuration objects as specified
-by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – the object that the action should be performed
+for. Typically a function or a class object.</p></li>
+<li><p><strong>**kw</strong> – a dictionary of configuration objects as specified
+by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -970,9 +932,9 @@ token must be passed as query parameter to this function.</p>
 <p>onegov.core provides very basic theming support with the following
 features:</p>
 <ul class="simple">
-<li>Themes can be external to onegov.core</li>
-<li>Themes can be used by onegov.core applications</li>
-<li>Themes can be compiled and the result is shared between applications</li>
+<li><p>Themes can be external to onegov.core</p></li>
+<li><p>Themes can be used by onegov.core applications</p></li>
+<li><p>Themes can be compiled and the result is shared between applications</p></li>
 </ul>
 <p>Themes are not meant to be switched at runtime though, they are statically
 defined by the applications. The idea is to have a way to share themes
@@ -1059,20 +1021,20 @@ passed to <a class="reference internal" href="#onegov.core.theme.compile" title=
 path to the theme.</p>
 <p>If the theme already exists and doesn’t need recompiling, it will not
 compile the theme again.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Storage:</th><td class="field-body">The Pyfilesystem storage to store the files in.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Theme:</th><td class="field-body">The theme instance that should be compiled.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Options:</th><td class="field-body">The hashable options passed to the theme.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Force:</th><td class="field-body">If true, the compilation is done in any case.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Storage</dt>
+<dd class="field-odd"><p>The Pyfilesystem storage to store the files in.</p>
+</dd>
+<dt class="field-even">Theme</dt>
+<dd class="field-even"><p>The theme instance that should be compiled.</p>
+</dd>
+<dt class="field-odd">Options</dt>
+<dd class="field-odd"><p>The hashable options passed to the theme.</p>
+</dd>
+<dt class="field-even">Force</dt>
+<dd class="field-even"><p>If true, the compilation is done in any case.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
@@ -1288,15 +1250,12 @@ the view function is called.</p>
 <code class="descname">get_translate</code><span class="sig-paren">(</span><em>for_chameleon=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/request.html#CoreRequest.get_translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.request.CoreRequest.get_translate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the translate method to the given request, or None
 if no such method is availabe.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">For_chameleon:</th><td class="field-body">True if the translate instance is used for chameleon (which is
-special).</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">For_chameleon</dt>
+<dd class="field-odd"><p>True if the translate instance is used for chameleon (which is
+special).</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -1307,7 +1266,8 @@ messages list may then be displayed by an application building on
 onegov.core.</p>
 <p>For example:</p>
 <blockquote>
-<div><a class="reference external" href="http://foundation.zurb.com/docs/components/alert_boxes.html">http://foundation.zurb.com/docs/components/alert_boxes.html</a></div></blockquote>
+<div><p><a class="reference external" href="http://foundation.zurb.com/docs/components/alert_boxes.html">http://foundation.zurb.com/docs/components/alert_boxes.html</a></p>
+</div></blockquote>
 <p>Four default types are defined on the request for easier use:</p>
 <p><a class="reference internal" href="#onegov.core.request.CoreRequest.success" title="onegov.core.request.CoreRequest.success"><code class="xref py py-meth docutils literal notranslate"><span class="pre">success()</span></code></a>
 <a class="reference internal" href="#onegov.core.request.CoreRequest.warning" title="onegov.core.request.CoreRequest.warning"><code class="xref py py-meth docutils literal notranslate"><span class="pre">warning()</span></code></a>
@@ -1533,15 +1493,18 @@ cannot be sure about the used session manager either</p>
 session to get the current locale, but since it is instantiated without
 any session information, this can’t be known without a global variable:</p>
 <blockquote>
-<div>document = Document(localized_title=”Das Dokument”)</div></blockquote>
+<div><p>document = Document(localized_title=”Das Dokument”)</p>
+</div></blockquote>
 <p>We can only work around that with a global variable:</p>
 <blockquote>
-<div>session_manager.activate()
-document = Document(localized_title=”Das Dokument”)</div></blockquote>
+<div><p>session_manager.activate()
+document = Document(localized_title=”Das Dokument”)</p>
+</div></blockquote>
 <p>As a result session managers need to be activated, or they can’t be
 used (at least for translated columns). To do so in tests, use:</p>
 <blockquote>
-<div>session_manager.activate()</div></blockquote>
+<div><p>session_manager.activate()</p>
+</div></blockquote>
 <p>To ease the use of testing the last session_manager is however also
 automatically activated when the schema is set, which covers most
 use-cases outside of testing</p>
@@ -1726,9 +1689,9 @@ expression using annotations in comments.</p>
 <dd><p>Analyzes the sql-queries executed during its context. There are three
 levels of information (report argument):</p>
 <ul class="simple">
-<li>‘summary’ (only show the number of queries)</li>
-<li>‘redundant’ (show summary and the actual redundant queries)</li>
-<li>‘all’ (show summary and all executed queries)</li>
+<li><p>‘summary’ (only show the number of queries)</p></li>
+<li><p>‘redundant’ (show summary and the actual redundant queries)</p></li>
+<li><p>‘all’ (show summary and all executed queries)</p></li>
 </ul>
 <p>Use this with a with_statement:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">analyze_sql_queries</span><span class="p">():</span>
@@ -1933,21 +1896,20 @@ if <code class="docutils literal notranslate"><span class="pre">root-1</span></c
 <code class="descname">move</code><span class="sig-paren">(</span><em>subject</em>, <em>target</em>, <em>direction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/orm/abstract/adjacency_list.html#AdjacencyListCollection.move"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.orm.abstract.adjacency_list.AdjacencyListCollection.move" title="Permalink to this definition">¶</a></dt>
 <dd><p>Takes the given subject and moves it somehwere in relation to the
 target.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Subject:</th><td class="field-body">The item to be moved.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Target:</th><td class="field-body">The item above which or below which the subject is moved.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Direction:</th><td class="field-body">The direction relative to the target. Either
+<dl class="field-list simple">
+<dt class="field-odd">Subject</dt>
+<dd class="field-odd"><p>The item to be moved.</p>
+</dd>
+<dt class="field-even">Target</dt>
+<dd class="field-even"><p>The item above which or below which the subject is moved.</p>
+</dd>
+<dt class="field-odd">Direction</dt>
+<dd class="field-odd"><p>The direction relative to the target. Either
 <a class="reference internal" href="#onegov.core.orm.abstract.adjacency_list.MoveDirection.above" title="onegov.core.orm.abstract.adjacency_list.MoveDirection.above"><code class="xref py py-attr docutils literal notranslate"><span class="pre">MoveDirection.above</span></code></a> if the subject should be moved
 above the target, or <a class="reference internal" href="#onegov.core.orm.abstract.adjacency_list.MoveDirection.below" title="onegov.core.orm.abstract.adjacency_list.MoveDirection.below"><code class="xref py py-attr docutils literal notranslate"><span class="pre">MoveDirection.below</span></code></a> if the subject
-should be moved below the target.</td>
-</tr>
-</tbody>
-</table>
+should be moved below the target.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -1988,13 +1950,13 @@ lines.</p>
 <code class="docutils literal notranslate"><span class="pre">Reservation</span></code> and <code class="docutils literal notranslate"><span class="pre">Form</span></code> in turn inherit from <code class="docutils literal notranslate"><span class="pre">Payable</span></code>.</p>
 <p>This all is probably best understood in an example:</p>
 <blockquote>
-<div><dl class="docutils">
-<dt>class Payment(Base, Associable):</dt>
-<dd>__tablename__ == ‘payments’</dd>
-<dt>class Payable(object):</dt>
-<dd>payment = associated(Payment, ‘payment’, ‘one-to-one’)</dd>
-<dt>class Product(Base, Payable):</dt>
-<dd>__tablename__ == ‘products’</dd>
+<div><dl class="simple">
+<dt>class Payment(Base, Associable):</dt><dd><p>__tablename__ == ‘payments’</p>
+</dd>
+<dt>class Payable(object):</dt><dd><p>payment = associated(Payment, ‘payment’, ‘one-to-one’)</p>
+</dd>
+<dt>class Product(Base, Payable):</dt><dd><p>__tablename__ == ‘products’</p>
+</dd>
 </dl>
 </div></blockquote>
 <p>This results in a product model which has a payment attribute attached to it.
@@ -2012,23 +1974,19 @@ table. The link between the two is established in the automatically created
 <dd><p>Creates an associated attribute. This attribute is supposed to be
 defined on the mixin class that will establish the generic association
 if inherited by a model.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>associated_cls</strong> – The class which the model will be associated with.</li>
-<li><strong>attribute_name</strong> – The name of the attribute used on the mixin class.</li>
-<li><strong>cardinality</strong> – May be ‘one-to-one’, ‘one-to-many’ or ‘many-to-many’. Cascades are
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>associated_cls</strong> – The class which the model will be associated with.</p></li>
+<li><p><strong>attribute_name</strong> – The name of the attribute used on the mixin class.</p></li>
+<li><p><strong>cardinality</strong> – May be ‘one-to-one’, ‘one-to-many’ or ‘many-to-many’. Cascades are
 used automatically, unless ‘many-to-many’ is used, in which case
-cascades are disabled.</li>
-<li><strong>uselist</strong> – True if the attribute on the inheriting model is a list. Use ‘auto’
-if this should be automatically decided depending on the cardinality.</li>
+cascades are disabled.</p></li>
+<li><p><strong>uselist</strong> – True if the attribute on the inheriting model is a list. Use ‘auto’
+if this should be automatically decided depending on the cardinality.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>Example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Adress</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">Associable</span><span class="p">):</span>
     <span class="k">pass</span>
@@ -2059,13 +2017,13 @@ associable may be targeted by <a href="#id3"><span class="problematic" id="id4">
 <dd><p>All associated classes are registered through this method. This
 yields the following benefits:</p>
 <ol class="arabic simple">
-<li>We gain the ability to query all the linked records in one query.
+<li><p>We gain the ability to query all the linked records in one query.
 This is hard otherwise as each <code class="docutils literal notranslate"><span class="pre">Payable</span></code> class leads to its own
-association table which needs to be queried separately.</li>
-<li>We are able to reset all created backreferences. This is necessary
+association table which needs to be queried separately.</p></li>
+<li><p>We are able to reset all created backreferences. This is necessary
 during tests. SQLAlchemy keeps these references around and won’t
 let us re-register the same model multiple times (which outside
-of tests is completely reasonable).</li>
+of tests is completely reasonable).</p></li>
 </ol>
 </dd></dl>
 
@@ -2198,19 +2156,15 @@ This could also be used as a hook for validating logic.</p>
 <p>This operation should be designed with the reverse operation
 in mind, which would be the process_result_value method of
 this class.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>value</strong> – Data to operate upon, of any type expected by
-this method in the subclass.  Can be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</li>
-<li><strong>dialect</strong> – the <code class="xref py py-class docutils literal notranslate"><span class="pre">Dialect</span></code> in use.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – Data to operate upon, of any type expected by
+this method in the subclass.  Can be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>dialect</strong> – the <code class="xref py py-class docutils literal notranslate"><span class="pre">Dialect</span></code> in use.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -2227,19 +2181,15 @@ from the DBAPI cursor method <code class="docutils literal notranslate"><span cl
 <p>The operation could be anything desired to perform custom
 behavior, such as transforming or serializing data.
 This could also be used as a hook for validating logic.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>value</strong> – Data to operate upon, of any type expected by
-this method in the subclass.  Can be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</li>
-<li><strong>dialect</strong> – the <code class="xref py py-class docutils literal notranslate"><span class="pre">Dialect</span></code> in use.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – Data to operate upon, of any type expected by
+this method in the subclass.  Can be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>dialect</strong> – the <code class="xref py py-class docutils literal notranslate"><span class="pre">Dialect</span></code> in use.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>This operation should be designed to be reversible by
 the “process_bind_param” method of this class.</p>
 </dd></dl>
@@ -2273,19 +2223,15 @@ This could also be used as a hook for validating logic.</p>
 <p>This operation should be designed with the reverse operation
 in mind, which would be the process_result_value method of
 this class.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>value</strong> – Data to operate upon, of any type expected by
-this method in the subclass.  Can be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</li>
-<li><strong>dialect</strong> – the <code class="xref py py-class docutils literal notranslate"><span class="pre">Dialect</span></code> in use.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – Data to operate upon, of any type expected by
+this method in the subclass.  Can be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>dialect</strong> – the <code class="xref py py-class docutils literal notranslate"><span class="pre">Dialect</span></code> in use.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -2302,19 +2248,15 @@ from the DBAPI cursor method <code class="docutils literal notranslate"><span cl
 <p>The operation could be anything desired to perform custom
 behavior, such as transforming or serializing data.
 This could also be used as a hook for validating logic.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>value</strong> – Data to operate upon, of any type expected by
-this method in the subclass.  Can be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</li>
-<li><strong>dialect</strong> – the <code class="xref py py-class docutils literal notranslate"><span class="pre">Dialect</span></code> in use.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – Data to operate upon, of any type expected by
+this method in the subclass.  Can be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>dialect</strong> – the <code class="xref py py-class docutils literal notranslate"><span class="pre">Dialect</span></code> in use.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>This operation should be designed to be reversible by
 the “process_bind_param” method of this class.</p>
 </dd></dl>
@@ -2362,19 +2304,15 @@ This could also be used as a hook for validating logic.</p>
 <p>This operation should be designed with the reverse operation
 in mind, which would be the process_result_value method of
 this class.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>value</strong> – Data to operate upon, of any type expected by
-this method in the subclass.  Can be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</li>
-<li><strong>dialect</strong> – the <code class="xref py py-class docutils literal notranslate"><span class="pre">Dialect</span></code> in use.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – Data to operate upon, of any type expected by
+this method in the subclass.  Can be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>dialect</strong> – the <code class="xref py py-class docutils literal notranslate"><span class="pre">Dialect</span></code> in use.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -2442,7 +2380,7 @@ of <code class="xref py py-class docutils literal notranslate"><span class="pre"
 <p>The returned value should be a list, corresponding
 to the list of keys given.</p>
 <div class="versionadded">
-<p><span class="versionmodified">New in version 0.5.0.</span></p>
+<p><span class="versionmodified added">New in version 0.5.0.</span></p>
 </div>
 </dd></dl>
 
@@ -2464,7 +2402,7 @@ values in any way, it must not do so ‘in-place’ on the <code class="docutils
 – that will have the undesirable effect of modifying the returned
 values as well.</p>
 <div class="versionadded">
-<p><span class="versionmodified">New in version 0.5.0.</span></p>
+<p><span class="versionmodified added">New in version 0.5.0.</span></p>
 </div>
 </dd></dl>
 
@@ -2483,10 +2421,11 @@ confuse this with the orm sessions.</p>
 <p>Used by <a class="reference internal" href="#onegov.core.request.CoreRequest" title="onegov.core.request.CoreRequest"><code class="xref py py-class docutils literal notranslate"><span class="pre">onegov.core.request.CoreRequest</span></code></a>.</p>
 <p>Example:</p>
 <blockquote>
-<div>browser_session = request.browser_session
+<div><p>browser_session = request.browser_session
 browser_session.name = ‘Foo’
 assert client.session.name == ‘Foo’
-del client.session.name</div></blockquote>
+del client.session.name</p>
+</div></blockquote>
 <p>This class can act like an object, through attribute access, or like a
 dict, through square brackets. Whatever you prefer.</p>
 <dl class="method">
@@ -2503,21 +2442,17 @@ the process.</p>
 <span id="internationalization-i18n"></span><h2>Internationalization (i18n)<a class="headerlink" href="#module-onegov.core.i18n" title="Permalink to this headline">¶</a></h2>
 <p>Provides tools and methods for internationalization (i18n).</p>
 <p>Applications wishing to use i18n need to define two settings:</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name" colspan="2">i18n.localedirs:</th></tr>
-<tr class="field-odd field"><td>&#160;</td><td class="field-body">A list of gettext locale directories. The first directory is considered
+<dl class="field-list simple">
+<dt class="field-odd">i18n.localedirs</dt>
+<dd class="field-odd"><p>A list of gettext locale directories. The first directory is considered
 to be the main directory, all other directories are added to the
-translation object as fallbacks.</td>
-</tr>
-<tr class="field-even field"><th class="field-name" colspan="2">i18n.default_locale:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body">The fallback locale that is used if no locale more suitable to the user
-could be found.</td>
-</tr>
-</tbody>
-</table>
+translation object as fallbacks.</p>
+</dd>
+<dt class="field-even">i18n.default_locale</dt>
+<dd class="field-even"><p>The fallback locale that is used if no locale more suitable to the user
+could be found.</p>
+</dd>
+</dl>
 <p>For example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">onegov.core.framework</span> <span class="k">import</span> <span class="n">Framework</span>
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">utils</span>
@@ -2570,9 +2505,9 @@ angauge that should be used based on that information.</p>
 <dd><p>The default locale negotiator.</p>
 <p>Will select one of the given locales by:</p>
 <ol class="arabic simple">
-<li>Examining the ‘locale’ cookie which will be preferred if the
-language in the cookie actually exists</li>
-<li>Selecting the best match from the accept_language header</li>
+<li><p>Examining the ‘locale’ cookie which will be preferred if the
+language in the cookie actually exists</p></li>
+<li><p>Selecting the best match from the accept_language header</p></li>
 </ol>
 <p>If no match can be found, None is returned. It is the job of caller to
 deal with that (possibly getting <a class="reference internal" href="#onegov.core.i18n.get_i18n_default_locale" title="onegov.core.i18n.get_i18n_default_locale"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_i18n_default_locale()</span></code></a>).</p>
@@ -2634,16 +2569,13 @@ complexity of the lookup function each time.</p>
 <p>Note that the translations are <em>not</em> copied before merging, so that means
 all existing translations are changed during this processed. To avoid
 this, clone the translation first (see <a class="reference internal" href="#onegov.core.i18n.clone" title="onegov.core.i18n.clone"><code class="xref py py-func docutils literal notranslate"><span class="pre">clone()</span></code></a>).</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The last GNUTranslations object with all other translation
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The last GNUTranslations object with all other translation
 objects merged into it. The first element overrides the second and so
-on.</td>
-</tr>
-</tbody>
-</table>
+on.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
@@ -2808,23 +2740,22 @@ so by calling an url which will execute the original job.</p>
 <dt id="onegov.core.cronjobs.Job.is_scheduled_at">
 <code class="descname">is_scheduled_at</code><span class="sig-paren">(</span><em>point</em>, <em>timezone=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cronjobs.html#Job.is_scheduled_at"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cronjobs.Job.is_scheduled_at" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True if the job is scheduled to run at the given date.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Point:</th><td class="field-body">The point in time. Needs to be a timezone aware datetime object,
-unless <code class="docutils literal notranslate"><span class="pre">timezone</span></code> is passed as well.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Timezone:</th><td class="field-body">Optional. If the passed date is not timezone aware, the date is
-assumed to be from this timezone.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if the job is scheduled at this date. The maximum
+<dl class="field-list simple">
+<dt class="field-odd">Point</dt>
+<dd class="field-odd"><p>The point in time. Needs to be a timezone aware datetime object,
+unless <code class="docutils literal notranslate"><span class="pre">timezone</span></code> is passed as well.</p>
+</dd>
+<dt class="field-even">Timezone</dt>
+<dd class="field-even"><p>Optional. If the passed date is not timezone aware, the date is
+assumed to be from this timezone.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if the job is scheduled at this date. The maximum
 resolution is one minute. That means if the date given
 falls within the minute of the scheduled time it is assumed
-to be a match (i.e anywhere within 0’ - 59‘999.99999)</td>
-</tr>
-</tbody>
-</table>
+to be a match (i.e anywhere within 0’ - 59‘999.99999)</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -2989,8 +2920,8 @@ default view.</p>
 template rendering.</p>
 <p>This class assumes the existance of two templates:</p>
 <ul class="simple">
-<li>layout.pt -&gt; Contains the page skeleton with headers, body and so on.</li>
-<li>macros.pt -&gt; Contains chameleon macros.</li>
+<li><p>layout.pt -&gt; Contains the page skeleton with headers, body and so on.</p></li>
+<li><p>macros.pt -&gt; Contains chameleon macros.</p></li>
 </ul>
 <dl class="attribute">
 <dt id="onegov.core.layout.ChameleonLayout.template_loader">
@@ -3114,18 +3045,18 @@ may of course introduce its own byzantine permission system.</p>
 or replace the existing ones entirely, though it’s not something that
 one should do carelessly.</p>
 <p>The default roles are:</p>
-<dl class="docutils">
-<dt><strong>admin</strong></dt>
-<dd>Has access to everything</dd>
-<dt><strong>editor</strong></dt>
-<dd>Has access to most things</dd>
-<dt><strong>member</strong></dt>
-<dd>Has access their own data. Be careful though, core doesn’t know about
+<dl class="simple">
+<dt><strong>admin</strong></dt><dd><p>Has access to everything</p>
+</dd>
+<dt><strong>editor</strong></dt><dd><p>Has access to most things</p>
+</dd>
+<dt><strong>member</strong></dt><dd><p>Has access their own data. Be careful though, core doesn’t know about
 personal data, so this is just a role to implement registered users.
 As with all permissions, making sure the right information is shown
-is up to the applications.</dd>
-<dt><strong>anonymous</strong></dt>
-<dd>Has access to public things</dd>
+is up to the applications.</p>
+</dd>
+<dt><strong>anonymous</strong></dt><dd><p>Has access to public things</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -3272,24 +3203,24 @@ as if called through an url in the browser).</p>
 <p>For example:</p>
 <blockquote>
 <div><ul class="simple">
-<li><code class="docutils literal notranslate"><span class="pre">/foo/bar</span></code></li>
-<li><code class="docutils literal notranslate"><span class="pre">/onegov_election_day/gr</span></code></li>
-<li><code class="docutils literal notranslate"><span class="pre">/onegov_town/govikon</span></code></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/foo/bar</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/onegov_election_day/gr</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/onegov_town/govikon</span></code></p></li>
 </ul>
 </div></blockquote>
 <p>To select non-wildcard applications we can just omit the id:</p>
 <blockquote>
 <div><ul class="simple">
-<li><code class="docutils literal notranslate"><span class="pre">/foo</span></code></li>
-<li><code class="docutils literal notranslate"><span class="pre">/onegov_onboarding</span></code></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/foo</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/onegov_onboarding</span></code></p></li>
 </ul>
 </div></blockquote>
 <p>Finally, to select multiple applications we can use wildcards:</p>
 <blockquote>
 <div><ul class="simple">
-<li><code class="docutils literal notranslate"><span class="pre">/foo/*</span></code></li>
-<li><code class="docutils literal notranslate"><span class="pre">/onegov_election_day/*</span></code></li>
-<li><code class="docutils literal notranslate"><span class="pre">/*/g??</span></code></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/foo/*</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/onegov_election_day/*</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/*/g??</span></code></p></li>
 </ul>
 </div></blockquote>
 </div>
@@ -3436,31 +3367,27 @@ is not met.</p>
 <dt id="onegov.core.cli.core.GroupContext">
 <em class="property">class </em><code class="descclassname">onegov.core.cli.core.</code><code class="descname">GroupContext</code><span class="sig-paren">(</span><em>selector</em>, <em>config</em>, <em>default_selector=None</em>, <em>creates_path=False</em>, <em>singular=False</em>, <em>matches_required=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cli/core.html#GroupContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cli.core.GroupContext" title="Permalink to this definition">¶</a></dt>
 <dd><p>Provides access to application configs for group commands.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>selector</strong> – <p>Selects the applications which should be captured by a
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>selector</strong> – <p>Selects the applications which should be captured by a
 <a class="reference internal" href="#onegov.core.cli.core.command_group" title="onegov.core.cli.core.command_group"><code class="xref py py-func docutils literal notranslate"><span class="pre">command_group()</span></code></a>.</p>
 <p>See <a class="reference internal" href="#core-commands"><span class="std std-ref">Core Commands</span></a> for more documentation about
 selectors.</p>
-</li>
-<li><strong>config</strong> – The targeted onegov.yml file or an equivalent dictionary.</li>
-<li><strong>default_selector</strong> – The selector used if none is provided. If not given, a selector
-<em>has</em> to be provided.</li>
-<li><strong>creates_path</strong> – <p>True if the given selector doesn’t exist yet, but will be created.
+</p></li>
+<li><p><strong>config</strong> – The targeted onegov.yml file or an equivalent dictionary.</p></li>
+<li><p><strong>default_selector</strong> – The selector used if none is provided. If not given, a selector
+<em>has</em> to be provided.</p></li>
+<li><p><strong>creates_path</strong> – <p>True if the given selector doesn’t exist yet, but will be created.
 Commands which use this setting are expected to take a single path
 (no wildcards) and to create it during their runtime.</p>
 <p>Implies <cite>singular</cite> and <cite>matches_required</cite>.</p>
-</li>
-<li><strong>singular</strong> – True if the selector may not match multiple applications.</li>
-<li><strong>matches_required</strong> – True if the selector <em>must</em> match at least one application.</li>
+</p></li>
+<li><p><strong>singular</strong> – True if the selector may not match multiple applications.</p></li>
+<li><p><strong>matches_required</strong> – True if the selector <em>must</em> match at least one application.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <dl class="method">
 <dt id="onegov.core.cli.core.GroupContext.available_schemas">
 <code class="descname">available_schemas</code><span class="sig-paren">(</span><em>appcfg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cli/core.html#GroupContext.available_schemas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cli.core.GroupContext.available_schemas" title="Permalink to this definition">¶</a></dt>
@@ -3543,9 +3470,9 @@ settings from it.</p>
 <span class="nd">@pass_group_context</span><span class="p">()</span>
 </pre></div>
 </div>
-<dl class="docutils">
-<dt>def my_command(group_context):</dt>
-<dd>pass</dd>
+<dl class="simple">
+<dt>def my_command(group_context):</dt><dd><p>pass</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -3615,15 +3542,13 @@ upgrades like this:</p>
 be defined outside classes (except for testing) - that is in the root of
 the module (directly in onegov/form/upgrades.py for example).</p>
 <p>Each upgrade task has the following properties:</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Name:</th><td class="field-body"><p class="first">The name of the task in readable English. Do not change the name of
+<dl class="field-list">
+<dt class="field-odd">Name</dt>
+<dd class="field-odd"><p>The name of the task in readable English. Do not change the name of
 the task once you pushed your changes. This name is used as an id!</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Always_run:</th><td class="field-body"><p class="first">By default, tasks are run once on if they haven’t been run yet, or if
+</dd>
+<dt class="field-even">Always_run</dt>
+<dd class="field-even"><p>By default, tasks are run once on if they haven’t been run yet, or if
 the module was not yet under upgrade control (it just added itself
 through the entry_points mechanism).</p>
 <p>There are times where this is not wanted.</p>
@@ -3640,17 +3565,17 @@ example, for maintenance), then you should also use it.</p>
 release on.</p>
 <p>Another way to tackle this is to write update methods idempotent as
 often as possible and to always run them.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Requires:</th><td class="field-body"><p class="first">A reference to another projects upgrade task that should be run first.</p>
+</dd>
+<dt class="field-odd">Requires</dt>
+<dd class="field-odd"><p>A reference to another projects upgrade task that should be run first.</p>
 <p>For example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">requires</span><span class="o">=</span><span class="s1">&#39;onegov.form:Add new form field&#39;</span>
 </pre></div>
 </div>
 <p>If the reference cannot be found, the upgrade fails.</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raw:</th><td class="field-body"><p class="first">A raw task is run without setting up a request. Instead a database
+</dd>
+<dt class="field-even">Raw</dt>
+<dd class="field-even"><p>A raw task is run without setting up a request. Instead a database
 connection and a list of targeted schemas is passed. It’s up to the
 upgrade function to make sure the right schemas are targeted through
 that connection!</p>
@@ -3662,13 +3587,11 @@ raw task needs to be idempotent and return False if there was no
 change.</p>
 <p>Only use this if you have no other way. This is a very blunt instrument
 only used under special circumstances.</p>
-<p class="last">Note, raw tasks may be normal function OR generators. If they are
+<p>Note, raw tasks may be normal function OR generators. If they are
 generators, then with each yield the transaction is either commited
 or rolled-back depending on the dry-run cli argument.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>Always run tasks may return <code class="docutils literal notranslate"><span class="pre">False</span></code> if they wish to be considered
 as not run (and therefore not shown in the upgrade runner).</p>
 </dd></dl>
@@ -3829,16 +3752,14 @@ The name is printed in front of the time, if given.</p>
 <dt id="onegov.core.utils.module_path">
 <code class="descclassname">onegov.core.utils.</code><code class="descname">module_path</code><span class="sig-paren">(</span><em>module</em>, <em>subpath</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/utils.html#module_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.utils.module_path" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a subdirectory in the given python module.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Mod:</th><td class="field-body">A python module (actual module or string)</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Subpath:</th><td class="field-body">Subpath below that python module. Leading slashes (‘/’) are ignored.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Mod</dt>
+<dd class="field-odd"><p>A python module (actual module or string)</p>
+</dd>
+<dt class="field-even">Subpath</dt>
+<dd class="field-even"><p>Subpath below that python module. Leading slashes (‘/’) are ignored.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
@@ -4073,30 +3994,26 @@ where those blocks are replaced by values in a dictionary.</p>
 <span class="go">&#39;admin has logged in&#39;</span>
 </pre></div>
 </div>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>format</strong> – The format to use. Square brackets denote dictionary keys. To
-literally print square bracktes, mask them by doubling (‘[[‘ -&gt; ‘[‘)</li>
-<li><strong>dictionary</strong> – The dictionary holding the variables to use. If the key is not found
-in the dictionary, the bracket is replaced with an empty string.</li>
-<li><strong>types</strong> – <p>A set of types supported by the dictionary. Limiting this to safe
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>format</strong> – The format to use. Square brackets denote dictionary keys. To
+literally print square bracktes, mask them by doubling (‘[[‘ -&gt; ‘[‘)</p></li>
+<li><p><strong>dictionary</strong> – The dictionary holding the variables to use. If the key is not found
+in the dictionary, the bracket is replaced with an empty string.</p></li>
+<li><p><strong>types</strong> – <p>A set of types supported by the dictionary. Limiting this to safe
 types like builtins (str, int, float) ensure that no values are
 accidentally leaked through faulty __str__ representations.</p>
 <p>Note that inheritance is ignored. Supported types need to be
 whitelisted explicitly.</p>
-</li>
-<li><strong>adapt</strong> – An optional callable that receives the key before it is used. Returns
-the same key or an altered version.</li>
-<li><strong>raise_on_missing</strong> – True if missing keys should result in a runtime error (defaults to
-False).</li>
+</p></li>
+<li><p><strong>adapt</strong> – An optional callable that receives the key before it is used. Returns
+the same key or an altered version.</p></li>
+<li><p><strong>raise_on_missing</strong> – True if missing keys should result in a runtime error (defaults to
+False).</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>This is strictly meant for formats provided by users. Python’s string
 formatting options are clearly superior to this, however it is less
 secure!</p>
@@ -4112,26 +4029,26 @@ secure!</p>
 <dt id="onegov.core.utils.is_valid_yubikey">
 <code class="descclassname">onegov.core.utils.</code><code class="descname">is_valid_yubikey</code><span class="sig-paren">(</span><em>client_id</em>, <em>secret_key</em>, <em>expected_yubikey_id</em>, <em>yubikey</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/utils.html#is_valid_yubikey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.utils.is_valid_yubikey" title="Permalink to this definition">¶</a></dt>
 <dd><p>Asks the yubico validation servers if the given yubikey OTP is valid.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Client_id:</th><td class="field-body">The yubico API client id.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Secret_key:</th><td class="field-body">The yubico API secret key.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name" colspan="2">Expected_yubikey_id:</th></tr>
-<tr class="field-odd field"><td>&#160;</td><td class="field-body">The expected yubikey id. The yubikey id is defined as the first twelve
+<dl class="field-list simple">
+<dt class="field-odd">Client_id</dt>
+<dd class="field-odd"><p>The yubico API client id.</p>
+</dd>
+<dt class="field-even">Secret_key</dt>
+<dd class="field-even"><p>The yubico API secret key.</p>
+</dd>
+<dt class="field-odd">Expected_yubikey_id</dt>
+<dd class="field-odd"><p>The expected yubikey id. The yubikey id is defined as the first twelve
 characters of any yubikey value. Each user should have a yubikey
 associated with it’s account. If the yubikey value comes from a
-different key, the key is invalid.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Yubikey:</th><td class="field-body">The actual yubikey value that should be verified.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if yubico confirmed the validity of the key.</td>
-</tr>
-</tbody>
-</table>
+different key, the key is invalid.</p>
+</dd>
+<dt class="field-even">Yubikey</dt>
+<dd class="field-even"><p>The actual yubikey value that should be verified.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if yubico confirmed the validity of the key.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
@@ -4154,8 +4071,9 @@ contact Yubico, so this function may return true, for some invalid keys.</p>
 </div>
 <p>Adapted from Java:</p>
 <blockquote>
-<div><a class="reference external" href="https://github.com/Yubico/yubikey-salesforce-client/blob/">https://github.com/Yubico/yubikey-salesforce-client/blob/</a>
-e38e46ee90296a852374a8b744555e99d16b6ca7/src/classes/Modhex.cls</div></blockquote>
+<div><p><a class="reference external" href="https://github.com/Yubico/yubikey-salesforce-client/blob/">https://github.com/Yubico/yubikey-salesforce-client/blob/</a>
+e38e46ee90296a852374a8b744555e99d16b6ca7/src/classes/Modhex.cls</p>
+</div></blockquote>
 <p>If the key cannot be calculated, None is returned. This can happen if
 they key is malformed.</p>
 </dd></dl>
@@ -4226,20 +4144,16 @@ is used with different asset environment instances.</p>
 <code class="descclassname">onegov.core.mail.</code><code class="descname">email</code><span class="sig-paren">(</span><em>sender=None</em>, <em>receivers=()</em>, <em>cc=()</em>, <em>bcc=()</em>, <em>subject=None</em>, <em>content=None</em>, <em>encoding='utf8'</em>, <em>attachments=()</em>, <em>category='marketing'</em>, <em>plaintext=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/mail.html#email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.mail.email" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates an Envelope object with a HTML <em>content</em>, as well as a <em>plaintext</em>
 alternative generated from the HTML content.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>content</strong> – HTML content.</li>
-<li><strong>encoding</strong> – Encoding of the email.</li>
-<li><strong>attachments</strong> – Either a list of <code class="xref py py-class docutils literal notranslate"><span class="pre">mailthon.enclosure.Enclosure</span></code>
-or a list of filenames to attach to the email.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>content</strong> – HTML content.</p></li>
+<li><p><strong>encoding</strong> – Encoding of the email.</p></li>
+<li><p><strong>attachments</strong> – Either a list of <code class="xref py py-class docutils literal notranslate"><span class="pre">mailthon.enclosure.Enclosure</span></code>
+or a list of filenames to attach to the email.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>Note: this is basically a copy of <code class="xref py py-func docutils literal notranslate"><span class="pre">mailthon.api.email()</span></code>, though it
 adds the plaintext alternative.</p>
 </dd></dl>
@@ -4301,19 +4215,17 @@ simply log an exception if the sending failed.</p>
 <dt id="onegov.core.csv.CSVFile">
 <em class="property">class </em><code class="descclassname">onegov.core.csv.</code><code class="descname">CSVFile</code><span class="sig-paren">(</span><em>csvfile</em>, <em>expected_headers=None</em>, <em>dialect=None</em>, <em>encoding=None</em>, <em>rename_duplicate_column_names=False</em>, <em>rowtype=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/csv.html#CSVFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.csv.CSVFile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Provides access to a csv file.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>csvfile</strong> – <p>The csv file to be accessed. Must be an open file (not a poth), opened
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>csvfile</strong> – <p>The csv file to be accessed. Must be an open file (not a poth), opened
 in binary mode. For example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
     <span class="n">csv</span> <span class="o">=</span> <span class="n">CSVFile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
 </div>
-</li>
-<li><strong>expected_headers</strong> – <p>The expected headers if known. Expected headers are headers which
+</p></li>
+<li><p><strong>expected_headers</strong> – <p>The expected headers if known. Expected headers are headers which
 <em>must</em> exist in the CSV file. There may be additional headers.</p>
 <p>If the headers are slightly misspelled, a matching algorithm tries to
 guess the correct header, without accidentally matching the wrong
@@ -4324,26 +4236,24 @@ headers are still available. Headers matching is useful if a user
 provides the CSV and it might be wrong.</p>
 <p>If it is impossible for misspellings to occurr, the expected headers
 don’t have to be specified.</p>
-</li>
-<li><strong>dialect</strong> – The CSV dialect to expect. By default, the dialect will be guessed
-using Python’s heuristic.</li>
-<li><strong>encoding</strong> – The CSV encoding to expect. By default, the encoding will be guessed
-and will either be UTF-8 or CP1252.</li>
-<li><strong>rename_duplicate_column_names</strong> – It is possible to rename duplicate column names to deal with super
+</p></li>
+<li><p><strong>dialect</strong> – The CSV dialect to expect. By default, the dialect will be guessed
+using Python’s heuristic.</p></li>
+<li><p><strong>encoding</strong> – The CSV encoding to expect. By default, the encoding will be guessed
+and will either be UTF-8 or CP1252.</p></li>
+<li><p><strong>rename_duplicate_column_names</strong> – It is possible to rename duplicate column names to deal with super
 wacky files. If this option is set and a duplicate header is found,
 a suffix is appended to the column name rather than throwing a
-DuplicateColumnNamesError.</li>
-<li><strong>rowtype</strong> – <p>An alternative rowtype for the resulting rows. This should be a
+DuplicateColumnNamesError.</p></li>
+<li><p><strong>rowtype</strong> – <p>An alternative rowtype for the resulting rows. This should be a
 callable that receives a <cite>rownumber</cite> key/value and all the other
 keys/values found in the csv. The keys are normalized and are valid
 Python identifiers usable as attribute names.</p>
 <p>Defaults to a namedtuple created using the found headers.</p>
-</li>
+</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>Once the csv file is open, the records can be acceessed as follows:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
     <span class="n">csv</span> <span class="o">=</span> <span class="n">CSVFile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
@@ -4376,13 +4286,12 @@ delimiter.</p>
 <dt id="onegov.core.csv.normalize_header">
 <code class="descclassname">onegov.core.csv.</code><code class="descname">normalize_header</code><span class="sig-paren">(</span><em>header</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/csv.html#normalize_header"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.csv.normalize_header" title="Permalink to this definition">¶</a></dt>
 <dd><p>Normalizes a header value to be as uniform as possible.</p>
-<dl class="docutils">
-<dt>This includes:</dt>
-<dd><ul class="first last simple">
-<li>stripping the whitespace around it</li>
-<li>lowercasing everything</li>
-<li>transliterating unicode (e.g. ‘ä’ becomes ‘a’)</li>
-<li>removing duplicate whitespace inside it</li>
+<dl class="simple">
+<dt>This includes:</dt><dd><ul class="simple">
+<li><p>stripping the whitespace around it</p></li>
+<li><p>lowercasing everything</p></li>
+<li><p>transliterating unicode (e.g. ‘ä’ becomes ‘a’)</p></li>
+<li><p>removing duplicate whitespace inside it</p></li>
 </ul>
 </dd>
 </dl>
@@ -4436,14 +4345,11 @@ is limited to small-ish datasets.</p>
 <dd><p>Takes the first line of the given csv string and returns the headers.</p>
 <p>Headers are normalized (stripped and normalized) and expected to be
 unique. The dialect is sniffed, if not provided.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A list of headers in the order of appearance.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list of headers in the order of appearance.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
@@ -4472,14 +4378,11 @@ by calculating a sane distance using the input.</p>
 <code class="xref py py-class docutils literal notranslate"><span class="pre">MissingColumnsError</span></code>, or
 <code class="xref py py-class docutils literal notranslate"><span class="pre">AmbiguousColumnsError</span></code> or
 <code class="xref py py-class docutils literal notranslate"><span class="pre">DuplicateColumnNamesError</span></code> error is raised.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The matched headers in the order of appearance.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The matched headers in the order of appearance.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
@@ -4522,8 +4425,6 @@ by calculating a sane distance using the input.</p>
     <form class="search" action="search.html" method="get">
       <input type="text" name="q" />
       <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
     </form>
     </div>
 </div>
@@ -4544,7 +4445,7 @@ by calculating a sane distance using the input.</p>
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
