@@ -191,6 +191,37 @@
         <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;many many-dates&#39;</span><span class="p">},</span>
     <span class="p">)</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">replace_timezone</span><span class="p">(</span>
+            <span class="n">datetime</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">minute</span>
+            <span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">end</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">end_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">data</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span><span class="o">.</span><span class="n">data</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="n">end_date</span> <span class="o">+=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">replace_timezone</span><span class="p">(</span>
+            <span class="n">datetime</span><span class="p">(</span>
+                <span class="n">end_date</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
+                <span class="n">end_date</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
+                <span class="n">end_date</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">minute</span>
+            <span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span>
+        <span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">date_errors</span> <span class="o">=</span> <span class="p">{}</span>
@@ -258,32 +289,9 @@
 
         <span class="n">model</span><span class="o">.</span><span class="n">meta</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">meta</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="n">model</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;submitter_email&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">data</span>
-        <span class="n">model</span><span class="o">.</span><span class="n">timezone</span> <span class="o">=</span> <span class="s1">&#39;Europe/Zurich&#39;</span>
-
-        <span class="n">model</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span>
-            <span class="n">datetime</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">minute</span>
-            <span class="p">),</span>
-            <span class="n">model</span><span class="o">.</span><span class="n">timezone</span>
-        <span class="p">)</span>
-        <span class="n">end_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">data</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span><span class="o">.</span><span class="n">data</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
-            <span class="n">end_date</span> <span class="o">+=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
-        <span class="n">model</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">replace_timezone</span><span class="p">(</span>
-            <span class="n">datetime</span><span class="p">(</span>
-                <span class="n">end_date</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
-                <span class="n">end_date</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
-                <span class="n">end_date</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">minute</span>
-            <span class="p">),</span>
-            <span class="n">model</span><span class="o">.</span><span class="n">timezone</span>
-        <span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">timezone</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="s1">&#39;without&#39;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">recurrence</span> <span class="o">=</span> <span class="kc">None</span>

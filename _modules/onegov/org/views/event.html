@@ -141,23 +141,15 @@
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">submitted</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="n">Event</span><span class="p">()</span>
-        <span class="n">form</span><span class="o">.</span><span class="n">populate_obj</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-
-        <span class="n">model</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;session_id&#39;</span><span class="p">:</span> <span class="n">get_session_id</span><span class="p">(</span><span class="n">request</span><span class="p">)})</span>
-
         <span class="n">event</span> <span class="o">=</span> <span class="n">EventCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">)</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
-            <span class="n">title</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
-            <span class="n">start</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">start</span><span class="p">,</span>
-            <span class="n">end</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">end</span><span class="p">,</span>
-            <span class="n">timezone</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">timezone</span><span class="p">,</span>
-            <span class="n">recurrence</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">recurrence</span><span class="p">,</span>
-            <span class="n">tags</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">tags</span><span class="p">,</span>
-            <span class="n">location</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
-            <span class="n">content</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
-            <span class="n">coordinates</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">coordinates</span><span class="p">,</span>
-            <span class="n">meta</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">meta</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">start</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">start</span><span class="p">,</span>
+            <span class="n">end</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">end</span><span class="p">,</span>
+            <span class="n">timezone</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">timezone</span><span class="p">,</span>
         <span class="p">)</span>
+
+        <span class="n">event</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;session_id&#39;</span><span class="p">:</span> <span class="n">get_session_id</span><span class="p">(</span><span class="n">request</span><span class="p">)})</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">populate_obj</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">morepath</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">event</span><span class="p">))</span>
 
