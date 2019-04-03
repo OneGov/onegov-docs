@@ -35,6 +35,7 @@
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">Election</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ElectionAssociation</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">DefaultLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">Form</span>
 <span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">MultiCheckboxField</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">or_</span>
@@ -174,10 +175,20 @@
         <span class="k">if</span> <span class="n">default_locale</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;rm&#39;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">election_de</span><span class="o">.</span><span class="n">validators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">InputRequired</span><span class="p">())</span>
 
+        <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">)</span>
+
         <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Election</span><span class="p">)</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">Election</span><span class="o">.</span><span class="n">shortcode</span><span class="p">)</span>
-        <span class="n">choices</span> <span class="o">=</span> <span class="p">[(</span><span class="n">election</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">election</span><span class="o">.</span><span class="n">title</span><span class="p">)</span> <span class="k">for</span> <span class="n">election</span> <span class="ow">in</span> <span class="n">query</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">related_elections</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="n">choices</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Election</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span> <span class="n">Election</span><span class="o">.</span><span class="n">shortcode</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">related_elections</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span>
+                <span class="n">election</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">layout</span><span class="o">.</span><span class="n">format_date</span><span class="p">(</span><span class="n">election</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">),</span>
+                    <span class="n">election</span><span class="o">.</span><span class="n">shortcode</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                    <span class="n">election</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;  &quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
+            <span class="p">)</span> <span class="k">for</span> <span class="n">election</span> <span class="ow">in</span> <span class="n">query</span>
+        <span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">set_domain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">principal</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="p">[</span>

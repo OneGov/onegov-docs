@@ -41,6 +41,7 @@
 <span class="kn">from</span> <span class="nn">onegov.election_day.collections</span> <span class="k">import</span> <span class="n">EmailSubscriberCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.collections</span> <span class="k">import</span> <span class="n">SmsSubscriberCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.collections</span> <span class="k">import</span> <span class="n">SubscriberCollection</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.collections</span> <span class="k">import</span> <span class="n">UploadTokenCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.layouts.default</span> <span class="k">import</span> <span class="n">DefaultLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.models</span> <span class="k">import</span> <span class="n">EmailSubscriber</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.models</span> <span class="k">import</span> <span class="n">Principal</span>
@@ -65,21 +66,40 @@
             <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">VoteCollection</span><span class="p">),</span>
             <span class="p">[]</span>
         <span class="p">))</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+
+        <span class="n">submenu</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">submenu</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Elections&quot;</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">ElectionCollection</span><span class="p">(</span><span class="n">session</span><span class="p">)),</span>
             <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">ElectionCollection</span><span class="p">),</span>
             <span class="p">[]</span>
         <span class="p">))</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+        <span class="n">submenu</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
             <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Compounds of elections&quot;</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">ElectionCompoundCollection</span><span class="p">(</span><span class="n">session</span><span class="p">)),</span>
             <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">ElectionCompoundCollection</span><span class="p">),</span>
             <span class="p">[]</span>
         <span class="p">))</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Elections&quot;</span><span class="p">),</span>
+            <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">ElectionCollection</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">ElectionCompoundCollection</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">submenu</span>
+        <span class="p">))</span>
+
+        <span class="n">submenu</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">submenu</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Upload tokens&quot;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">UploadTokenCollection</span><span class="p">(</span><span class="n">session</span><span class="p">)),</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">UploadTokenCollection</span><span class="p">),</span>
+            <span class="p">[]</span>
+        <span class="p">))</span>
         <span class="k">if</span> <span class="n">principal</span><span class="o">.</span><span class="n">wabsti_import</span><span class="p">:</span>
-            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
-                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Data sources&quot;</span><span class="p">),</span>
+            <span class="n">submenu</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Wabsti data sources&quot;</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">DataSourceCollection</span><span class="p">(</span><span class="n">session</span><span class="p">)),</span>
                 <span class="p">(</span>
                     <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">DataSourceCollection</span><span class="p">)</span>
@@ -87,6 +107,16 @@
                 <span class="p">),</span>
                 <span class="p">[]</span>
             <span class="p">))</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Import configuration&quot;</span><span class="p">),</span>
+            <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">UploadTokenCollection</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">DataSourceCollection</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">DataSourceItemCollection</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">submenu</span>
+        <span class="p">))</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">notifications</span><span class="p">:</span>
             <span class="n">submenu</span> <span class="o">=</span> <span class="p">[]</span>
@@ -218,6 +248,21 @@
             <span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="ManageUploadTokensLayout"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.layouts.ManageUploadTokensLayout">[docs]</a><span class="k">class</span> <span class="nc">ManageUploadTokensLayout</span><span class="p">(</span><span class="n">ManageLayout</span><span class="p">):</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">manage_model_link</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span>
+            <span class="n">UploadTokenCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">breadcrumbs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Upload tokens&quot;</span><span class="p">),</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="ManageDataSourcesLayout"><a class="viewcode-back" href="../../../../onegov_election_day.html#onegov.election_day.layouts.ManageDataSourcesLayout">[docs]</a><span class="k">class</span> <span class="nc">ManageDataSourcesLayout</span><span class="p">(</span><span class="n">ManageLayout</span><span class="p">):</span>
 
     <span class="nd">@cached_property</span>
@@ -229,7 +274,7 @@
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">breadcrumbs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Data sources&quot;</span><span class="p">),</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Wabsti data sources&quot;</span><span class="p">),</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
         <span class="p">)</span></div>
 
 
@@ -248,7 +293,7 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">breadcrumbs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="p">(</span>
-                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Data sources&quot;</span><span class="p">),</span>
+                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Wabsti data sources&quot;</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span>
                     <span class="n">DataSourceCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
                 <span class="p">),</span>

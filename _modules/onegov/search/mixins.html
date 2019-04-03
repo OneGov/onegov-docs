@@ -32,6 +32,7 @@
             
   <h1>Source code for onegov.search.mixins</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">onegov.search.utils</span> <span class="k">import</span> <span class="n">classproperty</span>
+<span class="kn">from</span> <span class="nn">onegov.search.utils</span> <span class="k">import</span> <span class="n">extract_hashtags</span>
 
 
 <div class="viewcode-block" id="Searchable"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.mixins.Searchable">[docs]</a><span class="k">class</span> <span class="nc">Searchable</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -159,6 +160,11 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">es_last_change</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns the date the document was created/last modified. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_tags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a list of tags associated with this content. &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="kc">None</span></div>
 
 
@@ -179,6 +185,41 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">es_last_change</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;last_change&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SearchableContent"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.mixins.SearchableContent">[docs]</a><span class="k">class</span> <span class="nc">SearchableContent</span><span class="p">(</span><span class="n">ORMSearchable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds search to all classes using the core&#39;s content mixin:</span>
+<span class="sd">    :class:`onegov.core.orm.mixins.content.ContentMixin`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">es_properties</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;localized&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;lead&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;localized&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;localized_html&#39;</span><span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_public</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_hidden_from_public</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_suggestions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+        <span class="p">}</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_tags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">tags</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;lead&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">,</span> <span class="s1">&#39;description&#39;</span><span class="p">):</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">text</span><span class="p">:</span>
+                <span class="n">tags</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">tag</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">extract_hashtags</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">tags</span> <span class="ow">or</span> <span class="kc">None</span></div>
 </pre></div>
 
           </div>

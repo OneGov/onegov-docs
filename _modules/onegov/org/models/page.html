@@ -42,45 +42,26 @@
 <span class="kn">from</span> <span class="nn">onegov.org.models.extensions</span> <span class="k">import</span> <span class="n">VisibleOnHomepageExtension</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models.traitinfo</span> <span class="k">import</span> <span class="n">TraitInfo</span>
 <span class="kn">from</span> <span class="nn">onegov.page</span> <span class="k">import</span> <span class="n">Page</span>
-<span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
+<span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">SearchableContent</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">desc</span><span class="p">,</span> <span class="n">func</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.dialects.postgresql</span> <span class="k">import</span> <span class="n">JSON</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">undefer</span><span class="p">,</span> <span class="n">object_session</span>
 
 
-<div class="viewcode-block" id="SearchablePage"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.page.SearchablePage">[docs]</a><span class="k">class</span> <span class="nc">SearchablePage</span><span class="p">(</span><span class="n">ORMSearchable</span><span class="p">):</span>
+<div class="viewcode-block" id="Topic"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.page.Topic">[docs]</a><span class="k">class</span> <span class="nc">Topic</span><span class="p">(</span><span class="n">Page</span><span class="p">,</span> <span class="n">TraitInfo</span><span class="p">,</span> <span class="n">SearchableContent</span><span class="p">,</span> <span class="n">HiddenFromPublicExtension</span><span class="p">,</span>
+            <span class="n">VisibleOnHomepageExtension</span><span class="p">,</span> <span class="n">ContactExtension</span><span class="p">,</span> <span class="n">PersonLinkExtension</span><span class="p">,</span>
+            <span class="n">CoordinatesExtension</span><span class="p">):</span>
+    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;topic&#39;</span><span class="p">}</span>
 
-    <span class="n">es_properties</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;localized&#39;</span><span class="p">},</span>
-        <span class="s1">&#39;lead&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;localized&#39;</span><span class="p">},</span>
-        <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;localized_html&#39;</span><span class="p">}</span>
-    <span class="p">}</span>
+    <span class="n">es_type_name</span> <span class="o">=</span> <span class="s1">&#39;topics&#39;</span>
 
     <span class="n">lead</span> <span class="o">=</span> <span class="n">content_property</span><span class="p">()</span>
     <span class="n">text</span> <span class="o">=</span> <span class="n">content_property</span><span class="p">()</span>
     <span class="n">url</span> <span class="o">=</span> <span class="n">content_property</span><span class="p">()</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">es_public</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_hidden_from_public</span>
-
-    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">es_skip</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;trait&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;link&#39;</span>  <span class="c1"># do not index links</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">es_suggestions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
-        <span class="p">}</span></div>
-
-
-<div class="viewcode-block" id="Topic"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.page.Topic">[docs]</a><span class="k">class</span> <span class="nc">Topic</span><span class="p">(</span><span class="n">Page</span><span class="p">,</span> <span class="n">TraitInfo</span><span class="p">,</span> <span class="n">SearchablePage</span><span class="p">,</span> <span class="n">HiddenFromPublicExtension</span><span class="p">,</span>
-            <span class="n">VisibleOnHomepageExtension</span><span class="p">,</span> <span class="n">ContactExtension</span><span class="p">,</span> <span class="n">PersonLinkExtension</span><span class="p">,</span>
-            <span class="n">CoordinatesExtension</span><span class="p">):</span>
-    <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;topic&#39;</span><span class="p">}</span>
-
-    <span class="n">es_type_name</span> <span class="o">=</span> <span class="s1">&#39;topics&#39;</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">deletable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -127,12 +108,16 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
 
 
-<div class="viewcode-block" id="News"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.page.News">[docs]</a><span class="k">class</span> <span class="nc">News</span><span class="p">(</span><span class="n">Page</span><span class="p">,</span> <span class="n">TraitInfo</span><span class="p">,</span> <span class="n">SearchablePage</span><span class="p">,</span> <span class="n">HiddenFromPublicExtension</span><span class="p">,</span>
+<div class="viewcode-block" id="News"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.page.News">[docs]</a><span class="k">class</span> <span class="nc">News</span><span class="p">(</span><span class="n">Page</span><span class="p">,</span> <span class="n">TraitInfo</span><span class="p">,</span> <span class="n">SearchableContent</span><span class="p">,</span> <span class="n">HiddenFromPublicExtension</span><span class="p">,</span>
            <span class="n">VisibleOnHomepageExtension</span><span class="p">,</span> <span class="n">ContactExtension</span><span class="p">,</span> <span class="n">PersonLinkExtension</span><span class="p">,</span>
            <span class="n">CoordinatesExtension</span><span class="p">):</span>
     <span class="n">__mapper_args__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;polymorphic_identity&#39;</span><span class="p">:</span> <span class="s1">&#39;news&#39;</span><span class="p">}</span>
 
     <span class="n">es_type_name</span> <span class="o">=</span> <span class="s1">&#39;news&#39;</span>
+
+    <span class="n">lead</span> <span class="o">=</span> <span class="n">content_property</span><span class="p">()</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">content_property</span><span class="p">()</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">content_property</span><span class="p">()</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">absorb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

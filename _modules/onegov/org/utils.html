@@ -37,23 +37,33 @@
 
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">time</span>
-<span class="kn">from</span> <span class="nn">onegov.core.cache</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">isodate</span> <span class="k">import</span> <span class="n">parse_date</span><span class="p">,</span> <span class="n">parse_datetime</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
 <span class="kn">from</span> <span class="nn">libres.modules</span> <span class="k">import</span> <span class="n">errors</span> <span class="k">as</span> <span class="n">libres_errors</span>
 <span class="kn">from</span> <span class="nn">lxml.html</span> <span class="k">import</span> <span class="n">fragments_fromstring</span><span class="p">,</span> <span class="n">tostring</span>
+<span class="kn">from</span> <span class="nn">onegov.core.cache</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">onegov.file</span> <span class="k">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">FileCollection</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.org.elements</span> <span class="k">import</span> <span class="n">DeleteLink</span><span class="p">,</span> <span class="n">Link</span>
+<span class="kn">from</span> <span class="nn">onegov.org.models.search</span> <span class="k">import</span> <span class="n">Search</span>
 <span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">TicketCollection</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">attrgetter</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">nullsfirst</span>
 <span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">nullsfirst</span>
 
 
 <span class="c1"># for our empty paragraphs approach we don&#39;t need a full-blown xml parser</span>
 <span class="c1"># since we only remove a very limited set of paragraphs</span>
 <span class="n">EMPTY_PARAGRAPHS</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;p&gt;\s*&lt;br&gt;\s*&lt;/p&gt;&#39;</span><span class="p">)</span>
+
+<span class="c1"># XXX this is doubly defined in onegov.search.utils, maybe move to a common</span>
+<span class="c1"># regex module in in onegov.core</span>
+<span class="c1">#</span>
+<span class="c1"># additionally it is used in onegov.org&#39;s common.js in javascript variant</span>
+<span class="c1">#</span>
+<span class="c1"># note that this tag should be safe - i.e. it may not accept &#39;&lt;&#39; or the like</span>
+<span class="c1"># to avoid js script injection further down the line</span>
+<span class="n">HASHTAG</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;#\w{3,}&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="djb2_hash"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.utils.djb2_hash">[docs]</a><span class="k">def</span> <span class="nf">djb2_hash</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
@@ -133,6 +143,8 @@
 <span class="sd">          link itself as well as the surrounding paragraph is marked</span>
 <span class="sd">          with the `has-video` class</span>
 
+<span class="sd">        * If a hashtag is found, the paragraph gets the &#39;has-hashtag&#39; class.</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">html</span><span class="p">:</span>
@@ -177,6 +189,11 @@
         <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">element</span><span class="o">.</span><span class="n">xpath</span><span class="p">(</span><span class="s1">&#39;//img&#39;</span><span class="p">):</span>
             <span class="n">img</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;class&#39;</span><span class="p">,</span> <span class="s1">&#39;lazyload-alt&#39;</span><span class="p">)</span>
             <span class="n">images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+    <span class="c1"># for the hashtag lookup we need all elements, as we do not use xpath</span>
+    <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">fragments</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">element</span><span class="o">.</span><span class="n">text</span> <span class="ow">and</span> <span class="n">HASHTAG</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">text</span><span class="p">):</span>
+            <span class="n">add_class_to_node</span><span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="s1">&#39;has-hashtag&#39;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">request</span><span class="p">:</span>
         <span class="n">set_image_sizes</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
@@ -682,6 +699,24 @@
             <span class="k">return</span> <span class="n">keywords</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">keywords</span><span class="p">),</span> <span class="s1">&#39;&#39;</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
             <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="n">v</span></div>
+
+
+<div class="viewcode-block" id="hashtag_elements"><a class="viewcode-back" href="../../../onegov_org.html#onegov.org.utils.hashtag_elements">[docs]</a><span class="k">def</span> <span class="nf">hashtag_elements</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a text and adds html around the hashtags found inside.</span>
+
+<span class="sd">    The safety of this hinges on the HASHTAG regex not allowing any</span>
+<span class="sd">    dangerous characters like &#39;&lt;&#39;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">link</span><span class="p">(</span><span class="n">tag</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">Search</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">tag</span><span class="p">,</span> <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">replace_tag</span><span class="p">(</span><span class="n">match</span><span class="p">):</span>
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;&lt;a class=&quot;hashtag&quot; href=&quot;{link(tag)}&quot;&gt;</span><span class="si">{tag}</span><span class="s1">&lt;/a&gt;&#39;</span>
+
+    <span class="k">return</span> <span class="n">HASHTAG</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">replace_tag</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

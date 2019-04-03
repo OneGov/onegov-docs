@@ -32,8 +32,11 @@
             
   <h1>Source code for onegov.org.models.search</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
-<span class="kn">from</span> <span class="nn">elasticsearch_dsl.query</span> <span class="k">import</span> <span class="n">MultiMatch</span><span class="p">,</span> <span class="n">MatchPhrase</span><span class="p">,</span> <span class="n">FunctionScore</span>
 <span class="kn">from</span> <span class="nn">elasticsearch_dsl.function</span> <span class="k">import</span> <span class="n">SF</span>
+<span class="kn">from</span> <span class="nn">elasticsearch_dsl.query</span> <span class="k">import</span> <span class="n">FunctionScore</span>
+<span class="kn">from</span> <span class="nn">elasticsearch_dsl.query</span> <span class="k">import</span> <span class="n">Match</span>
+<span class="kn">from</span> <span class="nn">elasticsearch_dsl.query</span> <span class="k">import</span> <span class="n">MatchPhrase</span>
+<span class="kn">from</span> <span class="nn">elasticsearch_dsl.query</span> <span class="k">import</span> <span class="n">MultiMatch</span>
 <span class="kn">from</span> <span class="nn">onegov.core.collection</span> <span class="k">import</span> <span class="n">Pagination</span>
 
 
@@ -87,6 +90,15 @@
         <span class="c1"># pushing the elasticsearch cluster to the brink</span>
         <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">max_query_length</span><span class="p">]</span>
 
+        <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">):</span>
+            <span class="n">search</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hashtag_search</span><span class="p">(</span><span class="n">search</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">search</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generic_search</span><span class="p">(</span><span class="n">search</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">search</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">offset</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">]</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">generic_search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">search</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
+
         <span class="c1"># make sure the title matches with a higher priority, otherwise the</span>
         <span class="c1"># &quot;get lucky&quot; functionality is not so lucky after all</span>
         <span class="n">match_title</span> <span class="o">=</span> <span class="n">MatchPhrase</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;query&quot;</span><span class="p">:</span> <span class="n">query</span><span class="p">,</span> <span class="s2">&quot;boost&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">})</span>
@@ -110,8 +122,10 @@
             <span class="p">})</span>
         <span class="p">])</span>
 
-        <span class="n">search</span> <span class="o">=</span> <span class="n">search</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">offset</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">search</span>
+
+    <span class="k">def</span> <span class="nf">hashtag_search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">search</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">search</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Match</span><span class="p">(</span><span class="n">es_tags</span><span class="o">=</span><span class="n">query</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)))</span>
 
     <span class="k">def</span> <span class="nf">feeling_lucky</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch</span><span class="p">:</span>

@@ -40,31 +40,12 @@
 <span class="kn">from</span> <span class="nn">onegov.form.parser</span> <span class="k">import</span> <span class="n">parse_form</span>
 <span class="kn">from</span> <span class="nn">onegov.form.utils</span> <span class="k">import</span> <span class="n">hash_definition</span>
 <span class="kn">from</span> <span class="nn">onegov.form.extensions</span> <span class="k">import</span> <span class="n">Extendable</span>
-<span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">ORMSearchable</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Text</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span><span class="p">,</span> <span class="n">relationship</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy_utils</span> <span class="k">import</span> <span class="n">observes</span>
 
 
-<span class="k">class</span> <span class="nc">SearchableDefinition</span><span class="p">(</span><span class="n">ORMSearchable</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Defines how the definitions are searchable. For now, submissions are</span>
-<span class="sd">    not searched as they are usually accessed through the ticket, at least in</span>
-<span class="sd">    onegov.town. If other modules need this, it can be added here and</span>
-<span class="sd">    onegov.town can decied not to search for submissions.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">es_id</span> <span class="o">=</span> <span class="s1">&#39;name&#39;</span>
-    <span class="n">es_public</span> <span class="o">=</span> <span class="kc">True</span>
-
-    <span class="n">es_properties</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;localized&#39;</span><span class="p">},</span>
-        <span class="s1">&#39;lead&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;localized&#39;</span><span class="p">},</span>
-        <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;localized_html&#39;</span><span class="p">}</span>
-    <span class="p">}</span>
-
-
-<div class="viewcode-block" id="FormDefinition"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.models.FormDefinition">[docs]</a><span class="k">class</span> <span class="nc">FormDefinition</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">SearchableDefinition</span><span class="p">,</span>
-                     <span class="n">Extendable</span><span class="p">):</span>
+<div class="viewcode-block" id="FormDefinition"><a class="viewcode-back" href="../../../../onegov_form.html#onegov.form.models.FormDefinition">[docs]</a><span class="k">class</span> <span class="nc">FormDefinition</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">ContentMixin</span><span class="p">,</span> <span class="n">TimestampMixin</span><span class="p">,</span> <span class="n">Extendable</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Defines a form stored in the database. &quot;&quot;&quot;</span>
 
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;forms&#39;</span>

@@ -32,6 +32,7 @@
             
   <h1>Source code for onegov.search.utils</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">html</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">re</span>
 
@@ -39,6 +40,11 @@
 <span class="kn">from</span> <span class="nn">langdetect</span> <span class="k">import</span> <span class="n">DetectorFactory</span><span class="p">,</span> <span class="n">PROFILES_DIRECTORY</span>
 <span class="kn">from</span> <span class="nn">langdetect.utils.lang_profile</span> <span class="k">import</span> <span class="n">LangProfile</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">find_models</span>
+
+
+<span class="c1"># XXX this is doubly defined in onegov.org.utils, maybe move to a common</span>
+<span class="c1"># regex module in in onegov.core</span>
+<span class="n">HASHTAG</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;#\w{3,}&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="searchable_sqlalchemy_models"><a class="viewcode-back" href="../../../onegov_search.html#onegov.search.utils.searchable_sqlalchemy_models">[docs]</a><span class="k">def</span> <span class="nf">searchable_sqlalchemy_models</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
@@ -93,6 +99,10 @@
 <span class="k">def</span> <span class="nf">hash_mapping</span><span class="p">(</span><span class="n">mapping</span><span class="p">):</span>
     <span class="n">dump</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">(</span><span class="n">dump</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">extract_hashtags</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">HASHTAG</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">html</span><span class="o">.</span><span class="n">unescape</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
 
 
 <span class="k">class</span> <span class="nc">classproperty</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>

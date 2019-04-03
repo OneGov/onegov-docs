@@ -42,6 +42,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.elements</span> <span class="k">import</span> <span class="n">Link</span><span class="p">,</span> <span class="n">LinkGroup</span><span class="p">,</span> <span class="n">Confirm</span><span class="p">,</span> <span class="n">Intercooler</span>
 <span class="kn">from</span> <span class="nn">onegov.reservation</span> <span class="k">import</span> <span class="n">Allocation</span><span class="p">,</span> <span class="n">Resource</span><span class="p">,</span> <span class="n">Reservation</span>
 <span class="kn">from</span> <span class="nn">onegov.ticket</span> <span class="k">import</span> <span class="n">Ticket</span><span class="p">,</span> <span class="n">Handler</span><span class="p">,</span> <span class="n">handlers</span>
+<span class="kn">from</span> <span class="nn">onegov.search.utils</span> <span class="k">import</span> <span class="n">extract_hashtags</span>
 <span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 
@@ -68,7 +69,7 @@
     <span class="k">def</span> <span class="nf">reference_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">group</span><span class="p">)</span>
 
-    <span class="nd">@property</span>
+    <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">extra_localized_text</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="c1"># extracts of attachments are currently not searchable - if they were</span>
@@ -89,7 +90,16 @@
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">in_</span><span class="p">((</span><span class="s1">&#39;ticket_note&#39;</span><span class="p">,</span> <span class="s1">&#39;ticket_chat&#39;</span><span class="p">)))</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">with_entities</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">n</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">q</span> <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">text</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">n</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">q</span> <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">es_tags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_localized_text</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">tag</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">extract_hashtags</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">extra_localized_text</span>
+                <span class="p">)</span>
+            <span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="FormSubmissionTicket"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.FormSubmissionTicket">[docs]</a><span class="k">class</span> <span class="nc">FormSubmissionTicket</span><span class="p">(</span><span class="n">OrgTicketMixin</span><span class="p">,</span> <span class="n">Ticket</span><span class="p">):</span>
