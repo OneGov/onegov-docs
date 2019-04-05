@@ -36,7 +36,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span><span class="p">,</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">UUID</span>
-<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">linkify</span>
+<span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">linkify</span><span class="p">,</span> <span class="n">paragraphify</span>
 <span class="kn">from</span> <span class="nn">onegov.org.theme</span> <span class="k">import</span> <span class="n">user_options</span>
 <span class="kn">from</span> <span class="nn">onegov.org.models.swiss_holidays</span> <span class="k">import</span> <span class="n">SwissHolidays</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Text</span>
@@ -71,6 +71,7 @@
     <span class="n">contact_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
     <span class="n">opening_hours</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
     <span class="n">opening_hours_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+    <span class="n">about_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
     <span class="n">reply_to</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
     <span class="n">facebook_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
     <span class="n">twitter_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
@@ -91,6 +92,22 @@
     <span class="n">geo_provider</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s1">&#39;geo-mapbox&#39;</span><span class="p">)</span>
     <span class="n">holiday_settings</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
 
+    <span class="n">partner_1_img</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+    <span class="n">partner_1_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+    <span class="n">partner_1_name</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+
+    <span class="n">partner_2_img</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+    <span class="n">partner_2_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+    <span class="n">partner_2_name</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+
+    <span class="n">partner_3_img</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+    <span class="n">partner_3_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+    <span class="n">partner_3_name</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+
+    <span class="n">partner_4_img</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+    <span class="n">partner_4_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+    <span class="n">partner_4_name</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">holidays</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns a SwissHolidays instance, as configured by the</span>
@@ -105,12 +122,12 @@
     <span class="nd">@contact</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span> <span class="nf">contact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;contact&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;contact_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">linkify</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;br&gt;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;contact_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">paragraphify</span><span class="p">(</span><span class="n">linkify</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
 
     <span class="nd">@opening_hours</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span> <span class="nf">opening_hours</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;opening_hours&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;opening_hours_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">linkify</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;br&gt;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;opening_hours_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">paragraphify</span><span class="p">(</span><span class="n">linkify</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">title</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

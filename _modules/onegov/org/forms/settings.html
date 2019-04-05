@@ -44,7 +44,7 @@
 <span class="kn">from</span> <span class="nn">onegov.org.homepage_widgets</span> <span class="k">import</span> <span class="n">transform_homepage_structure</span>
 <span class="kn">from</span> <span class="nn">onegov.org.homepage_widgets</span> <span class="k">import</span> <span class="n">XML_LINE_OFFSET</span>
 <span class="kn">from</span> <span class="nn">onegov.org.theme</span> <span class="k">import</span> <span class="n">user_options</span>
-<span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">HiddenField</span><span class="p">,</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">TextAreaField</span><span class="p">,</span> <span class="n">RadioField</span>
+<span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">TextAreaField</span><span class="p">,</span> <span class="n">RadioField</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">ValidationError</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">validators</span>
 <span class="kn">from</span> <span class="nn">wtforms.fields.html5</span> <span class="k">import</span> <span class="n">EmailField</span><span class="p">,</span> <span class="n">URLField</span>
@@ -86,14 +86,9 @@
         <span class="p">),</span>
         <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">InputRequired</span><span class="p">()])</span>
 
-    <span class="c1"># the footer height is determined by javascript, see org.scss and</span>
-    <span class="c1"># common.js for more information (search for footer)</span>
-    <span class="n">footer_height</span> <span class="o">=</span> <span class="n">HiddenField</span><span class="p">()</span>
-
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">theme_options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">theme_options</span>
-        <span class="n">options</span><span class="p">[</span><span class="s1">&#39;footer-height&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">footer_height</span><span class="o">.</span><span class="n">data</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">options</span><span class="p">[</span><span class="s1">&#39;primary-color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_color</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get_hex</span><span class="p">()</span>
@@ -110,7 +105,6 @@
     <span class="nd">@theme_options</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span> <span class="nf">theme_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">primary_color</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;primary-color&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">footer_height</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;footer-height&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="GeneralSettingsForm.populate_obj"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.GeneralSettingsForm.populate_obj">[docs]</a>    <span class="k">def</span> <span class="nf">populate_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">populate_obj</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
@@ -161,7 +155,71 @@
     <span class="n">twitter_url</span> <span class="o">=</span> <span class="n">URLField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Twitter&quot;</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;URL pointing to the twitter site&quot;</span><span class="p">),</span>
-        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Social Media&quot;</span><span class="p">))</span></div>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Social Media&quot;</span><span class="p">))</span>
+
+    <span class="n">partner_1_name</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Name of the partner&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;First Partner&quot;</span><span class="p">))</span>
+
+    <span class="n">partner_1_img</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Image&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Logo of the partner&quot;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">},</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;First Partner&quot;</span><span class="p">))</span>
+
+    <span class="n">partner_1_url</span> <span class="o">=</span> <span class="n">URLField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Website&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The partner&#39;s website&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;First Partner&quot;</span><span class="p">))</span>
+
+    <span class="n">partner_2_name</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Name of the partner&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Second Partner&quot;</span><span class="p">))</span>
+
+    <span class="n">partner_2_img</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Image&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Logo of the partner&quot;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">},</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Second Partner&quot;</span><span class="p">))</span>
+
+    <span class="n">partner_2_url</span> <span class="o">=</span> <span class="n">URLField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Website&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The partner&#39;s website&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Second Partner&quot;</span><span class="p">))</span>
+
+    <span class="n">partner_3_name</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Name of the partner&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Third Partner&quot;</span><span class="p">))</span>
+
+    <span class="n">partner_3_img</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Image&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Logo of the partner&quot;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">},</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Third Partner&quot;</span><span class="p">))</span>
+
+    <span class="n">partner_3_url</span> <span class="o">=</span> <span class="n">URLField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Website&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The partner&#39;s website&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Third Partner&quot;</span><span class="p">))</span>
+
+    <span class="n">partner_4_name</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Name of the partner&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Fourth Partner&quot;</span><span class="p">))</span>
+
+    <span class="n">partner_4_img</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Image&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Logo of the partner&quot;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class_&#39;</span><span class="p">:</span> <span class="s1">&#39;image-url&#39;</span><span class="p">},</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Fourth Partner&quot;</span><span class="p">))</span>
+
+    <span class="n">partner_4_url</span> <span class="o">=</span> <span class="n">URLField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Website&quot;</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;The partner&#39;s website&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Fourth Partner&quot;</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="HomepageSettingsForm"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.forms.settings.HomepageSettingsForm">[docs]</a><span class="k">class</span> <span class="nc">HomepageSettingsForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>

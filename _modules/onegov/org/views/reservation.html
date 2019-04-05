@@ -138,7 +138,7 @@
             <span class="n">sedate</span><span class="o">.</span><span class="n">to_timezone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="p">),</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span>
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span>
 
     <span class="n">resource</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">libres_resources</span><span class="o">.</span><span class="n">by_allocation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
@@ -167,6 +167,12 @@
                 <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="n">unit</span>
             <span class="p">})</span>
         <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">respond_with_error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+
+    <span class="c1"># if the allocation is in the past, disable it for anonymous users...</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">is_manager</span> <span class="ow">and</span> <span class="n">end</span> <span class="o">&lt;</span> <span class="n">sedate</span><span class="o">.</span><span class="n">utcnow</span><span class="p">():</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;This date lies in the past&quot;</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">respond_with_error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
 

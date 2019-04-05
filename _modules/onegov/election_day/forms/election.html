@@ -37,7 +37,7 @@
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.layouts</span> <span class="k">import</span> <span class="n">DefaultLayout</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">Form</span>
-<span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">MultiCheckboxField</span>
+<span class="kn">from</span> <span class="nn">onegov.form.fields</span> <span class="k">import</span> <span class="n">ChosenSelectMultipleField</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">or_</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">BooleanField</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">IntegerField</span>
@@ -150,13 +150,13 @@
         <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;lang&#39;</span><span class="p">:</span> <span class="s1">&#39;rm&#39;</span><span class="p">}</span>
     <span class="p">)</span>
 
-    <span class="n">related_link</span> <span class="o">=</span> <span class="n">URLField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Related link&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
-
-    <span class="n">related_elections</span> <span class="o">=</span> <span class="n">MultiCheckboxField</span><span class="p">(</span>
+    <span class="n">related_elections</span> <span class="o">=</span> <span class="n">ChosenSelectMultipleField</span><span class="p">(</span>
         <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Related elections&quot;</span><span class="p">),</span>
         <span class="n">choices</span><span class="o">=</span><span class="p">[]</span>
+    <span class="p">)</span>
+
+    <span class="n">related_link</span> <span class="o">=</span> <span class="n">URLField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Related link&quot;</span><span class="p">)</span>
     <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">on_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
