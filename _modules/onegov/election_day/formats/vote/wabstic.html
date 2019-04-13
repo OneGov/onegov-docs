@@ -36,6 +36,7 @@
 <span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">EXPATS</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">FileImportError</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">load_csv</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 
 
 <span class="n">HEADERS_SG_GESCHAEFTE</span> <span class="o">=</span> <span class="p">(</span>
@@ -87,9 +88,10 @@
 <div class="viewcode-block" id="import_vote_wabstic"><a class="viewcode-back" href="../../../../../onegov_election_day.html#onegov.election_day.formats.import_vote_wabstic">[docs]</a><span class="k">def</span> <span class="nf">import_vote_wabstic</span><span class="p">(</span><span class="n">vote</span><span class="p">,</span> <span class="n">principal</span><span class="p">,</span> <span class="n">number</span><span class="p">,</span> <span class="n">district</span><span class="p">,</span>
                         <span class="n">file_sg_geschaefte</span><span class="p">,</span> <span class="n">mimetype_sg_geschaefte</span><span class="p">,</span>
                         <span class="n">file_sg_gemeinden</span><span class="p">,</span> <span class="n">mimetype_sg_gemeinden</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Tries to import the files in the given folder.</span>
+    <span class="sd">&quot;&quot;&quot; Tries to import the given CSV files from a WabstiCExport.</span>
 
-<span class="sd">    We assume that the file has been generate using WabstiCExport 2.1.</span>
+<span class="sd">    This function is typically called automatically every few minutes during</span>
+<span class="sd">    an election day - we use bulk inserts to speed up the import.</span>
 
 <span class="sd">    :return:</span>
 <span class="sd">        A list containing errors.</span>
@@ -243,7 +245,7 @@
             <span class="k">for</span> <span class="n">ballot_type</span> <span class="ow">in</span> <span class="n">used_ballot_types</span><span class="p">:</span>
                 <span class="n">entity</span> <span class="o">=</span> <span class="n">entities</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity_id</span><span class="p">,</span> <span class="p">{})</span>
                 <span class="n">ballot_results</span><span class="p">[</span><span class="n">ballot_type</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="n">BallotResult</span><span class="p">(</span>
+                    <span class="nb">dict</span><span class="p">(</span>
                         <span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">,</span>
                         <span class="n">name</span><span class="o">=</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
                         <span class="n">district</span><span class="o">=</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;district&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
@@ -259,24 +261,17 @@
     <span class="k">if</span> <span class="n">errors</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">errors</span>
 
-    <span class="n">vote</span><span class="o">.</span><span class="n">clear_results</span><span class="p">()</span>
-
-    <span class="n">vote</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;unknown&#39;</span>
-    <span class="k">if</span> <span class="n">complete</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">vote</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;interim&#39;</span>
-    <span class="k">if</span> <span class="n">complete</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="n">vote</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;final&#39;</span>
-
+    <span class="c1"># Add the missing entities</span>
     <span class="k">for</span> <span class="n">ballot_type</span> <span class="ow">in</span> <span class="n">used_ballot_types</span><span class="p">:</span>
-        <span class="c1"># Add the missing entities</span>
         <span class="n">remaining</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
-            <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">entity_id</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">ballot_results</span><span class="p">[</span><span class="n">ballot_type</span><span class="p">])</span>
+            <span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span>
+                <span class="n">result</span><span class="p">[</span><span class="s1">&#39;entity_id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">ballot_results</span><span class="p">[</span><span class="n">ballot_type</span><span class="p">]</span>
+            <span class="p">)</span>
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">remaining</span><span class="p">:</span>
             <span class="n">entity</span> <span class="o">=</span> <span class="n">entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span>
             <span class="n">ballot_results</span><span class="p">[</span><span class="n">ballot_type</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">BallotResult</span><span class="p">(</span>
+                <span class="nb">dict</span><span class="p">(</span>
                     <span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">,</span>
                     <span class="n">name</span><span class="o">=</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
                     <span class="n">district</span><span class="o">=</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;district&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
@@ -284,10 +279,26 @@
                 <span class="p">)</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">ballot_results</span><span class="p">[</span><span class="n">ballot_type</span><span class="p">]:</span>
-            <span class="n">ballot</span> <span class="o">=</span> <span class="n">vote</span><span class="o">.</span><span class="n">ballot</span><span class="p">(</span><span class="n">ballot_type</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">ballot_results</span><span class="p">[</span><span class="n">ballot_type</span><span class="p">]:</span>
-                <span class="n">ballot</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+    <span class="c1"># Add the results to the DB</span>
+    <span class="n">vote</span><span class="o">.</span><span class="n">clear_results</span><span class="p">()</span>
+    <span class="n">vote</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;unknown&#39;</span>
+    <span class="k">if</span> <span class="n">complete</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">vote</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;interim&#39;</span>
+    <span class="k">if</span> <span class="n">complete</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">vote</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;final&#39;</span>
+
+    <span class="n">ballot_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">b</span><span class="p">:</span> <span class="n">vote</span><span class="o">.</span><span class="n">ballot</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">used_ballot_types</span><span class="p">}</span>
+
+    <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="n">vote</span><span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">bulk_insert_mappings</span><span class="p">(</span>
+        <span class="n">BallotResult</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="nb">dict</span><span class="p">(</span><span class="o">**</span><span class="n">result</span><span class="p">,</span> <span class="n">ballot_id</span><span class="o">=</span><span class="n">ballot_ids</span><span class="p">[</span><span class="n">ballot_type</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">ballot_type</span> <span class="ow">in</span> <span class="n">used_ballot_types</span>
+            <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">ballot_results</span><span class="p">[</span><span class="n">ballot_type</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
 
     <span class="k">return</span> <span class="p">[]</span></div>
 </pre></div>

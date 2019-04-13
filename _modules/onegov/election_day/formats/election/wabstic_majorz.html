@@ -38,7 +38,9 @@
 <span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">EXPATS</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">FileImportError</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">load_csv</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
 <span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
+
 
 <span class="n">HEADERS_WM_WAHL</span> <span class="o">=</span> <span class="p">(</span>
     <span class="s1">&#39;sortgeschaeft&#39;</span><span class="p">,</span>  <span class="c1"># provides the link to the election</span>
@@ -97,14 +99,18 @@
     <span class="n">file_wm_kandidaten</span><span class="p">,</span> <span class="n">mimetype_wm_kandidaten</span><span class="p">,</span>
     <span class="n">file_wm_kandidatengde</span><span class="p">,</span> <span class="n">mimetype_wm_kandidatengde</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Tries to import the files in the given folder.</span>
+    <span class="sd">&quot;&quot;&quot; Tries to import the given CSV files from a WabstiCExport.</span>
 
-<span class="sd">    We assume that the files there have been uploaded using the WabstiCExport</span>
-<span class="sd">    2.1.</span>
+<span class="sd">    This function is typically called automatically every few minutes during</span>
+<span class="sd">    an election day - we use bulk inserts to speed up the import.</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">        A list containing errors.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">entities</span> <span class="o">=</span> <span class="n">principal</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="n">election</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">]</span>
+    <span class="n">election_id</span> <span class="o">=</span> <span class="n">election</span><span class="o">.</span><span class="n">id</span>
 
     <span class="c1"># Read the files</span>
     <span class="n">wm_wahl</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">load_csv</span><span class="p">(</span>
@@ -311,8 +317,9 @@
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
             <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid candidate values&quot;</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">added_candidates</span><span class="p">[</span><span class="n">candidate_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">Candidate</span><span class="p">(</span>
+            <span class="n">added_candidates</span><span class="p">[</span><span class="n">candidate_id</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
                 <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+                <span class="n">election_id</span><span class="o">=</span><span class="n">election_id</span><span class="p">,</span>
                 <span class="n">candidate_id</span><span class="o">=</span><span class="n">candidate_id</span><span class="p">,</span>
                 <span class="n">family_name</span><span class="o">=</span><span class="n">family_name</span><span class="p">,</span>
                 <span class="n">first_name</span><span class="o">=</span><span class="n">first_name</span><span class="p">,</span>
@@ -381,8 +388,8 @@
     <span class="k">if</span> <span class="n">errors</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">errors</span>
 
+    <span class="c1"># Add the results to the DB</span>
     <span class="n">election</span><span class="o">.</span><span class="n">clear_results</span><span class="p">()</span>
-
     <span class="n">election</span><span class="o">.</span><span class="n">absolute_majority</span> <span class="o">=</span> <span class="n">absolute_majority</span>
     <span class="n">election</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;unknown&#39;</span>
     <span class="k">if</span> <span class="n">complete</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -390,35 +397,46 @@
     <span class="k">if</span> <span class="n">complete</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
         <span class="n">election</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;final&#39;</span>
 
-    <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">added_candidates</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-        <span class="n">election</span><span class="o">.</span><span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span>
+    <span class="n">result_uids</span> <span class="o">=</span> <span class="p">{</span><span class="n">entity_id</span><span class="p">:</span> <span class="n">uuid4</span><span class="p">()</span> <span class="k">for</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">added_results</span><span class="p">}</span>
 
-    <span class="k">for</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">added_results</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-        <span class="n">entity</span> <span class="o">=</span> <span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">ElectionResult</span><span class="p">(</span>
-            <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span>
-            <span class="n">district</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;district&#39;</span><span class="p">],</span>
-            <span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">,</span>
-            <span class="n">counted</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;counted&#39;</span><span class="p">],</span>
-            <span class="n">eligible_voters</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;eligible_voters&#39;</span><span class="p">],</span>
-            <span class="n">received_ballots</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;received_ballots&#39;</span><span class="p">],</span>
-            <span class="n">blank_ballots</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;blank_ballots&#39;</span><span class="p">],</span>
-            <span class="n">invalid_ballots</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;invalid_ballots&#39;</span><span class="p">],</span>
-            <span class="n">blank_votes</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;blank_votes&#39;</span><span class="p">],</span>
-            <span class="n">invalid_votes</span><span class="o">=</span><span class="n">entity</span><span class="p">[</span><span class="s1">&#39;invalid_votes&#39;</span><span class="p">]</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">candidate_id</span><span class="p">,</span> <span class="n">votes</span> <span class="ow">in</span> <span class="n">added_results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">result</span><span class="o">.</span><span class="n">candidate_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">CandidateResult</span><span class="p">(</span>
-                    <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
-                    <span class="n">votes</span><span class="o">=</span><span class="n">votes</span><span class="p">,</span>
-                    <span class="n">candidate_id</span><span class="o">=</span><span class="n">added_candidates</span><span class="p">[</span><span class="n">candidate_id</span><span class="p">]</span><span class="o">.</span><span class="n">id</span>
-                <span class="p">)</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">object_session</span><span class="p">(</span><span class="n">election</span><span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">bulk_insert_mappings</span><span class="p">(</span><span class="n">Candidate</span><span class="p">,</span> <span class="n">added_candidates</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">bulk_insert_mappings</span><span class="p">(</span>
+        <span class="n">ElectionResult</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="nb">dict</span><span class="p">(</span>
+                <span class="nb">id</span><span class="o">=</span><span class="n">result_uids</span><span class="p">[</span><span class="n">entity_id</span><span class="p">],</span>
+                <span class="n">election_id</span><span class="o">=</span><span class="n">election_id</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">],</span>
+                <span class="n">district</span><span class="o">=</span><span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="s1">&#39;district&#39;</span><span class="p">],</span>
+                <span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">,</span>
+                <span class="n">counted</span><span class="o">=</span><span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="s1">&#39;counted&#39;</span><span class="p">],</span>
+                <span class="n">eligible_voters</span><span class="o">=</span><span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="s1">&#39;eligible_voters&#39;</span><span class="p">],</span>
+                <span class="n">received_ballots</span><span class="o">=</span><span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="s1">&#39;received_ballots&#39;</span><span class="p">],</span>
+                <span class="n">blank_ballots</span><span class="o">=</span><span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="s1">&#39;blank_ballots&#39;</span><span class="p">],</span>
+                <span class="n">invalid_ballots</span><span class="o">=</span><span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="s1">&#39;invalid_ballots&#39;</span><span class="p">],</span>
+                <span class="n">blank_votes</span><span class="o">=</span><span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="s1">&#39;blank_votes&#39;</span><span class="p">],</span>
+                <span class="n">invalid_votes</span><span class="o">=</span><span class="n">added_entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">][</span><span class="s1">&#39;invalid_votes&#39;</span><span class="p">]</span>
             <span class="p">)</span>
-        <span class="n">election</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">added_results</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">bulk_insert_mappings</span><span class="p">(</span>
+        <span class="n">CandidateResult</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="nb">dict</span><span class="p">(</span>
+                <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+                <span class="n">election_result_id</span><span class="o">=</span><span class="n">result_uids</span><span class="p">[</span><span class="n">entity_id</span><span class="p">],</span>
+                <span class="n">votes</span><span class="o">=</span><span class="n">votes</span><span class="p">,</span>
+                <span class="n">candidate_id</span><span class="o">=</span><span class="n">added_candidates</span><span class="p">[</span><span class="n">candidate_id</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">added_results</span>
+            <span class="k">for</span> <span class="n">candidate_id</span><span class="p">,</span> <span class="n">votes</span> <span class="ow">in</span> <span class="n">added_results</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
 
     <span class="c1"># Add the missing entities</span>
+    <span class="n">result_inserts</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">remaining</span> <span class="o">=</span> <span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="n">added_results</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">remaining</span><span class="p">:</span>
         <span class="n">entity</span> <span class="o">=</span> <span class="n">entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span>
@@ -430,15 +448,17 @@
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="n">district</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">districts</span><span class="p">:</span>
                 <span class="k">continue</span>
-        <span class="n">election</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="n">ElectionResult</span><span class="p">(</span>
+        <span class="n">result_inserts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="nb">dict</span><span class="p">(</span>
                 <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span>
+                <span class="n">election_id</span><span class="o">=</span><span class="n">election_id</span><span class="p">,</span>
                 <span class="n">name</span><span class="o">=</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
                 <span class="n">district</span><span class="o">=</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;district&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
                 <span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">,</span>
                 <span class="n">counted</span><span class="o">=</span><span class="kc">False</span>
             <span class="p">)</span>
         <span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">bulk_insert_mappings</span><span class="p">(</span><span class="n">ElectionResult</span><span class="p">,</span> <span class="n">result_inserts</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">[]</span></div>
 </pre></div>
