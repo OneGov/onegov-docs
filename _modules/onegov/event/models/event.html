@@ -50,6 +50,7 @@
 <span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">as_fileintent</span>
 <span class="kn">from</span> <span class="nn">onegov.gis</span> <span class="k">import</span> <span class="n">CoordinatesMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">SearchableContent</span>
+<span class="kn">from</span> <span class="nn">PIL.Image</span> <span class="k">import</span> <span class="n">DecompressionBombError</span>
 <span class="kn">from</span> <span class="nn">pytz</span> <span class="k">import</span> <span class="n">UTC</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">standardize_date</span>
 <span class="kn">from</span> <span class="nn">sedate</span> <span class="k">import</span> <span class="n">to_timezone</span>
@@ -121,10 +122,13 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">reference</span> <span class="o">=</span> <span class="n">as_fileintent</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">EventFile</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
-                    <span class="n">reference</span><span class="o">=</span><span class="n">as_fileintent</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
-                <span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">EventFile</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+                        <span class="n">reference</span><span class="o">=</span><span class="n">as_fileintent</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="n">DecompressionBombError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="kc">None</span></div>
 
