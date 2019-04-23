@@ -295,6 +295,16 @@
     <span class="c1">#: containing only the municipalities of one district of a canton.</span>
     <span class="n">distinct</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="s1">&#39;distinct&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">district</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the district name, if this is a `distinct` election.</span>
+<span class="sd">        Requires results to be present.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">district</span> <span class="ow">or</span> <span class="n">result</span><span class="o">.</span><span class="n">name</span>
+
 <div class="viewcode-block" id="Election.clear_results"><a class="viewcode-back" href="../../../../../onegov_ballot.html#onegov.ballot.models.election.Election.clear_results">[docs]</a>    <span class="k">def</span> <span class="nf">clear_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Clears all the results. &quot;&quot;&quot;</span>
 

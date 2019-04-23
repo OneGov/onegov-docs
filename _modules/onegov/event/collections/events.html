@@ -185,11 +185,12 @@
 <span class="sd">        Doesn&#39;t change the states of events allowing to permanently withdraw</span>
 <span class="sd">        imported events.</span>
 
-<span class="sd">        Optionally removes all events with the given meta-source-prefix not</span>
-<span class="sd">        present in the given events.</span>
+<span class="sd">        :items:</span>
+<span class="sd">            A list of `EventImportItem`s or event sources to keep from purging.</span>
 
-<span class="sd">        Images for the given items should be provided seperately to avoid</span>
-<span class="sd">        overhead due to the depot storage, see `EventImportItem`.</span>
+<span class="sd">        :purge:</span>
+<span class="sd">            Optionally removes all events with the given meta-source-prefix not</span>
+<span class="sd">            present in the given events.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -202,6 +203,10 @@
         <span class="n">updated</span> <span class="o">=</span> <span class="mi">0</span>
 
         <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">purge</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">purge</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">item</span><span class="p">)}</span>
+                <span class="k">continue</span>
+
             <span class="n">event</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">event</span>
             <span class="n">existing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Event</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
                 <span class="n">Event</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">event</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span>
