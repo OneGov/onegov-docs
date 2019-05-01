@@ -35,6 +35,9 @@
 <span class="kn">import</span> <span class="nn">humanize</span>
 
 <span class="kn">from</span> <span class="nn">cgi</span> <span class="k">import</span> <span class="n">escape</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">suppress</span>
+<span class="kn">from</span> <span class="nn">morepath.error</span> <span class="k">import</span> <span class="n">LinkError</span>
+<span class="kn">from</span> <span class="nn">onegov.file.utils</span> <span class="k">import</span> <span class="n">IMAGE_MIME_TYPES_AND_SVG</span>
 <span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">_</span>
 <span class="kn">from</span> <span class="nn">wtforms.widgets</span> <span class="k">import</span> <span class="n">FileInput</span>
 <span class="kn">from</span> <span class="nn">wtforms.widgets</span> <span class="k">import</span> <span class="n">ListWidget</span>
@@ -112,6 +115,31 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
+<div class="viewcode-block" id="UploadWidget.image_source"><a class="viewcode-back" href="../../../onegov_form.html#onegov.form.widgets.UploadWidget.image_source">[docs]</a>    <span class="k">def</span> <span class="nf">image_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the image source url if the field points to an image and</span>
+<span class="sd">        if it can be done (it looks like it&#39;s possible, but I&#39;m not super</span>
+<span class="sd">        sure this is always possible).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">meta</span><span class="p">,</span> <span class="s1">&#39;request&#39;</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mimetype&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">in</span> <span class="n">IMAGE_MIME_TYPES_AND_SVG</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="s1">&#39;object_data&#39;</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">field</span><span class="o">.</span><span class="n">object_data</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="n">LinkError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">field</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">object_data</span><span class="p">)</span></div>
+
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">force_simple</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;force_simple&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
         <span class="n">input_html</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -123,9 +151,21 @@
 <span class="s2">                &lt;/div&gt;</span>
 <span class="s2">            &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_html</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="n">src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_source</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">src</span><span class="p">:</span>
+                <span class="n">preview</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">preview</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                    &lt;div class=&quot;uploaded-image&quot;&gt;&lt;img src=&quot;</span><span class="si">{src}</span><span class="s2">&quot;&gt;&lt;/div&gt;</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+
             <span class="k">return</span> <span class="n">HTMLString</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">                &lt;div class=&quot;upload-widget with-data&quot;&gt;</span>
 <span class="s2">                    &lt;p&gt;</span><span class="si">{existing_file_label}</span><span class="s2">: </span><span class="si">{filename}</span><span class="s2"> (</span><span class="si">{filesize}</span><span class="s2">) ✓&lt;/p&gt;</span>
+
+<span class="s2">                    </span><span class="si">{preview}</span><span class="s2"></span>
+
 <span class="s2">                    &lt;ul&gt;</span>
 <span class="s2">                        &lt;li&gt;</span>
 <span class="s2">                            &lt;input type=&quot;radio&quot; id=&quot;</span><span class="si">{name}</span><span class="s2">-0&quot; name=&quot;</span><span class="si">{name}</span><span class="s2">&quot;</span>
@@ -163,7 +203,8 @@
                 <span class="n">existing_file_label</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Uploaded file&#39;</span><span class="p">)),</span>
                 <span class="n">keep_label</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Keep file&#39;</span><span class="p">)),</span>
                 <span class="n">delete_label</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Delete file&#39;</span><span class="p">)),</span>
-                <span class="n">replace_label</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Replace file&#39;</span><span class="p">))</span>
+                <span class="n">replace_label</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Replace file&#39;</span><span class="p">)),</span>
+                <span class="n">preview</span><span class="o">=</span><span class="n">preview</span><span class="p">,</span>
             <span class="p">))</span></div>
 
 
