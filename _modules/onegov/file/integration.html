@@ -141,10 +141,10 @@
 <span class="sd">            service class is configured using a single yaml file which is</span>
 <span class="sd">            stored in the signature config path.</span>
 
-<span class="sd">            By default we use the &#39;__default__.yaml&#39; config. Alternatively</span>
+<span class="sd">            By default we use the &#39;__default__.yml&#39; config. Alternatively</span>
 <span class="sd">            we can create separate configs for various application ids.</span>
 
-<span class="sd">            For example, we might create a `onegov_town-govikon.yaml`, which</span>
+<span class="sd">            For example, we might create a `onegov_town-govikon.yml`, which</span>
 <span class="sd">            would take precedence over the default config, if the application</span>
 <span class="sd">            with the id `onegov_town-govikon` would use the signing service.</span>
 
@@ -318,12 +318,16 @@
         <span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
     <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">signing_service_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">signing_service_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">signing_services</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No signing service config path set&quot;</span><span class="p">)</span>
 
         <span class="n">paths</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">signing_services</span> <span class="o">/</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.application_id}</span><span class="s1">.yml&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">signing_services</span> <span class="o">/</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.signing_service_id}</span><span class="s1">.yml&#39;</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">signing_services</span> <span class="o">/</span> <span class="n">f</span><span class="s1">&#39;__default__.yml&#39;</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -341,14 +345,14 @@
         <span class="c1"># it is somewhat inefficient to keep multiple instances of the same</span>
         <span class="c1"># service around as many services can have the same config - however</span>
         <span class="c1"># it prevents accidental leaks of state between applications</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">application_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spawned_signing_services</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">signing_service_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spawned_signing_services</span><span class="p">:</span>
             <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">signing_service_config</span>
 
             <span class="k">with</span> <span class="n">current_dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signing_services</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">spawned_signing_services</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="p">]</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">spawned_signing_services</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">signing_service_id</span><span class="p">]</span> \
                     <span class="o">=</span> <span class="n">SigningService</span><span class="o">.</span><span class="n">for_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spawned_signing_services</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">application_id</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spawned_signing_services</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">signing_service_id</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">clear_depot_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">DepotManager</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
