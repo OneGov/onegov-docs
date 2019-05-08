@@ -102,20 +102,40 @@
 <span class="sd">    upgrades like this::</span>
 
 <span class="sd">        entry_points={</span>
-<span class="sd">            &#39;onegov.core&#39;: [</span>
+<span class="sd">            &#39;onegov&#39;: [</span>
 <span class="sd">                &#39;upgrade = onegov.mypackage.upgrade&#39;</span>
 <span class="sd">            ]</span>
 <span class="sd">        }</span>
 
+<span class="sd">    To add multiple upgrades in a single setup.py file, the following syntax</span>
+<span class="sd">    may be used. This will become the default in the future:</span>
+
+<span class="sd">        entry_points= {</span>
+<span class="sd">            &#39;onegov_upgrades&#39;: [</span>
+<span class="sd">                &#39;onegov.mypackage = onegov.mypackage.upgrade&#39;</span>
+<span class="sd">            ]</span>
+<span class="sd">        }</span>
+
+<span class="sd">    Note that the part before the &#39;=&#39;-sign should be kept the same, even if</span>
+<span class="sd">    the location changes. Otherwise completed updates may be run again!</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">yield</span> <span class="s1">&#39;onegov.core&#39;</span><span class="p">,</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s1">&#39;onegov.core.upgrades&#39;</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">distribution</span><span class="p">,</span> <span class="n">entry_map</span> <span class="ow">in</span> <span class="n">get_distributions_with_entry_map</span><span class="p">(</span><span class="s1">&#39;onegov&#39;</span><span class="p">):</span>
+    <span class="n">distributions</span> <span class="o">=</span> <span class="n">get_distributions_with_entry_map</span><span class="p">(</span><span class="s1">&#39;onegov&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">distribution</span><span class="p">,</span> <span class="n">entry_map</span> <span class="ow">in</span> <span class="n">distributions</span><span class="p">:</span>
         <span class="k">if</span> <span class="s1">&#39;upgrade&#39;</span> <span class="ow">in</span> <span class="n">entry_map</span><span class="p">:</span>
             <span class="k">yield</span> <span class="p">(</span>
                 <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">entry_map</span><span class="p">[</span><span class="s1">&#39;upgrade&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">module_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]),</span>
                 <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">entry_map</span><span class="p">[</span><span class="s1">&#39;upgrade&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">module_name</span><span class="p">)</span>
-            <span class="p">)</span></div>
+            <span class="p">)</span>
+
+    <span class="n">distributions</span> <span class="o">=</span> <span class="n">get_distributions_with_entry_map</span><span class="p">(</span><span class="s1">&#39;onegov_upgrades&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">distribution</span><span class="p">,</span> <span class="n">entry_map</span> <span class="ow">in</span> <span class="n">distributions</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">entry_map</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">yield</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">module_name</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="upgrade_task"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.upgrade.upgrade_task">[docs]</a><span class="k">class</span> <span class="nc">upgrade_task</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>

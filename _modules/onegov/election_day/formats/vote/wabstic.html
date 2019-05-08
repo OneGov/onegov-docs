@@ -263,13 +263,12 @@
 
     <span class="c1"># Add the missing entities</span>
     <span class="k">for</span> <span class="n">ballot_type</span> <span class="ow">in</span> <span class="n">used_ballot_types</span><span class="p">:</span>
-        <span class="n">remaining</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span>
-                <span class="n">result</span><span class="p">[</span><span class="s1">&#39;entity_id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">ballot_results</span><span class="p">[</span><span class="n">ballot_type</span><span class="p">]</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
+        <span class="n">remaining</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">vote</span><span class="o">.</span><span class="n">expats</span><span class="p">:</span>
+            <span class="n">remaining</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">remaining</span> <span class="o">-=</span> <span class="nb">set</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">&#39;entity_id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ballot_results</span><span class="p">[</span><span class="n">ballot_type</span><span class="p">])</span>
         <span class="k">for</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">remaining</span><span class="p">:</span>
-            <span class="n">entity</span> <span class="o">=</span> <span class="n">entities</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span>
+            <span class="n">entity</span> <span class="o">=</span> <span class="n">entities</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity_id</span><span class="p">,</span> <span class="p">{})</span>
             <span class="n">ballot_results</span><span class="p">[</span><span class="n">ballot_type</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="nb">dict</span><span class="p">(</span>
                     <span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">,</span>
