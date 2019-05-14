@@ -225,6 +225,12 @@
         <span class="sd">&quot;&quot;&quot; Processes the depends_on parameter on the fields, which adds the</span>
 <span class="sd">        ability to have fields depend on values of other fields.</span>
 
+<span class="sd">        Supported are dependencies to boolean fields and choices. Search</span>
+<span class="sd">        the source code for depends_on for plenty of examples.</span>
+
+<span class="sd">        For checkboxes, note that the value is &#39;true&#39; (string) or &#39;!true&#39; for</span>
+<span class="sd">        the inverse.</span>
+
 <span class="sd">        In the process the fields are altered so that wtforms recognizes them</span>
 <span class="sd">        again (that is, attributes only known to us are removed).</span>
 
@@ -619,7 +625,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">):</span>
             <span class="n">choice</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
-            <span class="n">invert</span> <span class="o">=</span> <span class="n">choice</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;!&#39;</span><span class="p">)</span>
+            <span class="n">invert</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">choice</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">choice</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;!&#39;</span><span class="p">))</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
                 <span class="s1">&#39;field_id&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">index</span><span class="p">],</span>
                 <span class="s1">&#39;raw_choice&#39;</span><span class="p">:</span> <span class="n">choice</span><span class="p">,</span>
@@ -645,10 +652,9 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">html_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="s1">&#39;;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span>
-            <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">dep</span><span class="p">[</span><span class="s1">&#39;field_id&#39;</span><span class="p">],</span> <span class="n">dep</span><span class="p">[</span><span class="s1">&#39;raw_choice&#39;</span><span class="p">]))</span>
-            <span class="k">for</span> <span class="n">dep</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span>
-        <span class="p">))</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="s1">&#39;;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">f</span><span class="s2">&quot;</span><span class="si">{d[&#39;field_id&#39;]}</span><span class="s2">/</span><span class="si">{d[&#39;raw_choice&#39;]}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;data-depends-on&#39;</span><span class="p">:</span> <span class="n">value</span><span class="p">}</span></div>
 
 
