@@ -313,36 +313,17 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">cancelled</span> <span class="o">=</span> <span class="kc">True</span>
 
-<div class="viewcode-block" id="Occasion.is_permitted_birth_date"><a class="viewcode-back" href="../../../../onegov_activity.html#onegov.activity.models.occasion.Occasion.is_permitted_birth_date">[docs]</a>    <span class="k">def</span> <span class="nf">is_permitted_birth_date</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">birth_date</span><span class="p">,</span> <span class="n">wiggle_room</span><span class="o">=</span><span class="mi">365</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns true if the given birth date is considered to be in</span>
-<span class="sd">        the age range of this occasion.</span>
+    <span class="k">def</span> <span class="nf">is_too_young</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">birth_date</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">period</span><span class="o">.</span><span class="n">age_barrier</span><span class="o">.</span><span class="n">is_too_young</span><span class="p">(</span>
+            <span class="n">birth_date</span><span class="o">=</span><span class="n">birth_date</span><span class="p">,</span>
+            <span class="n">start_date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
+            <span class="n">min_age</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">age</span><span class="o">.</span><span class="n">lower</span><span class="p">)</span>
 
-<span class="sd">        The date inspected is the date of the first occurrence. In addition</span>
-<span class="sd">        there&#39;s a wiggle room of x days which is applied to the exact age.</span>
-
-<span class="sd">        By default attendees may be one year too young or too old.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_too_young</span><span class="p">(</span><span class="n">birth_date</span><span class="p">,</span> <span class="n">wiggle_room</span><span class="p">):</span>
-            <span class="k">return</span> <span class="kc">False</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_too_old</span><span class="p">(</span><span class="n">birth_date</span><span class="p">,</span> <span class="n">wiggle_room</span><span class="p">):</span>
-            <span class="k">return</span> <span class="kc">False</span>
-
-        <span class="k">return</span> <span class="kc">True</span></div>
-
-    <span class="k">def</span> <span class="nf">is_too_old</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">birth_date</span><span class="p">,</span> <span class="n">wiggle_room</span><span class="o">=</span><span class="mi">365</span><span class="p">):</span>
-        <span class="n">age</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="o">-</span> <span class="n">birth_date</span><span class="p">)</span><span class="o">.</span><span class="n">days</span>
-        <span class="n">max_age</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">age</span><span class="o">.</span><span class="n">upper</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">365.25</span> <span class="o">+</span> <span class="n">wiggle_room</span>
-
-        <span class="k">return</span> <span class="n">age</span> <span class="o">&gt;</span> <span class="n">max_age</span>
-
-    <span class="k">def</span> <span class="nf">is_too_young</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">birth_date</span><span class="p">,</span> <span class="n">wiggle_room</span><span class="o">=</span><span class="mi">365</span><span class="p">):</span>
-        <span class="n">age</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="o">-</span> <span class="n">birth_date</span><span class="p">)</span><span class="o">.</span><span class="n">days</span>
-        <span class="n">min_age</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">age</span><span class="o">.</span><span class="n">lower</span> <span class="o">*</span> <span class="mf">365.25</span> <span class="o">-</span> <span class="n">wiggle_room</span>
-
-        <span class="k">return</span> <span class="n">age</span> <span class="o">&lt;</span> <span class="n">min_age</span></div>
+    <span class="k">def</span> <span class="nf">is_too_old</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">birth_date</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">period</span><span class="o">.</span><span class="n">age_barrier</span><span class="o">.</span><span class="n">is_too_old</span><span class="p">(</span>
+            <span class="n">birth_date</span><span class="o">=</span><span class="n">birth_date</span><span class="p">,</span>
+            <span class="n">start_date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
+            <span class="n">max_age</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">age</span><span class="o">.</span><span class="n">upper</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

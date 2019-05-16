@@ -931,10 +931,26 @@
                 <span class="p">))</span>
 
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;pending&#39;</span><span class="p">:</span>
+                <span class="n">traits</span> <span class="o">=</span> <span class="p">()</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">handler</span><span class="o">.</span><span class="n">undecided</span><span class="p">:</span>
+                    <span class="n">traits</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">Confirm</span><span class="p">(</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Do you really want to close this ticket?&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span>
+                                <span class="s2">&quot;This ticket requires a decision, but no &quot;</span>
+                                <span class="s2">&quot;decision has been made yet.&quot;</span>
+                            <span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Close ticket&quot;</span><span class="p">),</span>
+                            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
+                        <span class="p">),</span>
+                    <span class="p">)</span>
+
                 <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Link</span><span class="p">(</span>
                     <span class="n">text</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Close ticket&quot;</span><span class="p">),</span>
                     <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;close&#39;</span><span class="p">),</span>
-                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;ticket-button&#39;</span><span class="p">,</span> <span class="s1">&#39;ticket-close&#39;</span><span class="p">)}</span>
+                    <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;ticket-button&#39;</span><span class="p">,</span> <span class="s1">&#39;ticket-close&#39;</span><span class="p">)},</span>
+                    <span class="n">traits</span><span class="o">=</span><span class="n">traits</span>
                 <span class="p">))</span>
 
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;closed&#39;</span><span class="p">:</span>

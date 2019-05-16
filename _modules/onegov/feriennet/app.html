@@ -38,6 +38,7 @@
 <span class="kn">from</span> <span class="nn">onegov.activity.models.invoice_reference</span> <span class="k">import</span> <span class="n">Schema</span>
 <span class="kn">from</span> <span class="nn">onegov.core</span> <span class="k">import</span> <span class="n">utils</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">orm_cached</span>
+<span class="kn">from</span> <span class="nn">onegov.feriennet.const</span> <span class="k">import</span> <span class="n">DEFAULT_DONATION_AMOUNTS</span>
 <span class="kn">from</span> <span class="nn">onegov.feriennet.initial_content</span> <span class="k">import</span> <span class="n">create_new_organisation</span>
 <span class="kn">from</span> <span class="nn">onegov.feriennet.request</span> <span class="k">import</span> <span class="n">FeriennetRequest</span>
 <span class="kn">from</span> <span class="nn">onegov.feriennet.sponsors</span> <span class="k">import</span> <span class="n">load_sponsors</span>
@@ -73,7 +74,7 @@
 <div class="viewcode-block" id="FeriennetApp"><a class="viewcode-back" href="../../../onegov_feriennet.html#onegov.feriennet.app.FeriennetApp">[docs]</a><span class="k">class</span> <span class="nc">FeriennetApp</span><span class="p">(</span><span class="n">OrgApp</span><span class="p">):</span>
 
     <span class="c1">#: the version of this application (do not change manually!)</span>
-    <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;1.6.8&#39;</span>
+    <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;1.6.10&#39;</span>
 
     <span class="n">request_class</span> <span class="o">=</span> <span class="n">FeriennetRequest</span>
 
@@ -180,7 +181,15 @@
 <div class="viewcode-block" id="FeriennetApp.invoice_bucket"><a class="viewcode-back" href="../../../onegov_feriennet.html#onegov.feriennet.app.FeriennetApp.invoice_bucket">[docs]</a>    <span class="k">def</span> <span class="nf">invoice_bucket</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns the active invoice reference bucket. &quot;&quot;&quot;</span>
 
-        <span class="k">return</span> <span class="n">Schema</span><span class="o">.</span><span class="n">render_bucket</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">invoice_schema_config</span><span class="p">())</span></div></div>
+        <span class="k">return</span> <span class="n">Schema</span><span class="o">.</span><span class="n">render_bucket</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">invoice_schema_config</span><span class="p">())</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">show_donate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;donate&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">donation_amounts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;donation_amounts&#39;</span><span class="p">,</span> <span class="n">DEFAULT_DONATION_AMOUNTS</span><span class="p">)</span></div>
 
 
 <span class="nd">@FeriennetApp</span><span class="o">.</span><span class="n">template_directory</span><span class="p">()</span>
@@ -255,6 +264,11 @@
 <span class="nd">@FeriennetApp</span><span class="o">.</span><span class="n">webasset_path</span><span class="p">()</span>
 <span class="k">def</span> <span class="nf">get_js_path</span><span class="p">():</span>
     <span class="k">return</span> <span class="s1">&#39;assets/js&#39;</span>
+
+
+<span class="nd">@FeriennetApp</span><span class="o">.</span><span class="n">webasset</span><span class="p">(</span><span class="s1">&#39;donation&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_donation_asset</span><span class="p">():</span>
+    <span class="k">yield</span> <span class="s1">&#39;donation.js&#39;</span>
 
 
 <span class="nd">@FeriennetApp</span><span class="o">.</span><span class="n">webasset</span><span class="p">(</span><span class="s1">&#39;common&#39;</span><span class="p">)</span>

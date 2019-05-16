@@ -173,6 +173,18 @@
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
         <span class="p">]</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">undecided</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c1"># submissions without registration window do not present a decision</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="o">.</span><span class="n">registration_window</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="o">.</span><span class="n">claimed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="kc">False</span>
+
 <div class="viewcode-block" id="FormSubmissionHandler.get_summary"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.FormSubmissionHandler.get_summary">[docs]</a>    <span class="k">def</span> <span class="nf">get_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
         <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">render_macro</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">macros</span><span class="p">[</span><span class="s1">&#39;display_form&#39;</span><span class="p">],</span> <span class="n">request</span><span class="p">,</span> <span class="p">{</span>
@@ -314,7 +326,7 @@
         <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Reservation</span><span class="o">.</span><span class="n">token</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Reservation</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">submission</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -339,6 +351,19 @@
     <span class="k">def</span> <span class="nf">email</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># the e-mail is the same over all reservations</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reservations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">email</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">undecided</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># if there is no reservation with an &#39;accept&#39; marker, the user</span>
+        <span class="c1"># has not yet made a decision</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deleted</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reservations</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;accepted&#39;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">title</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -553,6 +578,10 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">location</span>
         <span class="p">]</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">undecided</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">event</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;submitted&#39;</span>
+
     <span class="nd">@cached_property</span>
     <span class="k">def</span> <span class="nf">group</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Event&quot;</span><span class="p">)</span>
@@ -674,6 +703,13 @@
             <span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
         <span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">undecided</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">deleted</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="DirectoryEntryHandler.get_summary"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.DirectoryEntryHandler.get_summary">[docs]</a>    <span class="k">def</span> <span class="nf">get_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
         <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
