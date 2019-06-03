@@ -1,0 +1,273 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>onegov.form.display &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for onegov.form.display</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Contains renderers to display form fields. &quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">humanize</span>
+
+<span class="kn">from</span> <span class="nn">html</span> <span class="k">import</span> <span class="n">escape</span>
+<span class="kn">from</span> <span class="nn">onegov.core.markdown</span> <span class="k">import</span> <span class="n">render_untrusted_markdown</span>
+<span class="kn">from</span> <span class="nn">onegov.form</span> <span class="k">import</span> <span class="n">log</span>
+<span class="kn">from</span> <span class="nn">translationstring</span> <span class="k">import</span> <span class="n">TranslationString</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;render_field&#39;</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">Registry</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Keeps track of all the renderers and the types they are registered for,</span>
+<span class="sd">    making sure each renderer is only instantiated once.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renderer_map</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">register_for</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Decorator to register a renderer. &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">renderer</span><span class="p">):</span>
+            <span class="n">instance</span> <span class="o">=</span> <span class="n">renderer</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="nb">type</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">renderer_map</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span> <span class="o">=</span> <span class="n">instance</span>
+
+            <span class="k">return</span> <span class="n">renderer</span>
+        <span class="k">return</span> <span class="n">wrapper</span>
+
+    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Renders the given field with the correct renderer. &quot;&quot;&quot;</span>
+        <span class="c1"># no point rendering empty fields</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="n">renderer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">renderer_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">renderer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;No renderer found for </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">))</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">renderer</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+
+
+<span class="n">registry</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">()</span>
+
+<span class="c1"># public interface</span>
+<span class="n">render_field</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">render</span>
+
+
+<span class="k">class</span> <span class="nc">BaseRenderer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Provides utility functions for all renderers. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">escape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">escape</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">quote</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">TranslationString</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">field</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">text</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span>
+    <span class="s1">&#39;StringField&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;TextField&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;TextAreaField&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">class</span> <span class="nc">StringFieldRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">render_kw</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">render_kw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;data-editor&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;markdown&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">render_untrusted_markdown</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">))</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;br&gt;&#39;</span><span class="p">)</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;PasswordField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">PasswordFieldRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;*&#39;</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;EmailField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">EmailFieldRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;a href=&quot;mailto:</span><span class="si">{mail}</span><span class="s1">&quot;&gt;</span><span class="si">{mail}</span><span class="s1">&lt;/a&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">mail</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;URLField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">URLFieldRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;a href=&quot;</span><span class="si">{url}</span><span class="s1">&quot;&gt;</span><span class="si">{url}</span><span class="s1">&lt;/a&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;DateField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">DateFieldRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+    <span class="c1"># XXX we assume German here currently - should this change we&#39;d have</span>
+    <span class="c1"># to add a date format to the request and pass it here - which should</span>
+    <span class="c1"># be doable with little work (not necessary for now)</span>
+    <span class="n">date_format</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1">.%m.%Y&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date_format</span><span class="p">)</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;DateTimeLocalField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">DateTimeLocalFieldRenderer</span><span class="p">(</span><span class="n">DateFieldRenderer</span><span class="p">):</span>
+    <span class="n">date_format</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1">.%m.%Y %H:%M&#39;</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;TimeField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">TimeFieldRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{:02d}</span><span class="s1">:</span><span class="si">{:02d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">minute</span><span class="p">)</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;UploadField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">UploadFieldRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{filename}</span><span class="s1"> (</span><span class="si">{size}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]),</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">humanize</span><span class="o">.</span><span class="n">naturalsize</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">])</span>
+        <span class="p">)</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;RadioField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">RadioFieldRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;✓ &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span>
+            <span class="n">field</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">choices</span><span class="p">)[</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">]</span>
+        <span class="p">))</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;MultiCheckboxField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">MultiCheckboxFieldRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="s2">&quot;✓ &quot;</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">choices</span><span class="p">)[</span><span class="n">value</span><span class="p">]))</span>
+            <span class="o">+</span> <span class="s1">&#39;&lt;br&gt;&#39;</span>
+            <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span>
+        <span class="p">)[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;CSRFTokenField&#39;</span><span class="p">,</span> <span class="s1">&#39;HiddenField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">NullRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;DecimalField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">DecimalRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{:.2f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+
+<span class="nd">@registry</span><span class="o">.</span><span class="n">register_for</span><span class="p">(</span><span class="s1">&#39;IntegerField&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">IntegerRenderer</span><span class="p">(</span><span class="n">BaseRenderer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

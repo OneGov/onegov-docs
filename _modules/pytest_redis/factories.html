@@ -1,0 +1,262 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pytest_redis.factories &#8212; OneGov Docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pytest_redis.factories</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (C) 2013 by Clearcode &lt;http://clearcode.cc&gt;</span>
+<span class="c1"># and associates (see AUTHORS).</span>
+
+<span class="c1"># This file is part of pytest-redis.</span>
+
+<span class="c1"># pytest-redis is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU Lesser General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+
+<span class="c1"># pytest-redis is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU Lesser General Public License for more details.</span>
+
+<span class="c1"># You should have received a copy of the GNU Lesser General Public License</span>
+<span class="c1"># along with pytest-redis.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">&quot;&quot;&quot;FIxture factories for pytest-redis.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">pytest</span>
+<span class="kn">import</span> <span class="nn">redis</span>
+
+<span class="kn">from</span> <span class="nn">pytest_redis.executor</span> <span class="k">import</span> <span class="n">RedisExecutor</span>
+<span class="kn">from</span> <span class="nn">pytest_redis.port</span> <span class="k">import</span> <span class="n">get_port</span>
+
+
+<span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a dictionary with config options.&quot;&quot;&quot;</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s1">&#39;logsdir&#39;</span><span class="p">,</span> <span class="s1">&#39;host&#39;</span><span class="p">,</span> <span class="s1">&#39;port&#39;</span><span class="p">,</span> <span class="s1">&#39;exec&#39;</span><span class="p">,</span> <span class="s1">&#39;timeout&#39;</span><span class="p">,</span> <span class="s1">&#39;loglevel&#39;</span><span class="p">,</span> <span class="s1">&#39;db_count&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;save&#39;</span><span class="p">,</span> <span class="s1">&#39;compression&#39;</span><span class="p">,</span> <span class="s1">&#39;rdbchecksum&#39;</span><span class="p">,</span> <span class="s1">&#39;syslog&#39;</span><span class="p">,</span> <span class="s1">&#39;decode&#39;</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
+        <span class="n">option_name</span> <span class="o">=</span> <span class="s1">&#39;redis_&#39;</span> <span class="o">+</span> <span class="n">option</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">getoption</span><span class="p">(</span><span class="n">option_name</span><span class="p">)</span> <span class="ow">or</span> \
+            <span class="n">request</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">getini</span><span class="p">(</span><span class="n">option_name</span><span class="p">)</span>
+        <span class="n">config</span><span class="p">[</span><span class="n">option</span><span class="p">]</span> <span class="o">=</span> <span class="n">conf</span>
+    <span class="k">return</span> <span class="n">config</span>
+
+
+<span class="k">def</span> <span class="nf">redis_proc</span><span class="p">(</span>
+        <span class="n">executable</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">port</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">db_count</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">save</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checksum</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">syslog</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">logsdir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logs_prefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">loglevel</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fixture factory for pytest-redis.</span>
+
+<span class="sd">    :param str executable: path to redis-server</span>
+<span class="sd">    :param int timeout: client&#39;s connection timeout</span>
+<span class="sd">    :param str host: hostname</span>
+<span class="sd">    :param str|int|tuple|set|list port:</span>
+<span class="sd">        exact port (e.g. &#39;8000&#39;, 8000)</span>
+<span class="sd">        randomly selected port (None) - any random available port</span>
+<span class="sd">        [(2000,3000)] or (2000,3000) - random available port from a given range</span>
+<span class="sd">        [{4002,4003}] or {4002,4003} - random of 4002 or 4003 ports</span>
+<span class="sd">        [(2000,3000), {4002,4003}] -random of given orange and set</span>
+<span class="sd">    :param int db_count: number of databases redis should have</span>
+<span class="sd">    :param str save: redis save configuration setting</span>
+<span class="sd">    :param bool compression: Compress redis dump files</span>
+<span class="sd">    :param bool checksum: Whether to add checksum to the rdb files</span>
+<span class="sd">    :param bool syslog:Whether to enable logging to the system logger</span>
+<span class="sd">    :param str logsdir: path to log directory</span>
+<span class="sd">    :param str logs_prefix: prefix for log filename</span>
+<span class="sd">    :param str loglevel: redis log verbosity level.</span>
+<span class="sd">        One of debug, verbose, notice or warning</span>
+<span class="sd">    :rtype: func</span>
+<span class="sd">    :returns: function which makes a redis process</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s1">&#39;session&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">redis_proc_fixture</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fixture for pytest-redis.</span>
+
+<span class="sd">        #. Get configs.</span>
+<span class="sd">        #. Run redis process.</span>
+<span class="sd">        #. Stop redis process after tests.</span>
+
+<span class="sd">        :param FixtureRequest request: fixture request object</span>
+<span class="sd">        :rtype: pytest_redis.executors.TCPExecutor</span>
+<span class="sd">        :returns: tcp executor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">get_config</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">redis_exec</span> <span class="o">=</span> <span class="n">executable</span> <span class="ow">or</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;exec&#39;</span><span class="p">]</span>
+        <span class="n">rdbcompression</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;compression&#39;</span><span class="p">]</span> \
+            <span class="k">if</span> <span class="n">compression</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">compression</span>
+        <span class="n">rdbchecksum</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;rdbchecksum&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">checksum</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">checksum</span>
+
+        <span class="n">redis_executor</span> <span class="o">=</span> <span class="n">RedisExecutor</span><span class="p">(</span>
+            <span class="n">executable</span><span class="o">=</span><span class="n">redis_exec</span><span class="p">,</span>
+            <span class="n">databases</span><span class="o">=</span><span class="n">db_count</span> <span class="ow">or</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;db_count&#39;</span><span class="p">],</span>
+            <span class="n">redis_timeout</span><span class="o">=</span><span class="n">timeout</span> <span class="ow">or</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;timeout&#39;</span><span class="p">],</span>
+            <span class="n">loglevel</span><span class="o">=</span><span class="n">loglevel</span> <span class="ow">or</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;loglevel&#39;</span><span class="p">],</span>
+            <span class="n">logsdir</span><span class="o">=</span><span class="n">logsdir</span> <span class="ow">or</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;logsdir&#39;</span><span class="p">],</span>
+            <span class="n">logs_prefix</span><span class="o">=</span><span class="n">logs_prefix</span><span class="p">,</span>
+            <span class="n">rdbcompression</span><span class="o">=</span><span class="n">rdbcompression</span><span class="p">,</span>
+            <span class="n">rdbchecksum</span><span class="o">=</span><span class="n">rdbchecksum</span><span class="p">,</span>
+            <span class="n">syslog_enabled</span><span class="o">=</span><span class="n">syslog</span> <span class="ow">or</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;syslog&#39;</span><span class="p">],</span>
+            <span class="n">save</span><span class="o">=</span><span class="n">save</span> <span class="ow">or</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;save&#39;</span><span class="p">],</span>
+            <span class="n">host</span><span class="o">=</span><span class="n">host</span> <span class="ow">or</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;host&#39;</span><span class="p">],</span>
+            <span class="n">port</span><span class="o">=</span><span class="n">get_port</span><span class="p">(</span><span class="n">port</span><span class="p">)</span> <span class="ow">or</span> <span class="n">get_port</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;port&#39;</span><span class="p">]),</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">redis_executor</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">addfinalizer</span><span class="p">(</span><span class="n">redis_executor</span><span class="o">.</span><span class="n">stop</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">redis_executor</span>
+
+    <span class="k">return</span> <span class="n">redis_proc_fixture</span>
+
+
+<span class="k">def</span> <span class="nf">redisdb</span><span class="p">(</span><span class="n">process_fixture_name</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">decode</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Connection fixture factory for pytest-redis.</span>
+
+<span class="sd">    :param str process_fixture_name: name of the process fixture</span>
+<span class="sd">    :param int db: number of database to use</span>
+<span class="sd">    :param bool strict: if true, uses StrictRedis client class</span>
+<span class="sd">    :param bool decode_responses: Client: to decode response or not.</span>
+<span class="sd">        See redis.StrictRedis decode_reponse client parameter.</span>
+<span class="sd">    :rtype: func</span>
+<span class="sd">    :returns: function which makes a connection to redis</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+    <span class="k">def</span> <span class="nf">redisdb_factory</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Connection fixture for pytest-redis.</span>
+
+<span class="sd">        #. Load required process fixture.</span>
+<span class="sd">        #. Get redis module and config.</span>
+<span class="sd">        #. Connect to redis.</span>
+<span class="sd">        #. Flush database after tests.</span>
+
+<span class="sd">        :param FixtureRequest request: fixture request object</span>
+<span class="sd">        :rtype: redis.client.Redis</span>
+<span class="sd">        :returns: Redis client</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">proc_fixture</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">getfixturevalue</span><span class="p">(</span><span class="n">process_fixture_name</span><span class="p">)</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">get_config</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="n">redis_host</span> <span class="o">=</span> <span class="n">proc_fixture</span><span class="o">.</span><span class="n">host</span>
+        <span class="n">redis_port</span> <span class="o">=</span> <span class="n">proc_fixture</span><span class="o">.</span><span class="n">port</span>
+        <span class="n">redis_db</span> <span class="o">=</span> <span class="n">db</span>
+        <span class="n">redis_class</span> <span class="o">=</span> <span class="n">redis</span><span class="o">.</span><span class="n">StrictRedis</span> <span class="k">if</span> <span class="n">strict</span> <span class="k">else</span> <span class="n">redis</span><span class="o">.</span><span class="n">Redis</span>
+        <span class="n">decode_responses</span> <span class="o">=</span> <span class="n">decode</span> <span class="k">if</span> <span class="n">decode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;decode&#39;</span><span class="p">]</span>
+
+        <span class="n">redis_client</span> <span class="o">=</span> <span class="n">redis_class</span><span class="p">(</span>
+            <span class="n">redis_host</span><span class="p">,</span>
+            <span class="n">redis_port</span><span class="p">,</span>
+            <span class="n">redis_db</span><span class="p">,</span>
+            <span class="n">unix_socket_path</span><span class="o">=</span><span class="n">proc_fixture</span><span class="o">.</span><span class="n">unixsocket</span><span class="p">,</span>
+            <span class="n">decode_responses</span><span class="o">=</span><span class="n">decode_responses</span>
+        <span class="p">)</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">addfinalizer</span><span class="p">(</span><span class="n">redis_client</span><span class="o">.</span><span class="n">flushall</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">redis_client</span>
+
+    <span class="k">return</span> <span class="n">redisdb_factory</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;redisdb&#39;</span><span class="p">,</span> <span class="s1">&#39;redis_proc&#39;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../index.html">
+    <img class="logo" src="../../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=OneGov&repo=onegov-docs&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Verein OneGov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
