@@ -44,6 +44,7 @@
 <span class="kn">from</span> <span class="nn">onegov.org.homepage_widgets</span> <span class="k">import</span> <span class="n">transform_homepage_structure</span>
 <span class="kn">from</span> <span class="nn">onegov.org.homepage_widgets</span> <span class="k">import</span> <span class="n">XML_LINE_OFFSET</span>
 <span class="kn">from</span> <span class="nn">onegov.org.theme</span> <span class="k">import</span> <span class="n">user_options</span>
+<span class="kn">from</span> <span class="nn">purl</span> <span class="k">import</span> <span class="n">URL</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">TextAreaField</span><span class="p">,</span> <span class="n">RadioField</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">ValidationError</span>
 <span class="kn">from</span> <span class="nn">wtforms</span> <span class="k">import</span> <span class="n">validators</span>
@@ -268,7 +269,23 @@
             <span class="p">(</span><span class="s1">&#39;forms&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Yes, to forms&quot;</span><span class="p">)),</span>
             <span class="p">(</span><span class="s1">&#39;publications&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Yes, to publications&quot;</span><span class="p">)),</span>
             <span class="p">(</span><span class="s1">&#39;reservations&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Yes, to reservations&quot;</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;path&#39;</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Yes, to a non-listed path&quot;</span><span class="p">)),</span>
         <span class="p">])</span>
+
+    <span class="n">redirect_path</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Path&quot;</span><span class="p">),</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">validators</span><span class="o">.</span><span class="n">InputRequired</span><span class="p">()],</span>
+        <span class="n">depends_on</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;redirect_homepage_to&#39;</span><span class="p">,</span> <span class="s1">&#39;path&#39;</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">validate_redirect_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="n">URL</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">scheme</span><span class="p">()</span> <span class="ow">or</span> <span class="n">url</span><span class="o">.</span><span class="n">host</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span>
+                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Please enter a path without schema or host&quot;</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">validate_homepage_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
@@ -539,7 +556,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

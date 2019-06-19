@@ -33,6 +33,7 @@
   <h1>Source code for onegov.org.models.organisation</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot; Contains the model describing the organisation proper. &quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">sha256</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.mixins</span> <span class="k">import</span> <span class="n">meta_property</span><span class="p">,</span> <span class="n">TimestampMixin</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm.types</span> <span class="k">import</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">UUID</span>
@@ -87,6 +88,7 @@
     <span class="n">square_logo_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
     <span class="n">locales</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
     <span class="n">redirect_homepage_to</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+    <span class="n">redirect_path</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
     <span class="n">hidden_people_fields</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
     <span class="n">event_locations</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
     <span class="n">geo_provider</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s1">&#39;geo-mapbox&#39;</span><span class="p">)</span>
@@ -107,6 +109,19 @@
     <span class="n">partner_4_img</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
     <span class="n">partner_4_url</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
     <span class="n">partner_4_name</span> <span class="o">=</span> <span class="n">meta_property</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">public_identity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The public identity is a globally unique SHA 256 hash of the</span>
+<span class="sd">        current organisation.</span>
+
+<span class="sd">        Basically, this is the database record of the database, but mangled</span>
+<span class="sd">        for security and because it is cooler 😎.</span>
+
+<span class="sd">        This value can be accessed through /identity.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">sha256</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">hex</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">holidays</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -202,7 +217,7 @@
       &copy;2015, Verein OneGov.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
