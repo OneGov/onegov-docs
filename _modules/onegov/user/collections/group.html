@@ -45,13 +45,17 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">session</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="nb">type</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">model_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">UserGroup</span>
+        <span class="k">return</span> <span class="n">UserGroup</span><span class="o">.</span><span class="n">get_polymorphic_class</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">UserGroup</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">query</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">UserGroupCollection</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">UserGroup</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_class</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div>
 </pre></div>
 
           </div>
