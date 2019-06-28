@@ -36,7 +36,6 @@
 <span class="kn">import</span> <span class="nn">pytest</span>
 <span class="kn">import</span> <span class="nn">shlex</span>
 <span class="kn">import</span> <span class="nn">shutil</span>
-<span class="kn">import</span> <span class="nn">socket</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">tempfile</span>
 <span class="kn">import</span> <span class="nn">transaction</span>
@@ -46,9 +45,7 @@
 <span class="kn">from</span> <span class="nn">distutils.spawn</span> <span class="k">import</span> <span class="n">find_executable</span>
 <span class="kn">from</span> <span class="nn">fs.tempfs</span> <span class="k">import</span> <span class="n">TempFS</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
-<span class="kn">from</span> <span class="nn">http.client</span> <span class="k">import</span> <span class="n">HTTPConnection</span><span class="p">,</span> <span class="n">HTTPException</span>
-<span class="kn">from</span> <span class="nn">mirakuru</span> <span class="k">import</span> <span class="n">HTTPExecutor</span> <span class="k">as</span> <span class="n">HTTPExecutorBase</span>
-<span class="kn">from</span> <span class="nn">mirakuru</span> <span class="k">import</span> <span class="n">TCPExecutor</span>
+<span class="kn">from</span> <span class="nn">mirakuru</span> <span class="k">import</span> <span class="n">HTTPExecutor</span><span class="p">,</span> <span class="n">TCPExecutor</span>
 <span class="kn">from</span> <span class="nn">onegov.core.crypto</span> <span class="k">import</span> <span class="n">hash_password</span>
 <span class="kn">from</span> <span class="nn">onegov.core.orm</span> <span class="k">import</span> <span class="n">Base</span><span class="p">,</span> <span class="n">SessionManager</span>
 <span class="kn">from</span> <span class="nn">onegov_testing.browser</span> <span class="k">import</span> <span class="n">ExtendedBrowser</span>
@@ -72,35 +69,6 @@
 
 <span class="n">redis_path</span> <span class="o">=</span> <span class="n">find_executable</span><span class="p">(</span><span class="s1">&#39;redis-server&#39;</span><span class="p">)</span>
 <span class="n">redis_server</span> <span class="o">=</span> <span class="n">factories</span><span class="o">.</span><span class="n">redis_proc</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="n">executable</span><span class="o">=</span><span class="n">redis_path</span><span class="p">)</span>
-
-
-<div class="viewcode-block" id="HTTPExecutor"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.HTTPExecutor">[docs]</a><span class="k">class</span> <span class="nc">HTTPExecutor</span><span class="p">(</span><span class="n">HTTPExecutorBase</span><span class="p">):</span>
-
-    <span class="c1"># Ipmlements https://github.com/ClearcodeHQ/mirakuru/issues/181</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="s1">&#39;HEAD&#39;</span><span class="p">)</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-<div class="viewcode-block" id="HTTPExecutor.after_start_check"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.HTTPExecutor.after_start_check">[docs]</a>    <span class="k">def</span> <span class="nf">after_start_check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Check if defined URL returns expected status to a HEAD request.&quot;&quot;&quot;</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">conn</span> <span class="o">=</span> <span class="n">HTTPConnection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">)</span>
-
-            <span class="n">conn</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
-            <span class="n">status</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">conn</span><span class="o">.</span><span class="n">getresponse</span><span class="p">()</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
-
-            <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">status_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">status</span><span class="p">):</span>
-                <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-                <span class="k">return</span> <span class="kc">True</span>
-
-        <span class="k">except</span> <span class="p">(</span><span class="n">HTTPException</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">timeout</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span><span class="p">):</span>
-            <span class="k">return</span> <span class="kc">False</span></div>
-
-    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__del__</span><span class="p">()</span>
-        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-            <span class="k">pass</span></div>
 
 
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s1">&#39;session&#39;</span><span class="p">)</span>
