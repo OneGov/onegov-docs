@@ -55,6 +55,7 @@
 <span class="kn">import</span> <span class="nn">morepath</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
 <span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">sentry_sdk</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 
 <span class="kn">from</span> <span class="nn">base64</span> <span class="k">import</span> <span class="n">b64encode</span>
@@ -475,6 +476,24 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sentry_dsn</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sentry_dsn&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sentry_version</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sentry_version&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sentry_environment</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sentry_environment&#39;</span><span class="p">)</span>
+
+        <span class="c1"># init sentry if that hasn&#39;t happened already (in some environments</span>
+        <span class="c1"># we provide a different init through a WSGI wrapper, where the</span>
+        <span class="c1"># exception logging happens)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_sentry_initialised</span><span class="p">:</span>
+            <span class="n">sentry_sdk</span><span class="o">.</span><span class="n">init</span><span class="p">(</span>
+                <span class="n">dsn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sentry_dsn</span><span class="p">,</span>
+                <span class="n">release</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sentry_version</span><span class="p">,</span>
+                <span class="n">environment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sentry_environment</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_sentry_supported</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;sentry_dsn&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="kc">True</span> <span class="ow">or</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_sentry_initialised</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">sentry_sdk.hub</span> <span class="k">import</span> <span class="n">Hub</span>
+        <span class="k">return</span> <span class="n">Hub</span><span class="o">.</span><span class="n">current</span><span class="o">.</span><span class="n">client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="Framework.set_application_id"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.framework.Framework.set_application_id">[docs]</a>    <span class="k">def</span> <span class="nf">set_application_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">application_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Set before the request is handled. Gets the schema from the</span>

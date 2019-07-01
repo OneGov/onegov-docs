@@ -87,6 +87,10 @@
 <span class="c1"># will fail to deal with our langauges correctly if they differ in case</span>
 <span class="n">VALID_LANGUAGE_EXPRESSION</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^[a-z]</span><span class="si">{2}</span><span class="s1">(_[A-Z]</span><span class="si">{2}</span><span class="s1">)?$&#39;</span><span class="p">)</span>
 
+<span class="c1"># to keep the log output short</span>
+<span class="n">POFILE_PATH_EXPRESSION</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s1">&#39;.*/(?P&lt;locale&gt;[a-zA-Z_]+)/LC_MESSAGES/(?P&lt;module&gt;[a-zA-Z_\.]+)&#39;</span><span class="p">)</span>
+
 
 <div class="viewcode-block" id="get_i18n_localedirs"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.i18n.get_i18n_localedirs">[docs]</a><span class="nd">@Framework</span><span class="o">.</span><span class="n">setting</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s1">&#39;i18n&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;localedirs&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">get_i18n_localedirs</span><span class="p">():</span>
@@ -163,7 +167,12 @@
 
 <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">compile_translation</span><span class="p">(</span><span class="n">pofile_path</span><span class="p">):</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Compiling pofile </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pofile_path</span><span class="p">))</span>
+    <span class="n">po</span> <span class="o">=</span> <span class="n">POFILE_PATH_EXPRESSION</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pofile_path</span><span class="p">)</span>
+
+    <span class="n">locale</span> <span class="o">=</span> <span class="n">po</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;locale&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">module</span> <span class="o">=</span> <span class="n">po</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;module&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Compiling locale </span><span class="si">{locale}</span><span class="s2"> for </span><span class="si">{module}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="n">mofile</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">()</span>
     <span class="n">mofile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">polib</span><span class="o">.</span><span class="n">pofile</span><span class="p">(</span><span class="n">pofile_path</span><span class="p">)</span><span class="o">.</span><span class="n">to_binary</span><span class="p">())</span>

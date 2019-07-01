@@ -219,7 +219,6 @@
 
 <span class="kn">import</span> <span class="nn">click</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
-<span class="kn">import</span> <span class="nn">sentry_sdk</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 
 <span class="kn">from</span> <span class="nn">fnmatch</span> <span class="k">import</span> <span class="n">fnmatch</span>
@@ -576,17 +575,6 @@
                 <span class="k">def</span> <span class="nf">configure_debug</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
                     <span class="c1"># disable debug options in cli (like query output)</span>
                     <span class="k">pass</span>
-
-                <span class="k">def</span> <span class="nf">configure_sentry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">):</span>
-                    <span class="n">sentry_dsn</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sentry_dsn&#39;</span><span class="p">)</span>
-                    <span class="n">sentry_version</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sentry_version&#39;</span><span class="p">)</span>
-                    <span class="n">sentry_environment</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sentry_environment&#39;</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">sentry_dsn</span> <span class="ow">and</span> <span class="n">sentry_version</span> <span class="ow">and</span> <span class="n">sentry_environment</span><span class="p">:</span>
-                        <span class="n">sentry_sdk</span><span class="o">.</span><span class="n">init</span><span class="p">(</span>
-                            <span class="n">dsn</span><span class="o">=</span><span class="n">sentry_dsn</span><span class="p">,</span>
-                            <span class="n">release</span><span class="o">=</span><span class="n">sentry_version</span><span class="p">,</span>
-                            <span class="n">environment</span><span class="o">=</span><span class="n">sentry_environment</span><span class="p">,</span>
-                        <span class="p">)</span>
 
             <span class="nd">@CliApplication</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">view_path</span><span class="p">)</span>
             <span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>

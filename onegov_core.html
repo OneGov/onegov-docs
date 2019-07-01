@@ -662,7 +662,7 @@ and setting the correct action.</p>
 
 <dl class="class">
 <dt id="onegov.core.directives.CronjobAction">
-<em class="property">class </em><code class="sig-prename descclassname">onegov.core.directives.</code><code class="sig-name descname">CronjobAction</code><span class="sig-paren">(</span><em class="sig-param">hour</em>, <em class="sig-param">minute</em>, <em class="sig-param">timezone</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/directives.html#CronjobAction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.directives.CronjobAction" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">onegov.core.directives.</code><code class="sig-name descname">CronjobAction</code><span class="sig-paren">(</span><em class="sig-param">hour</em>, <em class="sig-param">minute</em>, <em class="sig-param">timezone</em>, <em class="sig-param">once=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/directives.html#CronjobAction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.directives.CronjobAction" title="Permalink to this definition">¶</a></dt>
 <dd><p>Register a cronjob.</p>
 <dl class="method">
 <dt id="onegov.core.directives.CronjobAction.identifier">
@@ -683,23 +683,6 @@ by the <code class="docutils literal notranslate"><span class="pre">config</span
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>an immutable value uniquely identifying this action.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="onegov.core.directives.CronjobAction.discriminators">
-<code class="sig-name descname">discriminators</code><span class="sig-paren">(</span><em class="sig-param">**kw</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/directives.html#CronjobAction.discriminators"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.directives.CronjobAction.discriminators" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns an iterable of immutables to detect conflicts.</p>
-<p>Can be implemented by the <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code> subclass.</p>
-<p>Used for additional configuration conflict detection.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>**kw</strong> – a dictionary of configuration objects as specified
-by the <code class="docutils literal notranslate"><span class="pre">config</span></code> class attribute.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>an iterable of immutable values.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2710,36 +2693,80 @@ can handle UnicodeDecodeErrors.</p>
 <span id="cronjobs"></span><h2>Cronjobs<a class="headerlink" href="#module-onegov.core.cronjobs" title="Permalink to this headline">¶</a></h2>
 <p>Provides a way to specify cronjobs which should be called at an exact time.</p>
 <p>Example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@App</span><span class="o">.</span><span class="n">cronjob</span><span class="p">(</span><span class="n">hour</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">minute</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">timezone</span><span class="o">=</span><span class="s1">&#39;Europe/Zurich&#39;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># A job that runs at 08:00 exactly</span>
+<span class="nd">@App</span><span class="o">.</span><span class="n">cronjob</span><span class="p">(</span><span class="n">hour</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">minute</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">timezone</span><span class="o">=</span><span class="s1">&#39;Europe/Zurich&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">cleanup_stuff</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+<span class="c1"># A job that runs every 15 minutes</span>
+<span class="nd">@App</span><span class="o">.</span><span class="n">cronjob</span><span class="p">(</span><span class="n">hour</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">minute</span><span class="o">=</span><span class="s1">&#39;*/15&#39;</span><span class="p">,</span> <span class="n">timezone</span><span class="o">=</span><span class="s1">&#39;UTC&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">do_interesting_things</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
     <span class="k">pass</span>
 </pre></div>
 </div>
 <p>Functions registered like this will be called through a regular request. That
 means they are just like any other view and have all the power associated with
 it.</p>
-<p>WARNING: The function is called ONCE for EACH application id. So at the given
-time there might be a number of calls more or less at the same time, run
-against your function.</p>
-<p>In terms of operations this means that there should be more processes than
-application ids (tennants). In terms of development this means that you
-should keep the time spent in a cronjob to an absolute minimum! Long running
-jobs (more than 30 seconds) are reported.</p>
-<p>This feature should really be used sparingly and only for things where the
-exact time is relevant. Cleanup jobs for example should be combined with
-delete/update/add jobs for example, not pushed off to a cronjob.</p>
-<p>We also make sure that there’s only one job each 5 minutes (at 00:00, 00:05,
-and so on) and that there are no two jobs run at the same time.</p>
-<p>For now cronjobs are furthermore limited to be run once a day. In the future
-we might add a model more akin to classic cronjobs.</p>
+<div class="section" id="warnings">
+<h3>Warnings<a class="headerlink" href="#warnings" title="Permalink to this headline">¶</a></h3>
+<p>The function is called <em>once</em> for <em>each</em> application id! So when the time
+comes for your function to be called, you can expect many calls on a busy
+site. Each application id also gets its own thread, which is not terribly
+efficient. It is expected that this behaviour will change in the future
+with an improved scheduling mechanism.</p>
+<p>Also note that the scheduler will offset your function automatically by up
+to 30 seconds, to mitigate against the trampling herd problem.</p>
+<p>As a result you want to use this feature sparingly. If possible do clean up
+on user action (either manually, or when the user changes something somewhat
+related). For example, we clean up old reservation records whenever a new
+reservation is received.</p>
+<p>This also means that it is better to have a cronjob that runs once a day
+on a specific time (say at 13:37 each day), than a cronjob that runs exactly
+on 00:00 when a lot of other things might be scheduled.</p>
+<p>Also the more a cronjob is called the costlier it is for the site (a job
+that runs every minute is naturally more heavy on resources than one run
+every 15 minutes).</p>
 <p>Finally note that cronjobs for any given application id are only run once the
 first request to the application with that id has been made. The reason for
 this is the fact that the background thread needs a real request to be
 initialized.</p>
+<p>In other words, if nobody visits the website the cronjob runs on, then
+the cronjobs won’t run.</p>
+<dl class="function">
+<dt id="onegov.core.cronjobs.parse_cron">
+<code class="sig-prename descclassname">onegov.core.cronjobs.</code><code class="sig-name descname">parse_cron</code><span class="sig-paren">(</span><em class="sig-param">value</em>, <em class="sig-param">type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cronjobs.html#parse_cron"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cronjobs.parse_cron" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimal cron style interval parser. Currently only supports this:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>-&gt; Run every hour, minute</p></li>
+</ul>
+<p><a href="#id5"><span class="problematic" id="id6">*</span></a>/2 -&gt; Run every other hour, minute
+2   -&gt; Run on the given hour, minute</p>
+</div></blockquote>
+<p>Returns a tuple, iterator or generator.</p>
+</dd></dl>
+
 <dl class="class">
 <dt id="onegov.core.cronjobs.Job">
-<em class="property">class </em><code class="sig-prename descclassname">onegov.core.cronjobs.</code><code class="sig-name descname">Job</code><span class="sig-paren">(</span><em class="sig-param">function</em>, <em class="sig-param">hour</em>, <em class="sig-param">minute</em>, <em class="sig-param">timezone</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cronjobs.html#Job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cronjobs.Job" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">onegov.core.cronjobs.</code><code class="sig-name descname">Job</code><span class="sig-paren">(</span><em class="sig-param">function</em>, <em class="sig-param">hour</em>, <em class="sig-param">minute</em>, <em class="sig-param">timezone</em>, <em class="sig-param">once=False</em>, <em class="sig-param">url=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cronjobs.html#Job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cronjobs.Job" title="Permalink to this definition">¶</a></dt>
 <dd><p>A single cron job.</p>
+<dl class="method">
+<dt id="onegov.core.cronjobs.Job.runtimes">
+<code class="sig-name descname">runtimes</code><span class="sig-paren">(</span><em class="sig-param">today</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cronjobs.html#Job.runtimes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cronjobs.Job.runtimes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates the runtimes of this job on the given day, excluding
+runtimes in the past.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="onegov.core.cronjobs.Job.next_runtime">
+<code class="sig-name descname">next_runtime</code><span class="sig-paren">(</span><em class="sig-param">today=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cronjobs.html#Job.next_runtime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cronjobs.Job.next_runtime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the time (epoch) when this job should be run next, not
+taking into account scheduling concerns (like when it has run last).</p>
+<p>If no runtime is found for today, a runtime is searched tomorrow. If
+that doesn’t work, no next runtime exists. This would be an error,
+since we do not currently support things like weekly cronjobs.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="onegov.core.cronjobs.Job.id">
 <em class="property">property </em><code class="sig-name descname">id</code><a class="headerlink" href="#onegov.core.cronjobs.Job.id" title="Permalink to this definition">¶</a></dt>
@@ -2756,28 +2783,6 @@ can only be set after the instance has already been created.</p>
 <code class="sig-name descname">as_request_call</code><span class="sig-paren">(</span><em class="sig-param">request</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cronjobs.html#Job.as_request_call"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cronjobs.Job.as_request_call" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a new job which does the same as the old job, but it does
 so by calling an url which will execute the original job.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="onegov.core.cronjobs.Job.is_scheduled_at">
-<code class="sig-name descname">is_scheduled_at</code><span class="sig-paren">(</span><em class="sig-param">point</em>, <em class="sig-param">timezone=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/core/cronjobs.html#Job.is_scheduled_at"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.core.cronjobs.Job.is_scheduled_at" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns True if the job is scheduled to run at the given date.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Point</dt>
-<dd class="field-odd"><p>The point in time. Needs to be a timezone aware datetime object,
-unless <code class="docutils literal notranslate"><span class="pre">timezone</span></code> is passed as well.</p>
-</dd>
-<dt class="field-even">Timezone</dt>
-<dd class="field-even"><p>Optional. If the passed date is not timezone aware, the date is
-assumed to be from this timezone.</p>
-</dd>
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>True if the job is scheduled at this date. The maximum
-resolution is one minute. That means if the date given
-falls within the minute of the scheduled time it is assumed
-to be a match (i.e anywhere within 0’ - 59‘999.99999)</p>
-</dd>
-</dl>
 </dd></dl>
 
 </dd></dl>
@@ -2827,6 +2832,7 @@ from the args and kwargs arguments, respectively.</p>
 <dd><p>Executes the job.</p>
 </dd></dl>
 
+</div>
 </div>
 <div class="section" id="module-onegov.core.layout">
 <span id="layout"></span><h2>Layout<a class="headerlink" href="#module-onegov.core.layout" title="Permalink to this headline">¶</a></h2>
@@ -3202,7 +3208,7 @@ values to the batch which are then not loaded by the whole query).</p>
 <div class="section" id="module-onegov.core.cli.core">
 <span id="cli-commands"></span><h2>Cli Commands<a class="headerlink" href="#module-onegov.core.cli.core" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="core-commands">
-<span id="id5"></span><h3>Core Commands<a class="headerlink" href="#core-commands" title="Permalink to this headline">¶</a></h3>
+<span id="id7"></span><h3>Core Commands<a class="headerlink" href="#core-commands" title="Permalink to this headline">¶</a></h3>
 <p>Provides a framework for cli commands run against one ore more onegov
 cloud applications.</p>
 <p>OneGov cli commands are usually ran against a onegov.yml config file, which
