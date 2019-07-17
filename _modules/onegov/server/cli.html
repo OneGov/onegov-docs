@@ -82,6 +82,7 @@
 <span class="sd">        handlers: [console]</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">bjoern</span>
 <span class="kn">import</span> <span class="nn">click</span>
 <span class="kn">import</span> <span class="nn">multiprocessing</span>
 <span class="kn">import</span> <span class="nn">os</span>
@@ -93,12 +94,12 @@
 <span class="kn">import</span> <span class="nn">tracemalloc</span>
 
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
-<span class="kn">from</span> <span class="nn">onegov.server</span> <span class="k">import</span> <span class="n">Server</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">onegov.server</span> <span class="k">import</span> <span class="n">Config</span>
+<span class="kn">from</span> <span class="nn">onegov.server</span> <span class="k">import</span> <span class="n">Server</span>
 <span class="kn">from</span> <span class="nn">onegov.server.tracker</span> <span class="k">import</span> <span class="n">ResourceTracker</span>
 <span class="kn">from</span> <span class="nn">watchdog.events</span> <span class="k">import</span> <span class="n">FileSystemEventHandler</span>
 <span class="kn">from</span> <span class="nn">watchdog.observers</span> <span class="k">import</span> <span class="n">Observer</span>
-<span class="kn">from</span> <span class="nn">wsgiref.simple_server</span> <span class="k">import</span> <span class="n">make_server</span><span class="p">,</span> <span class="n">WSGIRequestHandler</span>
 <span class="kn">from</span> <span class="nn">xtermcolor</span> <span class="k">import</span> <span class="n">colorize</span>
 
 
@@ -152,13 +153,18 @@
     <span class="c1"># because click does not play well with sphinx yet</span>
     <span class="c1"># see https://github.com/mitsuhiko/click/issues/127</span>
 
-    <span class="k">global</span> <span class="n">RESOURCE_TRACKER</span>
-    <span class="n">RESOURCE_TRACKER</span> <span class="o">=</span> <span class="n">ResourceTracker</span><span class="p">(</span><span class="n">enable_tracemalloc</span><span class="o">=</span><span class="n">tracemalloc</span><span class="p">)</span>
+    <span class="c1"># We do not use process forking for Python&#39;s multiprocessing here, as some</span>
+    <span class="c1"># shared libraries (namely kerberos) do not work well with forks (i.e.</span>
+    <span class="c1"># there are hangs).</span>
+    <span class="c1">#</span>
+    <span class="c1"># It is also cleaner to use &#39;spawn&#39; as we get a new process spawned each</span>
+    <span class="c1"># time, which ensures that there is no residual state around that might</span>
+    <span class="c1"># cause the first run of onegov-server to be different than any subsequent</span>
+    <span class="c1"># runs through automated reloads.</span>
+    <span class="n">multiprocessing</span><span class="o">.</span><span class="n">set_start_method</span><span class="p">(</span><span class="s1">&#39;spawn&#39;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">wsgi_factory</span><span class="p">():</span>
-        <span class="k">return</span> <span class="n">Server</span><span class="p">(</span><span class="n">Config</span><span class="o">.</span><span class="n">from_yaml_file</span><span class="p">(</span><span class="n">config_file</span><span class="p">),</span> <span class="n">post_mortem</span><span class="o">=</span><span class="n">pdb</span><span class="p">)</span>
-
-    <span class="n">server</span> <span class="o">=</span> <span class="n">WsgiServer</span><span class="p">(</span><span class="n">wsgi_factory</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">)</span>
+    <span class="n">factory</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">wsgi_factory</span><span class="p">,</span> <span class="n">config_file</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">pdb</span><span class="o">=</span><span class="n">pdb</span><span class="p">)</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="n">WsgiServer</span><span class="p">(</span><span class="n">factory</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">enable_tracemalloc</span><span class="o">=</span><span class="n">tracemalloc</span><span class="p">)</span>
     <span class="n">server</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
     <span class="n">observer</span> <span class="o">=</span> <span class="n">Observer</span><span class="p">()</span>
@@ -178,25 +184,41 @@
     <span class="n">server</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
 
 
-<div class="viewcode-block" id="CustomWSGIRequestHandler"><a class="viewcode-back" href="../../../onegov_server.html#onegov.server.cli.CustomWSGIRequestHandler">[docs]</a><span class="k">class</span> <span class="nc">CustomWSGIRequestHandler</span><span class="p">(</span><span class="n">WSGIRequestHandler</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">wsgi_factory</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="n">pdb</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">Server</span><span class="p">(</span><span class="n">Config</span><span class="o">.</span><span class="n">from_yaml_file</span><span class="p">(</span><span class="n">config_file</span><span class="p">),</span> <span class="n">post_mortem</span><span class="o">=</span><span class="n">pdb</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="WSGIRequestMonitorMiddleware"><a class="viewcode-back" href="../../../onegov_server.html#onegov.server.cli.WSGIRequestMonitorMiddleware">[docs]</a><span class="k">class</span> <span class="nc">WSGIRequestMonitorMiddleware</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Measures the time it takes to respond to a request and prints it</span>
 <span class="sd">    at the end of the request.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="CustomWSGIRequestHandler.parse_request"><a class="viewcode-back" href="../../../onegov_server.html#onegov.server.cli.CustomWSGIRequestHandler.parse_request">[docs]</a>    <span class="k">def</span> <span class="nf">parse_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">app</span>
 
-        <span class="k">return</span> <span class="n">WSGIRequestHandler</span><span class="o">.</span><span class="n">parse_request</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+        <span class="n">received</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+        <span class="n">received_status</span> <span class="o">=</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="CustomWSGIRequestHandler.log_request"><a class="viewcode-back" href="../../../onegov_server.html#onegov.server.cli.CustomWSGIRequestHandler.log_request">[docs]</a>    <span class="k">def</span> <span class="nf">log_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
-        <span class="n">status</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">local_start_response</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">headers</span><span class="p">):</span>
+            <span class="k">nonlocal</span> <span class="n">received_status</span>
+            <span class="n">received_status</span> <span class="o">=</span> <span class="n">status</span>
 
-        <span class="n">duration</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_started</span>
+            <span class="n">start_response</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">local_start_response</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">received_status</span><span class="p">,</span> <span class="n">received</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">response</span>
+
+    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">received</span><span class="p">):</span>
+        <span class="n">duration</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">received</span>
         <span class="n">duration</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">duration</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 
-        <span class="n">method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">command</span>
-        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="n">status</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{environ[&#39;SCRIPT_NAME&#39;]}{environ[&#39;PATH_INFO&#39;]}</span><span class="s2">&quot;</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="n">environ</span><span class="p">[</span><span class="s1">&#39;REQUEST_METHOD&#39;</span><span class="p">]</span>
 
         <span class="n">template</span> <span class="o">=</span> <span class="p">(</span>
             <span class="s2">&quot;</span><span class="si">{status}</span><span class="s2"> - </span><span class="si">{duration}</span><span class="s2"> - </span><span class="si">{method}</span><span class="s2"> </span><span class="si">{path}</span><span class="s2"> - </span><span class="si">{c:.3f}</span><span class="s2"> MiB (</span><span class="si">{d:+.3f}</span><span class="s2">)&quot;</span>
@@ -232,7 +254,7 @@
             <span class="n">duration</span><span class="o">=</span><span class="n">duration</span><span class="p">,</span>
             <span class="n">c</span><span class="o">=</span><span class="n">usage</span> <span class="o">/</span> <span class="mi">1024</span> <span class="o">/</span> <span class="mi">1024</span><span class="p">,</span>
             <span class="n">d</span><span class="o">=</span><span class="n">delta</span> <span class="o">/</span> <span class="mi">1024</span> <span class="o">/</span> <span class="mi">1024</span>
-        <span class="p">))</span></div></div>
+        <span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="WsgiProcess"><a class="viewcode-back" href="../../../onegov_server.html#onegov.server.cli.WsgiProcess">[docs]</a><span class="k">class</span> <span class="nc">WsgiProcess</span><span class="p">(</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">Process</span><span class="p">):</span>
@@ -241,16 +263,14 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_factory</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">8080</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="p">{}):</span>
-
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_factory</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">8080</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                 <span class="n">enable_tracemalloc</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Process</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">app_factory</span> <span class="o">=</span> <span class="n">app_factory</span>
-
         <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">host</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="n">port</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enable_tracemalloc</span> <span class="o">=</span> <span class="n">enable_tracemalloc</span>
 
-        <span class="c1"># if the port is set to 0, a random port will be selected by the os</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_port</span> <span class="o">=</span> <span class="n">port</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_actual_port</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ready</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
         <span class="c1"># hook up environment variables</span>
@@ -265,10 +285,6 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">ready</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ready</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="mi">1</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">port</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actual_port</span><span class="o">.</span><span class="n">value</span>
 
     <span class="k">def</span> <span class="nf">print_memory_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="n">shutil</span><span class="o">.</span><span class="n">get_terminal_size</span><span class="p">((</span><span class="mi">80</span><span class="p">,</span> <span class="mi">20</span><span class="p">))</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
@@ -309,9 +325,12 @@
             <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s1">&#39;darwin&#39;</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">disable_systemwide_darwin_proxies</span><span class="p">()</span>
 
-            <span class="n">server</span> <span class="o">=</span> <span class="n">make_server</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">app_factory</span><span class="p">(),</span>
-                <span class="n">handler_class</span><span class="o">=</span><span class="n">CustomWSGIRequestHandler</span><span class="p">)</span>
+            <span class="k">global</span> <span class="n">RESOURCE_TRACKER</span>
+            <span class="n">RESOURCE_TRACKER</span> <span class="o">=</span> <span class="n">ResourceTracker</span><span class="p">(</span>
+                <span class="n">enable_tracemalloc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_tracemalloc</span><span class="p">)</span>
+
+            <span class="n">wsgi_application</span> <span class="o">=</span> <span class="n">WSGIRequestMonitorMiddleware</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app_factory</span><span class="p">())</span>
+            <span class="n">bjoern</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="n">wsgi_application</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="c1"># if there&#39;s an error, print it</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
@@ -323,13 +342,10 @@
             <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
                 <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">10.0</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_actual_port</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">server</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">getsockname</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ready</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">1</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;started onegov server on http://</span><span class="si">{}</span><span class="s2">:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">))</span>
-
-        <span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span></div></div>
+        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;started onegov server on http://</span><span class="si">{self.host}</span><span class="s2">:</span><span class="si">{self.port}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">bjoern</span><span class="o">.</span><span class="n">run</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="WsgiServer"><a class="viewcode-back" href="../../../onegov_server.html#onegov.server.cli.WsgiServer">[docs]</a><span class="k">class</span> <span class="nc">WsgiServer</span><span class="p">(</span><span class="n">FileSystemEventHandler</span><span class="p">):</span>
@@ -338,15 +354,16 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_factory</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">8080</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_factory</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">8080</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">app_factory</span> <span class="o">=</span> <span class="n">app_factory</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_host</span> <span class="o">=</span> <span class="n">host</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_port</span> <span class="o">=</span> <span class="n">port</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
 
     <span class="k">def</span> <span class="nf">spawn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">WsgiProcess</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app_factory</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_port</span><span class="p">,</span> <span class="p">{</span>
             <span class="s1">&#39;ONEGOV_DEVELOPMENT&#39;</span><span class="p">:</span> <span class="s1">&#39;1&#39;</span>
-        <span class="p">})</span>
+        <span class="p">},</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
