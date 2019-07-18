@@ -133,6 +133,34 @@
     <span class="c1">#:</span>
     <span class="n">second_factor</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">JSON</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="c1">#: Third-party authentication provider data if enabled. Users are only</span>
+    <span class="c1">#: ever associated with one authentication provider at once.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: Additionally, authentication may be either required or optional, if it</span>
+    <span class="c1">#: is configured at all. If the configured authentication is optional, the</span>
+    <span class="c1">#: user may login using it, but may also fall back to username/password.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: If the configured authentication is required, then the user may only</span>
+    <span class="c1">#: authenticate trough the required authentication. The username/password</span>
+    <span class="c1">#: combination won&#39;t work in this case.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: This allows for regular users registered with a third-party provider to</span>
+    <span class="c1">#: be forced to use it, while some admin may have an optional login with</span>
+    <span class="c1">#: an escape hatch, should the third-party provider be down or faulty.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: Example content::</span>
+    <span class="c1">#:</span>
+    <span class="c1">#:      {</span>
+    <span class="c1">#:          &#39;name&#39;: &#39;kerberos&#39;,</span>
+    <span class="c1">#:          &#39;fields&#39;: {&#39;username&#39;: &#39;user@EXAMPLE.ORG&#39;},</span>
+    <span class="c1">#:          &#39;required&#39;: True</span>
+    <span class="c1">#:      }</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: Note that the authentication provider is configured once per application</span>
+    <span class="c1">#: instance, there cannot be multiple auth providers of the same type one</span>
+    <span class="c1">#: a single application.</span>
+    <span class="n">authentication_provider</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">JSON</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
     <span class="c1">#: true if the user is active</span>
     <span class="n">active</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 

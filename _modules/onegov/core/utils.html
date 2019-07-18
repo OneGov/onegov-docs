@@ -87,6 +87,13 @@
 <span class="c1"># detects multiple successive newlines</span>
 <span class="n">_multiple_newlines</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\n{2,}&#39;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
 
+<span class="c1"># matches duplicate whitespace</span>
+<span class="n">_duplicate_whitespace</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s+&#39;</span><span class="p">)</span>
+
+<span class="c1"># regex pattern for swiss phone numbers</span>
+<span class="n">_phone_ch_country_code</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;(\+41|0041|[^\+]?0)&quot;</span>
+<span class="n">_phone_ch</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">_phone_ch_country_code</span> <span class="o">+</span> <span class="sa">r</span><span class="s1">&#39;([\s\d]+)&#39;</span><span class="p">)</span>
+
 <span class="c1"># for yubikeys</span>
 <span class="n">ALPHABET</span> <span class="o">=</span> <span class="s1">&#39;cbdefghijklnrtuv&#39;</span>
 <span class="n">ALPHABET_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^[cbdefghijklnrtuv]{12,44}$&#39;</span><span class="p">)</span>
@@ -322,6 +329,35 @@
     <span class="k">return</span> <span class="p">[(</span><span class="n">k</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">g</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)]</span></div>
 
 
+<div class="viewcode-block" id="linkify_phone"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.utils.linkify_phone">[docs]</a><span class="k">def</span> <span class="nf">linkify_phone</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a string and replaces valid phone numbers with html links. If a</span>
+<span class="sd">    phone number is matched, it will be replaced by the result of a callback</span>
+<span class="sd">    function, that does further checks on the regex match. If these checks do</span>
+<span class="sd">    not pass, the matched number will remain unchanged.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">is_valid_length</span><span class="p">(</span><span class="n">number</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">number</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;00&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">number</span><span class="p">)</span> <span class="o">==</span> <span class="mi">13</span>
+        <span class="k">elif</span> <span class="n">number</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;0&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">number</span><span class="p">)</span> <span class="o">==</span> <span class="mi">10</span>
+        <span class="k">elif</span> <span class="n">number</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">number</span><span class="p">)</span> <span class="o">==</span> <span class="mi">12</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">handle_match</span><span class="p">(</span><span class="n">match</span><span class="p">):</span>
+        <span class="n">number</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_valid_length</span><span class="p">(</span><span class="n">number</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)):</span>
+            <span class="n">number</span> <span class="o">=</span> <span class="n">remove_duplicate_whitespace</span><span class="p">(</span><span class="n">number</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;&lt;a href=&quot;tel:</span><span class="si">{number}</span><span class="s1">&quot;&gt;</span><span class="si">{number}</span><span class="s1">&lt;/a&gt;&#39;</span>
+
+        <span class="k">return</span> <span class="n">number</span>
+
+    <span class="k">return</span> <span class="n">_phone_ch</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">handle_match</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="linkify"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.utils.linkify">[docs]</a><span class="k">def</span> <span class="nf">linkify</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">escape</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Takes plain text and injects html links for urls and email addresses.</span>
 
@@ -347,6 +383,16 @@
 
     <span class="k">return</span> <span class="n">bleach</span><span class="o">.</span><span class="n">clean</span><span class="p">(</span>
         <span class="n">linkified</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">],</span> <span class="n">attributes</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;href&#39;</span><span class="p">,</span> <span class="s1">&#39;rel&#39;</span><span class="p">]})</span></div>
+
+
+<div class="viewcode-block" id="remove_duplicate_whitespace"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.utils.remove_duplicate_whitespace">[docs]</a><span class="k">def</span> <span class="nf">remove_duplicate_whitespace</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Removes whitespace that is duplicated.</span>
+
+<span class="sd">    For example: &#39;foo  bar&#39; becomes &#39;foo bar&#39;.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">_duplicate_whitespace</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="paragraphify"><a class="viewcode-back" href="../../../onegov_core.html#onegov.core.utils.paragraphify">[docs]</a><span class="k">def</span> <span class="nf">paragraphify</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>

@@ -126,6 +126,33 @@ implementation.</p>
 </dd></dl>
 
 <dl class="attribute">
+<dt id="onegov.user.models.User.authentication_provider">
+<code class="sig-name descname">authentication_provider</code><a class="headerlink" href="#onegov.user.models.User.authentication_provider" title="Permalink to this definition">¶</a></dt>
+<dd><p>Third-party authentication provider data if enabled. Users are only
+ever associated with one authentication provider at once.</p>
+<p>Additionally, authentication may be either required or optional, if it
+is configured at all. If the configured authentication is optional, the
+user may login using it, but may also fall back to username/password.</p>
+<p>If the configured authentication is required, then the user may only
+authenticate trough the required authentication. The username/password
+combination won’t work in this case.</p>
+<p>This allows for regular users registered with a third-party provider to
+be forced to use it, while some admin may have an optional login with
+an escape hatch, should the third-party provider be down or faulty.</p>
+<p>Example content:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;kerberos&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;fields&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="s1">&#39;user@EXAMPLE.ORG&#39;</span><span class="p">},</span>
+    <span class="s1">&#39;required&#39;</span><span class="p">:</span> <span class="kc">True</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Note that the authentication provider is configured once per application
+instance, there cannot be multiple auth providers of the same type one
+a single application.</p>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="onegov.user.models.User.active">
 <code class="sig-name descname">active</code><a class="headerlink" href="#onegov.user.models.User.active" title="Permalink to this definition">¶</a></dt>
 <dd><p>true if the user is active</p>
@@ -267,7 +294,7 @@ the current filters applied.</p>
 
 <dl class="method">
 <dt id="onegov.user.collections.UserCollection.add">
-<code class="sig-name descname">add</code><span class="sig-paren">(</span><em class="sig-param">username</em>, <em class="sig-param">password</em>, <em class="sig-param">role</em>, <em class="sig-param">data=None</em>, <em class="sig-param">second_factor=None</em>, <em class="sig-param">active=True</em>, <em class="sig-param">realname=None</em>, <em class="sig-param">signup_token=None</em>, <em class="sig-param">group=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.add" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">add</code><span class="sig-paren">(</span><em class="sig-param">username</em>, <em class="sig-param">password</em>, <em class="sig-param">role</em>, <em class="sig-param">data=None</em>, <em class="sig-param">second_factor=None</em>, <em class="sig-param">active=True</em>, <em class="sig-param">realname=None</em>, <em class="sig-param">signup_token=None</em>, <em class="sig-param">group=None</em>, <em class="sig-param">authentication_provider=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/onegov/user/collections/user.html#UserCollection.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#onegov.user.collections.UserCollection.add" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a user to the collection.</p>
 <p>The arguments given to this function are the attributes of the
 <a class="reference internal" href="#onegov.user.models.User" title="onegov.user.models.User"><code class="xref py py-class docutils literal notranslate"><span class="pre">User</span></code></a> class with the same name.</p>

@@ -35,6 +35,7 @@
 
 <span class="kn">import</span> <span class="nn">morepath</span>
 
+<span class="kn">from</span> <span class="nn">onegov.core.markdown</span> <span class="k">import</span> <span class="n">render_untrusted_markdown</span>
 <span class="kn">from</span> <span class="nn">onegov.core.security</span> <span class="k">import</span> <span class="n">Public</span><span class="p">,</span> <span class="n">Personal</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">_</span><span class="p">,</span> <span class="n">OrgApp</span>
 <span class="kn">from</span> <span class="nn">onegov.org</span> <span class="k">import</span> <span class="n">log</span>
@@ -103,11 +104,19 @@
         <span class="n">Link</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Login&quot;</span><span class="p">),</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;login&#39;</span><span class="p">))</span>
     <span class="p">]</span>
 
+    <span class="k">def</span> <span class="nf">provider_login</span><span class="p">(</span><span class="n">provider</span><span class="p">):</span>
+        <span class="n">provider</span><span class="o">.</span><span class="n">to</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to</span>
+        <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">provider</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
         <span class="s1">&#39;password_reset_link&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;request-password&#39;</span><span class="p">),</span>
         <span class="s1">&#39;register_link&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;register&#39;</span><span class="p">),</span>
         <span class="s1">&#39;may_register&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">enable_user_registration</span><span class="p">,</span>
+        <span class="s1">&#39;button_text&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Login&quot;</span><span class="p">),</span>
+        <span class="s1">&#39;providers&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">providers</span><span class="p">,</span>
+        <span class="s1">&#39;provider_login&#39;</span><span class="p">:</span> <span class="n">provider_login</span><span class="p">,</span>
+        <span class="s1">&#39;render_untrusted_markdown&#39;</span><span class="p">:</span> <span class="n">render_untrusted_markdown</span><span class="p">,</span>
         <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Login to $</span><span class="si">{org}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span>
             <span class="s1">&#39;org&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">org</span><span class="o">.</span><span class="n">title</span>
         <span class="p">}),</span>

@@ -121,9 +121,14 @@
             <span class="n">User</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;tags&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">contains</span><span class="p">((</span><span class="n">v</span><span class="p">,</span> <span class="p">))</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span>
         <span class="p">))</span>
 
+    <span class="k">def</span> <span class="nf">apply_provider_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span>
+            <span class="n">User</span><span class="o">.</span><span class="n">authentication_provider</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span>
+        <span class="p">))</span>
+
 <div class="viewcode-block" id="UserCollection.add"><a class="viewcode-back" href="../../../../onegov_user.html#onegov.user.collections.UserCollection.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">role</span><span class="p">,</span>
             <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">second_factor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">realname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">signup_token</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">signup_token</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">authentication_provider</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Add a user to the collection.</span>
 
 <span class="sd">            The arguments given to this function are the attributes of the</span>
@@ -143,7 +148,8 @@
             <span class="n">active</span><span class="o">=</span><span class="n">active</span><span class="p">,</span>
             <span class="n">realname</span><span class="o">=</span><span class="n">realname</span><span class="p">,</span>
             <span class="n">signup_token</span><span class="o">=</span><span class="n">signup_token</span><span class="p">,</span>
-            <span class="n">group_id</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">id</span> <span class="k">if</span> <span class="n">group</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="n">group_id</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">id</span> <span class="k">if</span> <span class="n">group</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">authentication_provider</span><span class="o">=</span><span class="n">authentication_provider</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>

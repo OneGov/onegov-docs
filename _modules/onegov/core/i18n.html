@@ -80,6 +80,7 @@
 <span class="kn">from</span> <span class="nn">onegov.core.utils</span> <span class="k">import</span> <span class="n">pairwise</span>
 <span class="kn">from</span> <span class="nn">translationstring</span> <span class="k">import</span> <span class="n">ChameleonTranslate</span>
 <span class="kn">from</span> <span class="nn">translationstring</span> <span class="k">import</span> <span class="n">Translator</span>
+<span class="kn">from</span> <span class="nn">translationstring</span> <span class="k">import</span> <span class="n">TranslationString</span>
 
 
 <span class="c1"># the language codes must be written thusly: de_CH, en_GB, en, fr and so on</span>
@@ -170,7 +171,7 @@
     <span class="n">po</span> <span class="o">=</span> <span class="n">POFILE_PATH_EXPRESSION</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pofile_path</span><span class="p">)</span>
 
     <span class="n">locale</span> <span class="o">=</span> <span class="n">po</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;locale&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-    <span class="n">module</span> <span class="o">=</span> <span class="n">po</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;module&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">module</span> <span class="o">=</span> <span class="n">po</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;module&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.po&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
 
     <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Compiling locale </span><span class="si">{locale}</span><span class="s2"> for </span><span class="si">{module}</span><span class="s2">&quot;</span><span class="p">)</span>
 
@@ -321,7 +322,9 @@
 
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">):</span>
-                <span class="n">field</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_translations</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">TranslationString</span><span class="p">):</span>
+                    <span class="n">field</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_translations</span><span class="o">.</span><span class="n">gettext</span><span class="p">(</span>
+                        <span class="n">field</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">render_field</span><span class="p">(</span>
                 <span class="n">field</span><span class="p">,</span> <span class="n">render_kw</span><span class="p">)</span>
