@@ -86,8 +86,9 @@
 <span class="kn">import</span> <span class="nn">click</span>
 <span class="kn">import</span> <span class="nn">multiprocessing</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">import</span> <span class="nn">sentry_sdk</span>
 <span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">signal</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
@@ -98,6 +99,8 @@
 <span class="kn">from</span> <span class="nn">onegov.server</span> <span class="k">import</span> <span class="n">Config</span>
 <span class="kn">from</span> <span class="nn">onegov.server</span> <span class="k">import</span> <span class="n">Server</span>
 <span class="kn">from</span> <span class="nn">onegov.server.tracker</span> <span class="k">import</span> <span class="n">ResourceTracker</span>
+<span class="kn">from</span> <span class="nn">sentry_sdk</span> <span class="k">import</span> <span class="n">push_scope</span><span class="p">,</span> <span class="n">capture_exception</span>
+<span class="kn">from</span> <span class="nn">sentry_sdk.integrations.wsgi</span> <span class="k">import</span> <span class="n">_get_headers</span><span class="p">,</span> <span class="n">_get_environ</span>
 <span class="kn">from</span> <span class="nn">watchdog.events</span> <span class="k">import</span> <span class="n">FileSystemEventHandler</span>
 <span class="kn">from</span> <span class="nn">watchdog.observers</span> <span class="k">import</span> <span class="n">Observer</span>
 <span class="kn">from</span> <span class="nn">xtermcolor</span> <span class="k">import</span> <span class="n">colorize</span>
@@ -122,17 +125,38 @@
 <span class="p">)</span>
 <span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
     <span class="s1">&#39;--pdb&#39;</span><span class="p">,</span>
-    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable post-mortem debugging&quot;</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable post-mortem debugging (debug mode only)&quot;</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
 <span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
     <span class="s1">&#39;--tracemalloc&#39;</span><span class="p">,</span>
-    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable tracemalloc&quot;</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable tracemalloc (debug mode only)&quot;</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">pdb</span><span class="p">,</span> <span class="n">tracemalloc</span><span class="p">):</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s1">&#39;--mode&#39;</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Defines the mode used to run the server cli (debug|production)&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="s1">&#39;debug&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s1">&#39;--sentry-dsn&#39;</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sentry DSN to use (production mode only)&quot;</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s1">&#39;--sentry-environment&#39;</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sentry environment tag (production mode only)&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="s1">&#39;testing&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s1">&#39;--sentry-release&#39;</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sentry release tag (production mode only)&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">pdb</span><span class="p">,</span> <span class="n">tracemalloc</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span>
+        <span class="n">sentry_dsn</span><span class="p">,</span> <span class="n">sentry_environment</span><span class="p">,</span> <span class="n">sentry_release</span><span class="p">):</span>
+
     <span class="sd">&quot;&quot;&quot; Runs the onegov server with the given configuration file in the</span>
 <span class="sd">    foreground.</span>
 
@@ -161,9 +185,80 @@
     <span class="c1"># time, which ensures that there is no residual state around that might</span>
     <span class="c1"># cause the first run of onegov-server to be different than any subsequent</span>
     <span class="c1"># runs through automated reloads.</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;debug&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">run_debug</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">pdb</span><span class="p">,</span> <span class="n">tracemalloc</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">sentry_dsn</span><span class="p">:</span>
+        <span class="n">sentry_sdk</span><span class="o">.</span><span class="n">init</span><span class="p">(</span>
+            <span class="n">dsn</span><span class="o">=</span><span class="n">sentry_dsn</span><span class="p">,</span>
+            <span class="n">release</span><span class="o">=</span><span class="n">sentry_release</span><span class="p">,</span>
+            <span class="n">environment</span><span class="o">=</span><span class="n">sentry_environment</span><span class="p">)</span>
+
+        <span class="c1"># somehow sentry attaches itself to the global exception hook, even if</span>
+        <span class="c1"># we set &#39;install_sys_hook&#39; to False -&gt; so we just reset to the</span>
+        <span class="c1"># original state before serving our application (otherwise we get each</span>
+        <span class="c1"># error report twice)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">excepthook</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">__excepthook__</span>
+
+    <span class="k">return</span> <span class="n">run_production</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">run_production</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="n">port</span><span class="p">):</span>
+
+    <span class="k">class</span> <span class="nc">SentryServer</span><span class="p">(</span><span class="n">Server</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">push_scope</span><span class="p">()</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+                <span class="n">scope</span><span class="o">.</span><span class="n">clear_breadcrumbs</span><span class="p">()</span>
+
+                <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span>
+
+    <span class="c1"># required by Bjoern</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;webob.url_encoding&#39;</span><span class="p">:</span> <span class="s1">&#39;latin-1&#39;</span><span class="p">}</span>
+
+    <span class="n">app</span> <span class="o">=</span> <span class="n">SentryServer</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="n">Config</span><span class="o">.</span><span class="n">from_yaml_file</span><span class="p">(</span><span class="n">config_file</span><span class="p">),</span>
+        <span class="n">exception_hook</span><span class="o">=</span><span class="n">exception_hook</span><span class="p">,</span>
+        <span class="n">environ_overrides</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
+
+    <span class="n">bjoern</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">reuse_port</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">http_context</span><span class="p">(</span><span class="n">environ</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;REQUEST_METHOD&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span>
+            <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HTTP_X_VHM_HOST&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+            <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PATH_INFO&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="p">)),</span>
+        <span class="s1">&#39;query_string&#39;</span><span class="p">:</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;QUERY_STRING&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;headers&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">_get_headers</span><span class="p">(</span><span class="n">environ</span><span class="p">)),</span>
+        <span class="s1">&#39;env&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">_get_environ</span><span class="p">(</span><span class="n">environ</span><span class="p">))</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">exception_hook</span><span class="p">(</span><span class="n">environ</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">process_event</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">hint</span><span class="p">):</span>
+        <span class="n">request_info</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;request&quot;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">request_info</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">http_context</span><span class="p">(</span><span class="n">environ</span><span class="p">))</span>
+
+        <span class="n">user_info</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">user_info</span><span class="p">[</span><span class="s1">&#39;ip_address&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HTTP_X_REAL_IP&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">event</span>
+
+    <span class="k">with</span> <span class="n">push_scope</span><span class="p">()</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+        <span class="n">scope</span><span class="o">.</span><span class="n">add_event_processor</span><span class="p">(</span><span class="n">process_event</span><span class="p">)</span>
+        <span class="n">scope</span><span class="o">.</span><span class="n">set_tag</span><span class="p">(</span><span class="s1">&#39;site&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;%= @sentry_site %&gt;&#39;</span><span class="p">)</span>
+        <span class="n">capture_exception</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">run_debug</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">pdb</span><span class="p">,</span> <span class="n">tracemalloc</span><span class="p">):</span>
     <span class="n">multiprocessing</span><span class="o">.</span><span class="n">set_start_method</span><span class="p">(</span><span class="s1">&#39;spawn&#39;</span><span class="p">)</span>
 
-    <span class="n">factory</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">wsgi_factory</span><span class="p">,</span> <span class="n">config_file</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">pdb</span><span class="o">=</span><span class="n">pdb</span><span class="p">)</span>
+    <span class="n">factory</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">debug_wsgi_factory</span><span class="p">,</span> <span class="n">config_file</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span> <span class="n">pdb</span><span class="o">=</span><span class="n">pdb</span><span class="p">)</span>
     <span class="n">server</span> <span class="o">=</span> <span class="n">WsgiServer</span><span class="p">(</span><span class="n">factory</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">enable_tracemalloc</span><span class="o">=</span><span class="n">tracemalloc</span><span class="p">)</span>
     <span class="n">server</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
@@ -184,7 +279,7 @@
     <span class="n">server</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
 
 
-<span class="k">def</span> <span class="nf">wsgi_factory</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="n">pdb</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">debug_wsgi_factory</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="n">pdb</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">Server</span><span class="p">(</span><span class="n">Config</span><span class="o">.</span><span class="n">from_yaml_file</span><span class="p">(</span><span class="n">config_file</span><span class="p">),</span> <span class="n">post_mortem</span><span class="o">=</span><span class="n">pdb</span><span class="p">)</span>
 
 
