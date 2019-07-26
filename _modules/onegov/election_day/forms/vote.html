@@ -150,7 +150,29 @@
     <span class="p">)</span>
 
     <span class="n">related_link</span> <span class="o">=</span> <span class="n">URLField</span><span class="p">(</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Related link&quot;</span><span class="p">)</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Link&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Related link&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">related_link_label_de</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Link label german&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Related link&quot;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;lang&#39;</span><span class="p">:</span> <span class="s1">&#39;de&#39;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">related_link_label_fr</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Link label french&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Related link&quot;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;lang&#39;</span><span class="p">:</span> <span class="s1">&#39;fr&#39;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">related_link_label_it</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Link label italian&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Related link&quot;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;lang&#39;</span><span class="p">:</span> <span class="s1">&#39;it&#39;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">related_link_label_rm</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Link label romansh&quot;</span><span class="p">),</span>
+        <span class="n">fieldset</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Related link&quot;</span><span class="p">),</span>
+        <span class="n">render_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;lang&#39;</span><span class="p">:</span> <span class="s1">&#39;rm&#39;</span><span class="p">}</span>
     <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">on_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -192,6 +214,17 @@
             <span class="n">titles</span><span class="p">[</span><span class="s1">&#39;rm_CH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vote_rm</span><span class="o">.</span><span class="n">data</span>
         <span class="n">model</span><span class="o">.</span><span class="n">title_translations</span> <span class="o">=</span> <span class="n">titles</span>
 
+        <span class="n">link_labels</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_link_label_de</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="n">link_labels</span><span class="p">[</span><span class="s1">&#39;de_CH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_link_label_de</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_link_label_fr</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="n">link_labels</span><span class="p">[</span><span class="s1">&#39;fr_CH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_link_label_fr</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_link_label_it</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="n">link_labels</span><span class="p">[</span><span class="s1">&#39;it_CH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_link_label_it</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_link_label_rm</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="n">link_labels</span><span class="p">[</span><span class="s1">&#39;rm_CH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">related_link_label_rm</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">related_link_label</span> <span class="o">=</span> <span class="n">link_labels</span>
+
         <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;complex&#39;</span><span class="p">:</span>
             <span class="n">titles</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter_proposal_de</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
@@ -221,6 +254,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">vote_fr</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">titles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;fr_CH&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vote_it</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">titles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;it_CH&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vote_rm</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">titles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rm_CH&#39;</span><span class="p">)</span>
+
+        <span class="n">link_labels</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">related_link_label</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">related_link_label_de</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">link_labels</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;de_CH&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">related_link_label_fr</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">link_labels</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;fr_CH&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">related_link_label_it</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">link_labels</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;it_CH&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">related_link_label_rm</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">link_labels</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rm_CH&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">date</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">domain</span>

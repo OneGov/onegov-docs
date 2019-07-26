@@ -33,6 +33,7 @@
   <h1>Source code for onegov.search.integration</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">certifi</span>
 <span class="kn">import</span> <span class="nn">morepath</span>
+<span class="kn">import</span> <span class="nn">ssl</span>
 
 <span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="k">import</span> <span class="n">ThreadPoolExecutor</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
@@ -40,6 +41,7 @@
 <span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="k">import</span> <span class="n">Elasticsearch</span>
 <span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="k">import</span> <span class="n">Transport</span>
 <span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="k">import</span> <span class="n">TransportError</span>
+<span class="kn">from</span> <span class="nn">elasticsearch.connection</span> <span class="k">import</span> <span class="n">create_ssl_context</span>
 <span class="kn">from</span> <span class="nn">more.transaction.main</span> <span class="k">import</span> <span class="n">transaction_tween_factory</span>
 <span class="kn">from</span> <span class="nn">onegov.search</span> <span class="k">import</span> <span class="n">Search</span><span class="p">,</span> <span class="n">log</span>
 <span class="kn">from</span> <span class="nn">onegov.search.errors</span> <span class="k">import</span> <span class="n">SearchOfflineError</span>
@@ -197,8 +199,12 @@
                 <span class="s1">&#39;ca_certs&#39;</span><span class="p">:</span> <span class="n">certifi</span><span class="o">.</span><span class="n">where</span><span class="p">()</span>
             <span class="p">}</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="n">ssl_context</span> <span class="o">=</span> <span class="n">create_ssl_context</span><span class="p">()</span>
+            <span class="n">ssl_context</span><span class="o">.</span><span class="n">check_hostname</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">ssl_context</span><span class="o">.</span><span class="n">verify_mode</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">CERT_NONE</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">es_extra_params</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s1">&#39;verify_certs&#39;</span><span class="p">:</span> <span class="kc">False</span>
+                <span class="s1">&#39;verify_certs&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s1">&#39;ssl_context&#39;</span><span class="p">:</span> <span class="n">ssl_context</span>
             <span class="p">}</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">es_configure_client</span><span class="p">(</span><span class="n">usage</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">)</span>
