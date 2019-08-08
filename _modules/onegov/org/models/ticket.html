@@ -187,6 +187,7 @@
 
 <div class="viewcode-block" id="FormSubmissionHandler.get_summary"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.FormSubmissionHandler.get_summary">[docs]</a>    <span class="k">def</span> <span class="nf">get_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
         <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">render_macro</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">macros</span><span class="p">[</span><span class="s1">&#39;display_form&#39;</span><span class="p">],</span> <span class="n">request</span><span class="p">,</span> <span class="p">{</span>
             <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span><span class="p">,</span>
             <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span>
@@ -662,10 +663,32 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Directory</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">directory_id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
 
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">entry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="p">:</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;directory_entry&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">handler_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;directory_entry&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">DirectoryEntry</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="nb">id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">deleted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;change-request&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="o">.</span><span class="n">meta</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">handler_data</span>
+
+            <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">DirectoryEntry</span><span class="p">)</span>\
+                <span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;directory_entry&#39;</span><span class="p">])</span>\
+                <span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">entry</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;adopted&#39;</span><span class="p">:</span>
             <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">handler_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;entry_name&#39;</span><span class="p">)</span>
@@ -711,11 +734,31 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">kind</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="o">.</span><span class="n">meta</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticket</span><span class="o">.</span><span class="n">handler_data</span>
+
+        <span class="k">if</span> <span class="s1">&#39;change-request&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;extensions&#39;</span><span class="p">,</span> <span class="p">()):</span>
+            <span class="k">return</span> <span class="s1">&#39;change-request&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;new-entry&#39;</span>
+
 <div class="viewcode-block" id="DirectoryEntryHandler.get_summary"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.DirectoryEntryHandler.get_summary">[docs]</a>    <span class="k">def</span> <span class="nf">get_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
         <span class="n">layout</span> <span class="o">=</span> <span class="n">DefaultLayout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">submission</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">render_macro</span><span class="p">(</span><span class="n">layout</span><span class="o">.</span><span class="n">macros</span><span class="p">[</span><span class="s1">&#39;display_form&#39;</span><span class="p">],</span> <span class="n">request</span><span class="p">,</span> <span class="p">{</span>
+
+        <span class="c1"># XXX this is a poor man&#39;s request.get_form</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">request</span> <span class="o">=</span> <span class="n">request</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">submission</span>
+
+        <span class="n">macro</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">macros</span><span class="p">[</span><span class="s1">&#39;directory_entry_submission&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">render_macro</span><span class="p">(</span><span class="n">macro</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="p">{</span>
             <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span><span class="p">,</span>
-            <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span>
+            <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="n">layout</span><span class="p">,</span>
+            <span class="s1">&#39;handler&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span>
         <span class="p">})</span></div>
 
 <div class="viewcode-block" id="DirectoryEntryHandler.get_links"><a class="viewcode-back" href="../../../../onegov_org.html#onegov.org.models.ticket.DirectoryEntryHandler.get_links">[docs]</a>    <span class="k">def</span> <span class="nf">get_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
