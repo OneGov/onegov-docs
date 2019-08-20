@@ -38,7 +38,8 @@
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ListConnection</span>
 <span class="kn">from</span> <span class="nn">onegov.ballot</span> <span class="k">import</span> <span class="n">ListResult</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day</span> <span class="k">import</span> <span class="n">_</span>
-<span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">EXPATS</span><span class="p">,</span> <span class="n">line_is_relevant</span>
+<span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">EXPATS</span><span class="p">,</span> <span class="n">line_is_relevant</span><span class="p">,</span> \
+    <span class="n">validate_integer</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">FileImportError</span>
 <span class="kn">from</span> <span class="nn">onegov.election_day.formats.common</span> <span class="k">import</span> <span class="n">load_csv</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">object_session</span>
@@ -95,77 +96,10 @@
 <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">get_number_of_mandates</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
-    <span class="n">col</span> <span class="o">=</span> <span class="s1">&#39;sitze&#39;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Missing column: $</span><span class="si">{col}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">}))</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">sitze</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Invalid integer: $</span><span class="si">{col}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">}))</span>
-
-
-<span class="k">def</span> <span class="nf">get_ausmittlungsstand</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
-    <span class="n">col</span> <span class="o">=</span> <span class="s1">&#39;ausmittlungsstand&#39;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">ausmittlungsstand</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
-
-    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Invalid integer: $</span><span class="si">{col}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">}))</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">result</span> <span class="o">&lt;=</span> <span class="mi">3</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Value $</span><span class="si">{col}</span><span class="s1"> is not between 0 and 3&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">}))</span>
-    <span class="k">return</span> <span class="n">result</span>
-
-
-<span class="k">def</span> <span class="nf">get_stimmberechtigte</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
-    <span class="n">col</span> <span class="o">=</span> <span class="s1">&#39;stimmberechtigte&#39;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Missing column: $</span><span class="si">{col}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">}))</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stimmberechtigte</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Invalid integer: $</span><span class="si">{col}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">}))</span>
-
-
-<span class="k">def</span> <span class="nf">get_stimmentotal</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
-    <span class="n">col</span> <span class="o">=</span> <span class="s1">&#39;stimmentotal&#39;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Missing column: $</span><span class="si">{col}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">}))</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stimmentotal</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Invalid integer: $</span><span class="si">{col}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">}))</span>
-
-
 <span class="k">def</span> <span class="nf">get_entity_id</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">expats</span><span class="p">):</span>
     <span class="n">col</span> <span class="o">=</span> <span class="s1">&#39;bfsnrgemeinde&#39;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Missing column: $</span><span class="si">{col}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">}))</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">entity_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">bfsnrgemeinde</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Invalid integer: $</span><span class="si">{col}</span><span class="s1">&#39;</span>
-              <span class="s1">&#39; Can not extract entity_id.&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">}))</span>
+    <span class="n">entity_id</span> <span class="o">=</span> <span class="n">validate_integer</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
     <span class="k">return</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">entity_id</span> <span class="ow">in</span> <span class="n">expats</span> <span class="k">else</span> <span class="n">entity_id</span>
-
-
-<span class="k">def</span> <span class="nf">get_votes</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
-    <span class="n">col</span> <span class="o">=</span> <span class="s1">&#39;stimmen&#39;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Missing column: $</span><span class="si">{col}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">}))</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stimmen</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Invalid integer: $</span><span class="si">{col}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">})</span>
-        <span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">get_list_id_from_knr</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
@@ -174,18 +108,12 @@
 <span class="sd">    returns the derived listnr for this candidate. Will also handle the new</span>
 <span class="sd">    WabstiC Standard 2018.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">col</span> <span class="o">=</span> <span class="s1">&#39;knr&#39;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Missing column: $</span><span class="si">{col}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">,</span> <span class="n">col</span><span class="p">}))</span>
     <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">knr</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">knr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">knr</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
 
 
 <span class="k">def</span> <span class="nf">get_list_id</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
-    <span class="n">col</span> <span class="o">=</span> <span class="s1">&#39;listnr&#39;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Missing column: $</span><span class="si">{col}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="n">col</span><span class="p">}))</span>
     <span class="n">number</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">listnr</span> <span class="ow">or</span> <span class="s1">&#39;0&#39;</span>
     <span class="c1"># wabstiC 99 is blank list that maps to 999 see open_data_de.md</span>
     <span class="n">number</span> <span class="o">=</span> <span class="s1">&#39;999&#39;</span> <span class="k">if</span> <span class="n">number</span> <span class="o">==</span> <span class="s1">&#39;99&#39;</span> <span class="k">else</span> <span class="n">number</span>
@@ -296,9 +224,14 @@
             <span class="k">continue</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">complete</span> <span class="o">=</span> <span class="n">get_ausmittlungsstand</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
-        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">AssertionError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">complete</span> <span class="o">=</span> <span class="n">validate_integer</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;ausmittlungsstand&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">complete</span> <span class="o">&lt;=</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s1">&#39;Value $</span><span class="si">{col}</span><span class="s1"> is not between 0 and 3&#39;</span><span class="p">,</span>
+                      <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;col&#39;</span><span class="p">:</span> <span class="s1">&#39;ausmittlungsstand&#39;</span><span class="p">}))</span>
 
         <span class="c1"># Pass the errors and continue to next line</span>
         <span class="k">if</span> <span class="n">line_errors</span><span class="p">:</span>
@@ -335,7 +268,7 @@
 
         <span class="c1"># Parse the eligible voters</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">eligible_voters</span> <span class="o">=</span> <span class="n">get_stimmberechtigte</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">eligible_voters</span> <span class="o">=</span> <span class="n">validate_integer</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;stimmberechtigte&#39;</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
@@ -389,7 +322,7 @@
 
         <span class="c1"># Parse the eligible voters</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">eligible_voters</span> <span class="o">=</span> <span class="n">get_stimmberechtigte</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">eligible_voters</span> <span class="o">=</span> <span class="n">validate_integer</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;stimmberechtigte&#39;</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
@@ -401,11 +334,11 @@
 
         <span class="c1"># Parse the ballots and votes</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">received_ballots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stmabgegeben</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="n">blank_ballots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stmleer</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="n">invalid_ballots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">stmungueltig</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid entity values&quot;</span><span class="p">))</span>
+            <span class="n">received_ballots</span> <span class="o">=</span> <span class="n">validate_integer</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;stmabgegeben&#39;</span><span class="p">)</span>
+            <span class="n">blank_ballots</span> <span class="o">=</span> <span class="n">validate_integer</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;stmleer&#39;</span><span class="p">)</span>
+            <span class="n">invalid_ballots</span> <span class="o">=</span> <span class="n">validate_integer</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;stmungueltig&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;received_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">received_ballots</span>
             <span class="n">entity</span><span class="p">[</span><span class="s1">&#39;blank_ballots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">blank_ballots</span>
@@ -434,7 +367,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">list_id</span> <span class="o">=</span> <span class="n">get_list_id</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">listcode</span>
-            <span class="n">number_of_mandates</span> <span class="o">=</span> <span class="n">get_number_of_mandates</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">number_of_mandates</span> <span class="o">=</span> <span class="n">validate_integer</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;sitze&#39;</span><span class="p">)</span>
             <span class="n">connection</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">listverb</span> <span class="ow">or</span> <span class="kc">None</span>
             <span class="n">subconnection</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">listuntverb</span> <span class="ow">or</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="n">subconnection</span><span class="p">:</span>
@@ -498,7 +431,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">entity_id</span> <span class="o">=</span> <span class="n">get_entity_id</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">EXPATS</span><span class="p">)</span>
             <span class="n">list_id</span> <span class="o">=</span> <span class="n">get_list_id</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
-            <span class="n">votes</span> <span class="o">=</span> <span class="n">get_stimmentotal</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">votes</span> <span class="o">=</span> <span class="n">validate_integer</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;stimmentotal&#39;</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
@@ -553,7 +486,7 @@
             <span class="n">list_id</span> <span class="o">=</span> <span class="n">get_list_id_from_knr</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
             <span class="n">family_name</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">nachname</span>
             <span class="n">first_name</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">vorname</span>
-        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
             <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid candidate values&quot;</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">candidate_id</span> <span class="ow">in</span> <span class="n">added_candidates</span><span class="p">:</span>
@@ -597,13 +530,16 @@
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">candidate_id</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">knr</span>
-            <span class="k">assert</span> <span class="n">candidate_id</span> <span class="ow">in</span> <span class="n">added_candidates</span>
-            <span class="n">elected</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">gewaehlt</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span> <span class="k">else</span> <span class="kc">False</span>
-        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">AssertionError</span><span class="p">):</span>
-            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Candidate with id $</span><span class="si">{id}</span><span class="s2"> not in wpstatic_kandidaten&quot;</span><span class="p">,</span>
-                  <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">candidate_id</span><span class="p">}))</span>
+            <span class="n">gewaehlt</span> <span class="o">=</span> <span class="n">validate_integer</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;gewaehlt&#39;</span><span class="p">)</span>
+            <span class="n">elected</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">gewaehlt</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
         <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">candidate_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_candidates</span><span class="p">:</span>
+                <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">_</span><span class="p">(</span><span class="s2">&quot;Candidate with id $</span><span class="si">{id}</span><span class="s2"> not in wpstatic_kandidaten&quot;</span><span class="p">,</span>
+                      <span class="n">mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">candidate_id</span><span class="p">}))</span>
             <span class="n">added_candidates</span><span class="p">[</span><span class="n">candidate_id</span><span class="p">][</span><span class="s1">&#39;elected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elected</span>
 
         <span class="c1"># Pass the errors and continue to next line</span>
@@ -624,7 +560,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">entity_id</span> <span class="o">=</span> <span class="n">get_entity_id</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">EXPATS</span><span class="p">)</span>
             <span class="n">candidate_id</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">knr</span>
-            <span class="n">votes</span> <span class="o">=</span> <span class="n">get_votes</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">votes</span> <span class="o">=</span> <span class="n">validate_integer</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;stimmen&#39;</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">line_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
