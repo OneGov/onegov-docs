@@ -155,6 +155,8 @@
         <span class="s2">&quot;-h 127.0.0.1&quot;</span><span class="p">,</span>
         <span class="s2">&quot;-F&quot;</span><span class="p">,</span>
         <span class="s2">&quot;-c logging_collector=off&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-c fsync=off&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-c full_page_writes=off&quot;</span><span class="p">,</span>
         <span class="s2">&quot;-N 1024&quot;</span>
     <span class="p">))</span>
 
@@ -259,7 +261,7 @@
 
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">es_default_version</span><span class="p">():</span>
-    <span class="k">return</span> <span class="s1">&#39;6.6.0&#39;</span>
+    <span class="k">return</span> <span class="s1">&#39;6.8.2&#39;</span>
 
 
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
@@ -305,10 +307,20 @@
     <span class="n">port</span> <span class="o">=</span> <span class="n">port_for</span><span class="o">.</span><span class="n">select_random</span><span class="p">()</span>
     <span class="n">pid</span> <span class="o">=</span> <span class="n">es_binary</span> <span class="o">+</span> <span class="s1">&#39;.pid&#39;</span>
 
-    <span class="n">command</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{es_binary}</span><span class="s2"> -p </span><span class="si">{pid}</span><span class="s2"> -E http.port=</span><span class="si">{port}</span><span class="s2">&quot;</span>
+    <span class="c1"># use a different garbage collector for better performance</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;ES_JAVA_OPTS&#39;</span><span class="p">]</span> <span class="o">=</span> \
+        <span class="s1">&#39;-Xms1g -Xmx1g -XX:-UseConcMarkSweepGC -XX:+UseG1GC&#39;</span>
+
+    <span class="n">command</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">f</span><span class="s2">&quot;</span><span class="si">{es_binary}</span><span class="s2"> -p </span><span class="si">{pid}</span><span class="s2"> -E http.port=</span><span class="si">{port}</span><span class="s2"> &quot;</span>
+        <span class="n">f</span><span class="s2">&quot;-E xpack.monitoring.enabled=false &quot;</span>
+        <span class="n">f</span><span class="s2">&quot;-E xpack.monitoring.collection.enabled=false &quot;</span>
+        <span class="n">f</span><span class="s2">&quot;&gt; /dev/null&quot;</span>
+    <span class="p">)</span>
+
     <span class="n">url</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;http://127.0.0.1:</span><span class="si">{port}</span><span class="s1">/_cluster/health?wait_for_status=green&#39;</span>
 
-    <span class="n">executor</span> <span class="o">=</span> <span class="n">HTTPExecutor</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;GET&#39;</span><span class="p">)</span>
+    <span class="n">executor</span> <span class="o">=</span> <span class="n">HTTPExecutor</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">executor</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
     <span class="k">yield</span> <span class="n">executor</span>
@@ -330,7 +342,8 @@
     <span class="k">yield</span> <span class="n">url</span>
 
     <span class="n">es</span> <span class="o">=</span> <span class="n">Elasticsearch</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-    <span class="n">es</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">)</span></div>
+    <span class="n">es</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">)</span>
+    <span class="n">es</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="es_client"><a class="viewcode-back" href="../../onegov_testing.html#onegov_testing.fixtures.es_client">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
