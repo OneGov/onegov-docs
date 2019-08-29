@@ -51,6 +51,7 @@
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">operators</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">type_api</span>
 <span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">_bind_or_error</span>
+<span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">NO_ARG</span>
 <span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">SchemaEventTarget</span>
 <span class="kn">from</span> <span class="nn">.elements</span> <span class="k">import</span> <span class="n">_defer_name</span>
 <span class="kn">from</span> <span class="nn">.elements</span> <span class="k">import</span> <span class="n">_literal_as_binds</span>
@@ -1388,6 +1389,19 @@
 
 <span class="sd">           .. versionadded:: 1.2.3</span>
 
+<span class="sd">        :param sort_key_function: a Python callable which may be used as the</span>
+<span class="sd">           &quot;key&quot; argument in the Python ``sorted()`` built-in.   The SQLAlchemy</span>
+<span class="sd">           ORM requires that primary key columns which are mapped must</span>
+<span class="sd">           be sortable in some way.  When using an unsortable enumeration</span>
+<span class="sd">           object such as a Python 3 ``Enum`` object, this parameter may be</span>
+<span class="sd">           used to set a default sort key function for the objects.  By</span>
+<span class="sd">           default, the database value of the enumeration is used as the</span>
+<span class="sd">           sorting function.</span>
+
+<span class="sd">            .. versionadded:: 1.3.8</span>
+
+
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_enum_init</span><span class="p">(</span><span class="n">enums</span><span class="p">,</span> <span class="n">kw</span><span class="p">)</span>
 
@@ -1409,6 +1423,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">native_enum</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;native_enum&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">create_constraint</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;create_constraint&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">values_callable</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;values_callable&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sort_key_function</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;sort_key_function&quot;</span><span class="p">,</span> <span class="n">NO_ARG</span><span class="p">)</span>
 
         <span class="n">values</span><span class="p">,</span> <span class="n">objects</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_into_values</span><span class="p">(</span><span class="n">enums</span><span class="p">,</span> <span class="n">kw</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_setup_for_values</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">objects</span><span class="p">,</span> <span class="n">kw</span><span class="p">)</span>
@@ -1480,6 +1495,13 @@
                 <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span>
             <span class="p">]</span>
         <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sort_key_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sort_key_function</span> <span class="ow">is</span> <span class="n">NO_ARG</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db_value_for_elem</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sort_key_function</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">native</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
